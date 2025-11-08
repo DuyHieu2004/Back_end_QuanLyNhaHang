@@ -1,0 +1,11 @@
+# VisualStudio specific
+*.vs/
+*.user
+*.suo
+
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# Rider specific
+.idea/

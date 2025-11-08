@@ -1,0 +1,80 @@
+﻿@* @model QuanLyNhaHang.Models.MonAn
+
+@{
+    ViewData["Title"] = "Thêm món ăn mới";
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h4 class="m-0 font-weight-bold text-primary">@ViewData["Title"]</h4>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <form asp-action="Create" enctype="multipart/form-data">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="MaMonAn" class="control-label"></label>
+                                <input asp-for="MaMonAn" class="form-control" />
+                                <span asp-validation-for="MaMonAn" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="TenMonAn" class="control-label"></label>
+                                <input asp-for="TenMonAn" class="form-control" />
+                                <span asp-validation-for="TenMonAn" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="Gia" class="control-label"></label>
+                                <input asp-for="Gia" type="number" class="form-control" />
+                                <span asp-validation-for="Gia" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="MaDanhMuc" class="control-label">Danh mục</label>
+                                <select asp-for="MaDanhMuc" class="form-control" asp-items="ViewBag.MaDanhMuc"></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="SoLuong" class="control-label"></label>
+                                <input asp-for="SoLuong" type="number" class="form-control" />
+                                <span asp-validation-for="SoLuong" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="TrangThai" class="control-label"></label>
+                                <input asp-for="TrangThai" class="form-control" value="Còn hàng" />
+                                <span asp-validation-for="TrangThai" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-3">
+                        <label class="control-label">Hình ảnh (có thể chọn nhiều ảnh)</label>
+                        <input type="file" name="images" multiple class="form-control" accept="image/*" />
+                    </div>
+
+                    <div class="form-group mt-4">
+                        <input type="submit" value="Tạo mới" class="btn btn-primary" />
+                        <a asp-action="Index" class="btn btn-secondary">Quay lại danh sách</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div> *@

@@ -1,0 +1,30 @@
+﻿@* @model QuanLyNhaHang.Models.MonAn
+
+@{
+    ViewData["Title"] = "Xác nhận xóa món ăn";
+}
+
+<div class="card shadow mb-4 border-left-danger">
+    <div class="card-header py-3">
+        <h4 class="m-0 font-weight-bold text-danger"><i class="fas fa-exclamation-triangle"></i> @ViewData["Title"]</h4>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-danger">
+            Bạn có chắc chắn muốn xóa vĩnh viễn món ăn <strong>@Model.TenMonAn</strong> không?
+            Hành động này không thể hoàn tác.
+        </div>
+
+        <dl class="row">
+            <dt class="col-sm-3">Mã món ăn</dt>
+            <dd class="col-sm-9">@Html.DisplayFor(model => model.MaMonAn)</dd>
+            <dt class="col-sm-3">Danh mục</dt>
+            <dd class="col-sm-9">@Html.DisplayFor(model => model.MaDanhMucNavigation.TenDanhMuc)</dd>
+        </dl>
+
+        <form asp-action="Delete">
+            <input type="hidden" asp-for="MaMonAn" />
+            <input type="submit" value="Xác nhận Xóa" class="btn btn-danger" />
+            <a asp-action="Index" class="btn btn-secondary">Hủy</a>
+        </form>
+    </div>
+</div> *@

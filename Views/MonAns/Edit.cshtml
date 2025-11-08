@@ -1,0 +1,91 @@
+﻿@* @model QuanLyNhaHang.Models.MonAn
+
+@{
+    ViewData["Title"] = "Chỉnh sửa món ăn";
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h4 class="m-0 font-weight-bold text-primary">@ViewData["Title"]: @Model.TenMonAn</h4>
+    </div>
+    <div class="card-body">
+        <form asp-action="Edit" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="MaMonAn" />
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="TenMonAn" class="control-label"></label>
+                                <input asp-for="TenMonAn" class="form-control" />
+                                <span asp-validation-for="TenMonAn" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="Gia" class="control-label"></label>
+                                <input asp-for="Gia" type="number" class="form-control" />
+                                <span asp-validation-for="Gia" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="MaDanhMuc" class="control-label">Danh mục</label>
+                                <select asp-for="MaDanhMuc" class="form-control" asp-items="ViewBag.MaDanhMuc"></select>
+                                <span asp-validation-for="MaDanhMuc" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="SoLuong" class="control-label"></label>
+                                <input asp-for="SoLuong" type="number" class="form-control" />
+                                <span asp-validation-for="SoLuong" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="TrangThai" class="control-label"></label>
+                        <input asp-for="TrangThai" class="form-control" />
+                        <span asp-validation-for="TrangThai" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="control-label">Thêm ảnh mới</label>
+                        <input type="file" name="newImages" multiple class="form-control" accept="image/*" />
+                    </div>
+                </div>
+            </div>
+
+            <hr />
+            <h5>Quản lý ảnh hiện tại</h5>
+            <div class="row mt-3">
+                @if (!Model.HinhAnhMonAns.Any())
+                {
+                    <p>Chưa có hình ảnh nào cho món ăn này.</p>
+                }
+                @foreach (var image in Model.HinhAnhMonAns)
+                {
+                    <div class="col-md-2 mb-3 text-center">
+                        <img src="~/@image.URLHinhAnh" class="img-thumbnail" />
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="imagesToDelete" value="@image.Id" id="del_@image.Id">
+                            <label class="form-check-label text-danger" for="del_@image.Id">
+                                <i class="fas fa-trash-alt"></i> Xóa
+                            </label>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="form-group mt-4">
+                <input type="submit" value="Lưu thay đổi" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Quay lại danh sách</a>
+            </div>
+        </form>
+    </div>
+</div> *@

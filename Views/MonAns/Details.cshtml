@@ -1,0 +1,60 @@
+﻿@* @model QuanLyNhaHang.Models.MonAn
+
+@{
+    ViewData["Title"] = "Chi tiết món ăn";
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h4 class="m-0 font-weight-bold text-primary">@Model.TenMonAn</h4>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <dl class="row">
+                    <dt class="col-sm-3">Mã món ăn</dt>
+                    <dd class="col-sm-9">@Html.DisplayFor(model => model.MaMonAn)</dd>
+
+                    <dt class="col-sm-3">Giá</dt>
+                    <dd class="col-sm-9">@Model.Gia.ToString("N0") VNĐ</dd>
+
+                    <dt class="col-sm-3">Trạng thái</dt>
+                    <dd class="col-sm-9">@Html.DisplayFor(model => model.TrangThai)</dd>
+
+                    <dt class="col-sm-3">Số lượng còn lại</dt>
+                    <dd class="col-sm-9">@Html.DisplayFor(model => model.SoLuong)</dd>
+
+                    <dt class="col-sm-3">Thuộc danh mục</dt>
+                    <dd class="col-sm-9">@Html.DisplayFor(model => model.MaDanhMucNavigation.TenDanhMuc)</dd>
+                </dl>
+            </div>
+        </div>
+
+        <hr />
+
+        <h5 class="mt-4">Album hình ảnh</h5>
+        <div class="row mt-3">
+            @if (Model.HinhAnhMonAns.Any())
+            {
+                @foreach (var image in Model.HinhAnhMonAns)
+                {
+                    <div class="col-md-3 mb-3">
+                        <a href="~/@image.URLHinhAnh" target="_blank">
+                            <img src="~/@image.URLHinhAnh" class="img-fluid rounded shadow-sm" style="height: 200px; width:100%; object-fit: cover;" alt="Hình ảnh của @Model.TenMonAn" />
+                        </a>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="col-12">
+                    <p class="text-muted">Món ăn này chưa có hình ảnh.</p>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="card-footer">
+        <a asp-action="Edit" asp-route-id="@Model.MaMonAn" class="btn btn-primary"><i class="fas fa-pencil-alt"></i> Sửa</a>
+        <a asp-action="Index" class="btn btn-secondary">Quay lại danh sách</a>
+    </div>
+</div> *@
