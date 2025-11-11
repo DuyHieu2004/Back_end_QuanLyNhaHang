@@ -21,6 +21,8 @@ public class MonAnsAPIController : ControllerBase
         var query = _context.MonAns
                            .Include(m => m.HinhAnhMonAns)
                             .Include(m => m.MaDanhMucNavigation)
+                            .Include(m => m.PhienBanMonAns)
+                            .AsSplitQuery()
                             .AsQueryable();
 
 
@@ -47,6 +49,8 @@ public class MonAnsAPIController : ControllerBase
         var monAn = await _context.MonAns
                                   .Include(m => m.HinhAnhMonAns)
                                   .Include(m => m.MaDanhMucNavigation)
+                                  .Include(m => m.PhienBanMonAns)
+                                  .AsSplitQuery()
                                   .FirstOrDefaultAsync(m => m.MaMonAn == id);
 
         if (monAn == null)
