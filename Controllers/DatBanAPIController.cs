@@ -12,7 +12,7 @@ namespace QuanLyNhaHang.Controllers
     {
         private readonly QLNhaHangContext _context;
 
-        public DatBanAPIController(QLNhaHangContext context)
+        public DatBanAPIController(QLNhaHangContext  context)
         {
             _context = context;
         }

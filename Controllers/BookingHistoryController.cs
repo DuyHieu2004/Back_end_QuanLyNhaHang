@@ -12,7 +12,7 @@ using System.Security.Claims;
 [Authorize] // BẮT BUỘC: Chỉ người đã đăng nhập (có Token) mới được gọi
 public class BookingHistoryController : ControllerBase
 {
-    private readonly QLNhaHangContext _context;
+    private readonly  QLNhaHangContext _context;
 
     public BookingHistoryController(QLNhaHangContext context)
     {

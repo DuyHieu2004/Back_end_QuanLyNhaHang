@@ -9,7 +9,7 @@ public partial class HinhAnhMonAn
 
     public string MaMonAn { get; set; } = null!;
 
-    public string UrlhinhAnh { get; set; } = null!;
+    public string URLHinhAnh { get; set; } = null!;
 
     public virtual MonAn MaMonAnNavigation { get; set; } = null!;
 }
