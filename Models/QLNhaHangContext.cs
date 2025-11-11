@@ -268,7 +268,14 @@ public partial class QLNhaHangContext : DbContext
 
         modelBuilder.Entity<HinhAnhMonAn>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__HinhAnhM__3214EC077326ACA6");
+            entity.HasKey(e => e.Id).HasName("PK__HinhAnhM__3214EC0709D7DE3F");
+
+            entity.ToTable("HinhAnhMonAn");
+
+            entity.Property(e => e.MaMonAn)
+                .HasMaxLength(15)
+                .IsUnicode(false);
+            entity.Property(e => e.UrlhinhAnh).HasColumnName("URLHinhAnh");
 
             entity.HasOne(d => d.MaMonAnNavigation).WithMany(p => p.HinhAnhMonAns)
                 .HasForeignKey(d => d.MaMonAn)
