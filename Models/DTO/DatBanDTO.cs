@@ -20,5 +20,7 @@ namespace QuanLyNhaHang.Models.DTO
         {
             get; set;
         }
+
+        public decimal? TienDatCoc { get; set; }
     }
 }

@@ -88,7 +88,7 @@ namespace QuanLyNhaHang.Controllers
                         var hinhAnhMonAn = new HinhAnhMonAn
                         {
                             MaMonAn = monAn.MaMonAn,
-                            URLHinhAnh = $"images/monans/{monAn.MaMonAn}/{uniqueFileName}"
+                            UrlhinhAnh = $"images/monans/{monAn.MaMonAn}/{uniqueFileName}"
                         };
                         _context.Add(hinhAnhMonAn);
                     }
@@ -140,7 +140,7 @@ namespace QuanLyNhaHang.Controllers
                             {
                              
                                 string webRootPath = _webHostEnvironment.WebRootPath;
-                                var oldImagePath = Path.Combine(webRootPath, imageRecord.URLHinhAnh.Replace("/", "\\"));
+                                var oldImagePath = Path.Combine(webRootPath, imageRecord.UrlhinhAnh.Replace("/", "\\"));
                                 if (System.IO.File.Exists(oldImagePath))
                                 {
                                     System.IO.File.Delete(oldImagePath);
@@ -172,7 +172,7 @@ namespace QuanLyNhaHang.Controllers
                             var hinhAnhMonAn = new HinhAnhMonAn
                             {
                                 MaMonAn = monAn.MaMonAn,
-                                URLHinhAnh = $"images/monans/{monAn.MaMonAn}/{uniqueFileName}"
+                                UrlhinhAnh = $"images/monans/{monAn.MaMonAn}/{uniqueFileName}"
                             };
                             _context.Add(hinhAnhMonAn);
                         }
