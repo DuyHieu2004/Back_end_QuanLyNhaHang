@@ -8,29 +8,31 @@ using QuanLyNhaHang.Services;
 namespace QuanLyNhaHang.Controllers
 {
 
-        [ApiController]
-        [Route("api/[controller]")]
-        public class AuthController : ControllerBase
+    [ApiController]
+    [Route("api/[controller]")]
+    public class AuthController : ControllerBase
+    {
+        private readonly QLNhaHangContext _context;
+        private readonly IOtpService _otpService;
+        private readonly JwtService _jwtService;
+        private readonly IEmailService _emailService;
+
+
+        public AuthController(QLNhaHangContext context,
+                              IOtpService otpService,
+                              JwtService jwtService,
+                              IEmailService emailService)
         {
-            private readonly QLNhaHangContext _context;
-            private readonly IOtpService _otpService;
-            private readonly JwtService _jwtService;
-            private readonly IEmailService _emailService; 
+            _context = context;
+            _otpService = otpService;
+            _jwtService = jwtService;
+            _emailService = emailService;
+        }
 
-        
-            public AuthController(QLNhaHangContext context,
-                                  IOtpService otpService,
-                                  JwtService jwtService,
-                                  IEmailService emailService) 
-            {
-                _context = context;
-                _otpService = otpService;
-                _jwtService = jwtService;
-                _emailService = emailService; 
-            }
-
-            [HttpPost("check-user")]
-            public async Task<IActionResult> CheckUser([FromBody] CheckUserRequest req)
+        [HttpPost("check-user")]
+        public async Task<IActionResult> CheckUser([FromBody] CheckUserRequest req)
+        {
+            try
             {
                 KhachHang? kh = null;
                 bool userExists = false;
@@ -46,25 +48,33 @@ namespace QuanLyNhaHang.Controllers
 
                 userExists = (kh != null);
 
-            
                 var otp = _otpService.GenerateAndStoreOtp(req.Identifier);
 
                 if (req.Identifier.Contains("@"))
                 {
-                
                     var hoTen = userExists ? kh.HoTen : "bạn";
 
-                  
+                    // LỖI CÓ THỂ XẢY RA Ở ĐÂY (NẾU SAI API KEY)
                     await _emailService.SendOtpEmailAsync(req.Identifier, hoTen, otp);
                 }
                 else
                 {
-                 
                     Console.WriteLine($"*** OTP cho SĐT {req.Identifier} là: {otp} ***");
                 }
 
+                // Nếu mọi thứ thành công
                 return Ok(new CheckUserResponse { UserExists = userExists });
             }
+            catch (Exception e)
+            {
+                // In lỗi ra Console .NET để debug
+                Console.WriteLine($"*** LỖI NGHIÊM TRỌNG TẠI CHECKUSER: {e.Message} ***");
+
+                // Trả về lỗi 500 với thông báo lỗi
+                // Flutter có thể đọc được e.Message này trong response.body
+                return StatusCode(500, $"Lỗi máy chủ nội bộ: {e.Message}");
+            }
+        }
 
 
         // BƯỚC 3 (ĐĂNG KÝ)
@@ -76,10 +86,10 @@ namespace QuanLyNhaHang.Controllers
                 return BadRequest(new { Message = "OTP không hợp lệ hoặc đã hết hạn." });
             }
 
-       
+
             var newKhachHang = new KhachHang
             {
-               
+
                 MaKhachHang = $"KH{DateTime.Now.Ticks}",
                 HoTen = req.HoTen
             };
@@ -87,7 +97,7 @@ namespace QuanLyNhaHang.Controllers
             if (req.Identifier.Contains("@"))
             {
                 newKhachHang.Email = req.Identifier;
-                newKhachHang.SoDienThoai = ""; 
+                newKhachHang.SoDienThoai = "";
             }
             else
             {
@@ -95,11 +105,11 @@ namespace QuanLyNhaHang.Controllers
                 newKhachHang.Email = "";
             }
 
-            
+
             _context.KhachHangs.Add(newKhachHang);
             await _context.SaveChangesAsync();
 
-          
+
             var token = _jwtService.GenerateToken(newKhachHang);
 
             return Ok(new AuthResponse
@@ -114,13 +124,13 @@ namespace QuanLyNhaHang.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] QuanlyNhaHang.Models.DTOs.LoginRequest req)
         {
-            
+
             if (!_otpService.ValidateOtp(req.Identifier, req.Otp))
             {
                 return BadRequest(new { Message = "OTP không hợp lệ hoặc đã hết hạn." });
             }
 
-            
+
             KhachHang? khachHang = null;
             if (req.Identifier.Contains("@"))
             {
@@ -136,7 +146,7 @@ namespace QuanLyNhaHang.Controllers
                 return NotFound(new { Message = "Không tìm thấy tài khoản." });
             }
 
-        
+
             var token = _jwtService.GenerateToken(khachHang);
 
             return Ok(new AuthResponse
@@ -148,5 +158,5 @@ namespace QuanLyNhaHang.Controllers
         }
 
     }
-    
+
 }
