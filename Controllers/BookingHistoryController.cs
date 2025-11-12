@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using QuanlyNhaHang.Models; // (Sửa lại namespace cho đúng)
-using QuanlyNhaHang.Models.DTOs; // (Import DTO)
 using QuanLyNhaHang.Models;
 using QuanLyNhaHang.Models.DTO;
 using System.Security.Claims;
@@ -35,17 +33,19 @@ public class BookingHistoryController : ControllerBase
         var donHangs = await _context.DonHangs
             .Where(dh => dh.MaKhachHang == maKhachHang)
             .Include(dh => dh.MaBanNavigation) // Join với bảng BanAn
+            .Include(dh => dh.MaTrangThaiDonHangNavigation)
             .OrderByDescending(dh => dh.ThoiGianDatHang) // Sắp xếp mới nhất lên đầu
             .Select(dh => new BookingHistoryDto
             {
                 MaDonHang = dh.MaDonHang,
                 TenBan = dh.MaBanNavigation.TenBan,
-                ThoiGianBatDau = dh.ThoiGianBatDau.Value, // Giả sử không null
+                ThoiGianBatDau = dh.ThoiGianBatDau ?? dh.ThoiGianDatHang ?? DateTime.Now,
                 SoLuongNguoi = dh.SoLuongNguoi,
                 GhiChu = dh.GhiChu,
-                DaHuy = (dh.GhiChu == "DA_HUY"),
+                DaHuy = (dh.MaTrangThaiDonHang == "DA_HUY"),
                 // "Có thể hủy" NẾU: chưa diễn ra VÀ chưa bị hủy
-                CoTheHuy = (dh.ThoiGianBatDau > DateTime.Now && dh.GhiChu != "DA_HUY")
+                CoTheHuy = ((dh.ThoiGianBatDau ?? dh.ThoiGianDatHang) > DateTime.Now && dh.MaTrangThaiDonHang != "DA_HUY"),
+                TrangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai
             })
             .ToListAsync();
 
@@ -86,9 +86,8 @@ public class BookingHistoryController : ControllerBase
             return BadRequest("Đơn này đã được hủy trước đó.");
         }
 
-        // 5. Cập nhật (Soft Delete)
-        // (Vì DB của bạn không có cột Status, tui sẽ dùng GhiChu)
-        donHang.GhiChu = "DA_HUY";
+        // 5. Cập nhật trạng thái hủy
+        donHang.MaTrangThaiDonHang = "DA_HUY";
         _context.DonHangs.Update(donHang);
         await _context.SaveChangesAsync();
 
