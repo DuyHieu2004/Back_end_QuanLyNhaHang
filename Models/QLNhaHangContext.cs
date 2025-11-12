@@ -275,7 +275,7 @@ public partial class QLNhaHangContext : DbContext
             entity.Property(e => e.MaMonAn)
                 .HasMaxLength(15)
                 .IsUnicode(false);
-            entity.Property(e => e.UrlhinhAnh).HasColumnName("URLHinhAnh");
+            entity.Property(e => e.URLHinhAnh).HasColumnName("URLHinhAnh");
 
             entity.HasOne(d => d.MaMonAnNavigation).WithMany(p => p.HinhAnhMonAns)
                 .HasForeignKey(d => d.MaMonAn)
