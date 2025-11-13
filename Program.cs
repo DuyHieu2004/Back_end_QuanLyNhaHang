@@ -66,6 +66,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddHostedService<ReminderBackgroundService>();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())

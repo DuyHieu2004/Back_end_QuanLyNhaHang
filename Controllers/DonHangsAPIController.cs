@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuanLyNhaHang.Models;
@@ -6,6 +7,7 @@ using QuanLyNhaHang.Models.DTO;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace QuanLyNhaHang.Controllers
@@ -22,12 +24,17 @@ namespace QuanLyNhaHang.Controllers
         }
 
         [HttpGet("GetMyBookingDetail")]
+        [Authorize]
         public async Task<IActionResult> GetMyBookingDetail(
-    [FromQuery] string? maDonHang,
-    [FromQuery] string? maBan,
-    [FromQuery] string? maKhachHang,
-    [FromQuery] DateTime? dateTime)
+            [FromQuery] string? maDonHang,
+            [FromQuery] string? maBan,
+           // [FromQuery] string? maKhachHang,
+            [FromQuery] DateTime? dateTime)
         {
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (currentUserId == null) return Unauthorized();
+            var maKhachHang = currentUserId;
+
             var query = _context.DonHangs
                 .Include(dh => dh.ChiTietDonHangs)
                     .ThenInclude(ct => ct.MaPhienBanNavigation)
@@ -103,7 +110,37 @@ namespace QuanLyNhaHang.Controllers
             return Ok(result);
         }
 
-        // Bạn có thể thêm các API khác (TaoDatBan, HuyDatBan...) ở dưới đây
-        // ...
+
+
+        // API: Lấy danh sách các đơn hàng sắp tới mà khách KHÔNG CÓ EMAIL (Để nhân viên gọi điện)
+        [HttpGet("get-customers-to-call")]
+        public async Task<IActionResult> GetCustomersToCall()
+        {
+            var now = DateTime.Now;
+            var thoiGianQuetDen = now.AddHours(24); // Lọc đơn trong 24h tới
+
+            var listCanGoi = await _context.DonHangs
+                .Include(dh => dh.MaKhachHangNavigation)
+                .Where(dh =>
+                    (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" || dh.MaTrangThaiDonHang == "DA_XAC_NHAN") &&
+                    dh.ThoiGianBatDau > now &&
+                    dh.ThoiGianBatDau <= thoiGianQuetDen &&
+                    // ĐIỀU KIỆN QUAN TRỌNG: Email bị rỗng hoặc null
+                    (dh.MaKhachHangNavigation.Email == null || dh.MaKhachHangNavigation.Email == "")
+                )
+                .Select(dh => new
+                {
+                    dh.MaDonHang,
+                    TenKhach = dh.TenNguoiDat ?? dh.MaKhachHangNavigation.HoTen,
+                    SDT = dh.SDTNguoiDat ?? dh.MaKhachHangNavigation.SoDienThoai,
+                    GioHen = dh.ThoiGianBatDau,
+                    SoNguoi = dh.SoLuongNguoi,
+                    GhiChu = "Khách không có email, cần gọi nhắc."
+                })
+                .OrderBy(dh => dh.GioHen)
+                .ToListAsync();
+
+            return Ok(listCanGoi);
+        }
     }
 }
