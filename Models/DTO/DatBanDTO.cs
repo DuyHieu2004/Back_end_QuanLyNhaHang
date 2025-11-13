@@ -22,5 +22,10 @@ namespace QuanLyNhaHang.Models.DTO
         }
 
         public decimal? TienDatCoc { get; set; }
+
+        public string? MaKhachHang { get; set; }
+
+        // 2. Để gửi email vé đặt bàn (Optional)
+        public string? Email { get; set; }
     }
 }

@@ -15,6 +15,9 @@ public partial class DonHang
 
     public string MaTrangThaiDonHang { get; set; } = null!;
 
+    public string? TenNguoiDat { get; set; }
+    public string? SDTNguoiDat { get; set; }
+
     public DateTime? ThoiGianDatHang { get; set; }
 
     public int? ThoiGianCho { get; set; }
