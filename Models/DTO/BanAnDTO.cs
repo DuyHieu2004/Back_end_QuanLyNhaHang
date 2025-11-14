@@ -10,6 +10,9 @@
 
         public int? sucChua {  get; set; }
 
-  
+        public string? maTang { get; set; }
+        public string? tenTang { get; set; }
+
+        public bool? isShow { get; set; }
     }
 }

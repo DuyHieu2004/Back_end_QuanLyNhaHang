@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuanLyNhaHang.Models;
+using QuanLyNhaHang.Models.DTO;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
@@ -26,12 +27,63 @@ namespace QuanLyNhaHang.Controllers
                     n.MaNguyenLieu,
                     n.TenNguyenLieu,
                     n.DonViTinh,
-                    Stock = 0, // Cần tính từ các bảng nhập/xuất
+                    Stock = n.SoLuongTonKho,
                     MinStock = 0
                 })
                 .ToListAsync();
 
             return Ok(ingredients);
+        }
+
+        [HttpPost("ingredients")]
+        public async Task<IActionResult> CreateIngredient([FromBody] CreateNguyenLieuDTO dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                // Tạo mã nguyên liệu mới
+                var maNguyenLieu = "NL" + DateTime.Now.ToString("yyMMddHHmmss");
+
+                // Kiểm tra tên nguyên liệu đã tồn tại chưa
+                var existing = await _context.NguyenLieus
+                    .FirstOrDefaultAsync(n => n.TenNguyenLieu.ToLower() == dto.TenNguyenLieu.ToLower());
+                
+                if (existing != null)
+                {
+                    return BadRequest(new { message = $"Nguyên liệu \"{dto.TenNguyenLieu}\" đã tồn tại trong hệ thống." });
+                }
+
+                var nguyenLieu = new NguyenLieu
+                {
+                    MaNguyenLieu = maNguyenLieu,
+                    TenNguyenLieu = dto.TenNguyenLieu,
+                    DonViTinh = dto.DonViTinh,
+                    SoLuongTonKho = dto.SoLuongTonKho
+                };
+
+                _context.NguyenLieus.Add(nguyenLieu);
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message = "Thêm nguyên liệu thành công!",
+                    ingredient = new
+                    {
+                        maNguyenLieu = nguyenLieu.MaNguyenLieu,
+                        tenNguyenLieu = nguyenLieu.TenNguyenLieu,
+                        donViTinh = nguyenLieu.DonViTinh,
+                        soLuongTonKho = nguyenLieu.SoLuongTonKho
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi thêm nguyên liệu: " + ex.Message });
+            }
         }
 
         [HttpGet("ingredients/{maNguyenLieu}")]

@@ -27,13 +27,18 @@ namespace QuanLyNhaHang.Controllers
 
             var banAns = await _context.BanAns
                 .Include(b => b.MaTrangThaiNavigation)
+                .Include(b => b.MaTangNavigation)
+                .Where(b => b.IsShow == true)
                 .Select(b => new BanAnDTO
                 {
                     maBan = b.MaBan,
                     tenBan = b.TenBan,
                     maTrangThai = b.MaTrangThai,
                     tenTrangThai = b.MaTrangThaiNavigation.TenTrangThai,
-                    sucChua = b.SucChua
+                    sucChua = b.SucChua,
+                    maTang = b.MaTang,
+                    tenTang = b.MaTangNavigation != null ? b.MaTangNavigation.TenTang : null,
+                    isShow = b.IsShow
                 }
                 ).ToListAsync();
 
@@ -67,30 +72,47 @@ namespace QuanLyNhaHang.Controllers
 
             var allTables = await _context.BanAns
                 .Include(b => b.MaTrangThaiNavigation)
-                .Select(ban => new
-                {
-                    ban.MaBan,
-                    ban.TenBan,
-                    ban.SucChua,
-                    TrangThaiGoc = ban.MaTrangThaiNavigation.TenTrangThai,
-
-                    IsConflicting = conflictingBookingIds.Contains(ban.MaBan)
-                })
+                .Include(b => b.MaTangNavigation)
+                .Where(b => b.IsShow == true)
                 .ToListAsync();
 
+            // Load all tầng để map later if needed
+            var allTangs = await _context.Tangs.ToDictionaryAsync(t => t.MaTang, t => t.TenTang);
 
-            var result = allTables.Select(ban => new BanAnDTO
-            {
-                maBan = ban.MaBan,
-                tenBan = ban.TenBan,
-                sucChua = ban.SucChua,
+            var result = allTables.Select(ban => {
+                // Infer MaTang from MaBan if null (fallback)
+                string maTang = ban.MaTang;
+                if (string.IsNullOrEmpty(maTang) && ban.MaBan.StartsWith("B"))
+                {
+                    if (int.TryParse(ban.MaBan.Substring(1), out int banNum))
+                    {
+                        maTang = banNum <= 14 ? "T001" : banNum <= 27 ? "T002" : "T003";
+                    }
+                }
 
+                // Get TenTang from navigation or dictionary
+                string tenTang = ban.MaTangNavigation?.TenTang;
+                if (string.IsNullOrEmpty(tenTang) && !string.IsNullOrEmpty(maTang) && allTangs.ContainsKey(maTang))
+                {
+                    tenTang = allTangs[maTang];
+                }
 
-                tenTrangThai =
-                    (ban.TrangThaiGoc.ToLower() == "đang bảo trì") ? "Đang bảo trì" :
-                    (ban.SucChua < soNguoi) ? "Không đủ sức chứa" :
-                    (ban.IsConflicting) ? "Đã đặt" :
-                    "Đang trống"
+                // Check if table is conflicting
+                bool isConflicting = conflictingBookingIds.Contains(ban.MaBan);
+
+                return new BanAnDTO
+                {
+                    maBan = ban.MaBan,
+                    tenBan = ban.TenBan,
+                    sucChua = ban.SucChua,
+                    maTang = maTang ?? string.Empty,
+                    tenTang = tenTang ?? string.Empty,
+                    tenTrangThai =
+                        (ban.MaTrangThaiNavigation?.TenTrangThai?.ToLower() == "đang bảo trì") ? "Đang bảo trì" :
+                        (ban.SucChua < soNguoi) ? "Không đủ sức chứa" :
+                        (isConflicting) ? "Đã đặt" :
+                        "Đang trống"
+                };
             }).ToList();
 
             return Ok(result);
@@ -144,6 +166,8 @@ namespace QuanLyNhaHang.Controllers
             // (Include bảng TrangThaiBanAn để check mã TTBA004)
             var allTables = await _context.BanAns
                 .Include(b => b.MaTrangThaiNavigation)
+                .Include(b => b.MaTangNavigation)
+                .Where(b => b.IsShow == true)
                 .ToListAsync();
 
             var result = allTables.Select(ban =>
@@ -186,6 +210,9 @@ namespace QuanLyNhaHang.Controllers
                     maBan = ban.MaBan,
                     tenBan = ban.TenBan,
                     sucChua = ban.SucChua,
+                    maTang = ban.MaTang,
+                    tenTang = ban.MaTangNavigation != null ? ban.MaTangNavigation.TenTang : null,
+                    isShow = ban.IsShow,
                     // Trả về keyword để Flutter switch-case: "Trong", "CuaTui", "DaDat", "CanGhep", "BaoTri"
                     tenTrangThai = trangThaiHienThi
                 };
