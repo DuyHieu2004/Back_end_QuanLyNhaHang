@@ -82,10 +82,16 @@ namespace QuanLyNhaHang.Controllers
 
                 foreach (var item in dto.ChiTietDonHang)
                 {
-                    var phienBan = await _context.PhienBanMonAns.FindAsync(item.MaPhienBan);
+                    var phienBan = await _context.PhienBanMonAns
+                        .Include(p => p.MaTrangThaiNavigation)
+                        .FirstOrDefaultAsync(p => p.MaPhienBan == item.MaPhienBan);
                     if (phienBan == null)
                     {
                         return BadRequest(new { message = $"Không tìm thấy phiên bản món ăn: {item.MaPhienBan}" });
+                    }
+                    if (!phienBan.IsShow)
+                    {
+                        return BadRequest(new { message = $"Phiên bản món ăn {phienBan.TenPhienBan} đã bị ẩn." });
                     }
 
                     var chiTiet = new ChiTietDonHang
@@ -183,10 +189,16 @@ namespace QuanLyNhaHang.Controllers
 
                 foreach (var item in dto.ChiTietDonHang)
                 {
-                    var phienBan = await _context.PhienBanMonAns.FindAsync(item.MaPhienBan);
+                    var phienBan = await _context.PhienBanMonAns
+                        .Include(p => p.MaTrangThaiNavigation)
+                        .FirstOrDefaultAsync(p => p.MaPhienBan == item.MaPhienBan);
                     if (phienBan == null)
                     {
                         return BadRequest(new { message = $"Không tìm thấy phiên bản món ăn: {item.MaPhienBan}" });
+                    }
+                    if (!phienBan.IsShow)
+                    {
+                        return BadRequest(new { message = $"Phiên bản món ăn {phienBan.TenPhienBan} đã bị ẩn." });
                     }
 
                     var chiTiet = new ChiTietDonHang
@@ -233,10 +245,16 @@ namespace QuanLyNhaHang.Controllers
                 return BadRequest(new { message = "Không thể thêm món vào đơn hàng đã hoàn thành hoặc đã hủy." });
             }
 
-            var phienBan = await _context.PhienBanMonAns.FindAsync(itemDto.MaPhienBan);
+            var phienBan = await _context.PhienBanMonAns
+                .Include(p => p.MaTrangThaiNavigation)
+                .FirstOrDefaultAsync(p => p.MaPhienBan == itemDto.MaPhienBan);
             if (phienBan == null)
             {
                 return BadRequest(new { message = "Không tìm thấy phiên bản món ăn." });
+            }
+            if (!phienBan.IsShow)
+            {
+                return BadRequest(new { message = $"Phiên bản món ăn {phienBan.TenPhienBan} đã bị ẩn." });
             }
 
             var existingItem = await _context.ChiTietDonHangs

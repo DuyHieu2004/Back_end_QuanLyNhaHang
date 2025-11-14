@@ -55,6 +55,10 @@ public partial class QLNhaHangContext : DbContext
 
     public virtual DbSet<VaiTro> VaiTros { get; set; }
 
+    public virtual DbSet<Tang> Tangs { get; set; }
+
+    public virtual DbSet<TrangThaiPhienBanMonAn> TrangThaiPhienBanMonAns { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning Connection string is configured via DI in Program.cs
         => _ = optionsBuilder;
@@ -68,18 +72,26 @@ public partial class QLNhaHangContext : DbContext
             entity.ToTable("BanAn");
 
             entity.Property(e => e.MaBan)
-                .HasMaxLength(15)
+                .HasMaxLength(25)
                 .IsUnicode(false);
             entity.Property(e => e.MaTrangThai)
-                .HasMaxLength(15)
+                .HasMaxLength(25)
+                .IsUnicode(false);
+            entity.Property(e => e.MaTang)
+                .HasMaxLength(25)
                 .IsUnicode(false);
             entity.Property(e => e.SucChua).HasDefaultValue(4);
+            entity.Property(e => e.IsShow).HasDefaultValue(true);
             entity.Property(e => e.TenBan).HasMaxLength(50);
 
             entity.HasOne(d => d.MaTrangThaiNavigation).WithMany(p => p.BanAns)
                 .HasForeignKey(d => d.MaTrangThai)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_BanAn_TrangThaiBanAn");
+
+            entity.HasOne(d => d.MaTangNavigation).WithMany(p => p.BanAns)
+                .HasForeignKey(d => d.MaTang)
+                .HasConstraintName("FK_BanAn_Tang");
         });
 
         modelBuilder.Entity<CheBienMonAn>(entity =>
@@ -309,12 +321,13 @@ public partial class QLNhaHangContext : DbContext
             entity.ToTable("MonAn");
 
             entity.Property(e => e.MaMonAn)
-                .HasMaxLength(15)
+                .HasMaxLength(25)
                 .IsUnicode(false);
             entity.Property(e => e.MaDanhMuc)
-                .HasMaxLength(15)
+                .HasMaxLength(25)
                 .IsUnicode(false);
             entity.Property(e => e.TenMonAn).HasMaxLength(100);
+            entity.Property(e => e.IsShow).HasDefaultValue(true);
 
             entity.HasOne(d => d.MaDanhMucNavigation).WithMany(p => p.MonAns)
                 .HasForeignKey(d => d.MaDanhMuc)
@@ -414,19 +427,27 @@ public partial class QLNhaHangContext : DbContext
             entity.ToTable("PhienBanMonAn");
 
             entity.Property(e => e.MaPhienBan)
-                .HasMaxLength(15)
+                .HasMaxLength(25)
                 .IsUnicode(false);
             entity.Property(e => e.Gia).HasColumnType("decimal(10, 2)");
             entity.Property(e => e.MaMonAn)
-                .HasMaxLength(15)
+                .HasMaxLength(25)
+                .IsUnicode(false);
+            entity.Property(e => e.MaTrangThai)
+                .HasMaxLength(25)
                 .IsUnicode(false);
             entity.Property(e => e.TenPhienBan).HasMaxLength(100);
-            entity.Property(e => e.TrangThai).HasMaxLength(50);
+            entity.Property(e => e.IsShow).HasDefaultValue(true);
 
             entity.HasOne(d => d.MaMonAnNavigation).WithMany(p => p.PhienBanMonAns)
                 .HasForeignKey(d => d.MaMonAn)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__PhienBanM__MaMon__787EE5A0");
+
+            entity.HasOne(d => d.MaTrangThaiNavigation).WithMany(p => p.PhienBanMonAns)
+                .HasForeignKey(d => d.MaTrangThai)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PhienBanMonAn_TrangThaiPhienBanMonAn");
         });
 
         modelBuilder.Entity<TrangThaiBanAn>(entity =>
@@ -477,6 +498,30 @@ public partial class QLNhaHangContext : DbContext
                 .HasMaxLength(15)
                 .IsUnicode(false);
             entity.Property(e => e.TenVaiTro).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<Tang>(entity =>
+        {
+            entity.HasKey(e => e.MaTang).HasName("PK_Tang");
+
+            entity.ToTable("Tang");
+
+            entity.Property(e => e.MaTang)
+                .HasMaxLength(25)
+                .IsUnicode(false);
+            entity.Property(e => e.TenTang).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<TrangThaiPhienBanMonAn>(entity =>
+        {
+            entity.HasKey(e => e.MaTrangThai).HasName("PK__TrangThaiPhienBanMonAn");
+
+            entity.ToTable("TrangThaiPhienBanMonAn");
+
+            entity.Property(e => e.MaTrangThai)
+                .HasMaxLength(25)
+                .IsUnicode(false);
+            entity.Property(e => e.TenTrangThai).HasMaxLength(50);
         });
 
         OnModelCreatingPartial(modelBuilder);

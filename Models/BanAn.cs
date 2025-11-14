@@ -13,7 +13,13 @@ public partial class BanAn
 
     public int SucChua { get; set; }
 
+    public string? MaTang { get; set; }
+
+    public bool IsShow { get; set; }
+
     public virtual ICollection<DonHang> DonHangs { get; set; } = new List<DonHang>();
 
     public virtual TrangThaiBanAn MaTrangThaiNavigation { get; set; } = null!;
+
+    public virtual Tang? MaTangNavigation { get; set; }
 }
