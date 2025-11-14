@@ -13,7 +13,11 @@ public partial class PhienBanMonAn
 
     public decimal Gia { get; set; }
 
-    public string TrangThai { get; set; } = null!;
+    public string MaTrangThai { get; set; } = null!;
+
+    public bool IsShow { get; set; }
+
+    public int? ThuTu { get; set; }
 
     public virtual ICollection<CheBienMonAn> CheBienMonAns { get; set; } = new List<CheBienMonAn>();
 
@@ -22,4 +26,6 @@ public partial class PhienBanMonAn
     public virtual ICollection<CongThucNauAn> CongThucNauAns { get; set; } = new List<CongThucNauAn>();
 
     public virtual MonAn MaMonAnNavigation { get; set; } = null!;
+
+    public virtual TrangThaiPhienBanMonAn MaTrangThaiNavigation { get; set; } = null!;
 }

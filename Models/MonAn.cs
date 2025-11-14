@@ -11,6 +11,8 @@ public partial class MonAn
 
     public string? MaDanhMuc { get; set; }
 
+    public bool IsShow { get; set; }
+
     public virtual ICollection<HinhAnhMonAn> HinhAnhMonAns { get; set; } = new List<HinhAnhMonAn>();
 
     public virtual DanhMucMonAn? MaDanhMucNavigation { get; set; }

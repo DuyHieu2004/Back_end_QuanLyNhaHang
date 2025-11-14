@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
+
 namespace QuanLyNhaHang.Models;
 
 public partial class ChiTietNhapNguyenLieu
@@ -12,8 +12,7 @@ public partial class ChiTietNhapNguyenLieu
     public string MaCungUng { get; set; } = null!;
 
     public int SoLuong { get; set; }
-    
-    [Column(TypeName = "decimal(10, 2)")]
+
     public decimal GiaNhap { get; set; }
 
     public virtual CungUng MaCungUngNavigation { get; set; } = null!;

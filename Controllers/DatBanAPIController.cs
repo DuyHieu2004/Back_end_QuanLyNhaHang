@@ -225,6 +225,7 @@ namespace QuanLyNhaHang.Controllers
 
                     TenNguoiDat = datBanDto.HoTenKhach,       // Lưu tên người đi ăn (ví dụ: Bố bạn)
                     SDTNguoiDat = datBanDto.SoDienThoaiKhach,
+                    EmailNguoiDat = datBanDto.Email,
 
                     MaNhanVien = datBanDto.MaNhanVien,
                     MaTrangThaiDonHang = trangThaiBanDau,
