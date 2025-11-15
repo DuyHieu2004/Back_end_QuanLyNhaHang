@@ -53,6 +53,7 @@ CREATE TABLE [dbo].[ChiTietDonHang](
     [MaChiTietDonHang] [bigint] IDENTITY(1,1) NOT NULL,
     [MaDonHang] [varchar](25) NOT NULL,
     [MaPhienBan] [varchar](25) NOT NULL,
+    [MaCongThuc] [varchar](25) NOT NULL,
     [SoLuong] [int] NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
@@ -75,15 +76,40 @@ PRIMARY KEY CLUSTERED
 ) ON [PRIMARY]
 GO
 
+/****** Object:  Table [dbo].[ChiTietMonAn] ******/
+CREATE TABLE [dbo].[ChiTietMonAn](
+    [MaCT] [varchar](25) NOT NULL,
+    [TenCT] [nvarchar](100) NOT NULL,
+    [MaMonAn] [varchar](25) NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+    [MaCT] ASC
+) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
 /****** Object:  Table [dbo].[CongThucNauAn] ******/
 CREATE TABLE [dbo].[CongThucNauAn](
     [MaCongThuc] [varchar](25) NOT NULL,
-    [MaNguyenLieu] [varchar](25) NOT NULL,
+    [MaCT] [varchar](25) NOT NULL,
     [MaPhienBan] [varchar](25) NOT NULL,
-    [SoLuongCanDung] [int] NOT NULL,
+    [Gia] [decimal](10, 2) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
     [MaCongThuc] ASC
+) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+/****** Object:  Table [dbo].[ChiTietCongThuc] ******/
+CREATE TABLE [dbo].[ChiTietCongThuc](
+    [MaChiTietCongThuc] [bigint] IDENTITY(1,1) NOT NULL,
+    [MaCongThuc] [varchar](25) NOT NULL,
+    [MaNguyenLieu] [varchar](25) NOT NULL,
+    [SoLuongCanDung] [int] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+    [MaChiTietCongThuc] ASC
 ) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
@@ -119,10 +145,11 @@ CREATE TABLE [dbo].[DonHang](
     [MaKhachHang] [varchar](25) NOT NULL,
     [MaTrangThaiDonHang] [varchar](25) NOT NULL,
     [ThoiGianDatHang] [datetime] NULL,
-    [ThoiGianCho] [int] NULL,
-    [ThoiGianBatDau] [datetime] NULL,
+    [TGDatDuKien] [int] NULL,
+    [TGNhanBan] [datetime] NULL,
+    [ThanhToan] [bit] NOT NULL DEFAULT(0),
     [ThoiGianKetThuc] [datetime] NULL,
-    [SoLuongNguoi] [int] NOT NULL,
+    [SoLuongNguoiDK] [int] NOT NULL,
     [TienDatCoc] [decimal](10, 2) NULL,
     [GhiChu] [nvarchar](500) NULL,
 PRIMARY KEY CLUSTERED 
@@ -243,25 +270,12 @@ PRIMARY KEY CLUSTERED
 ) ON [PRIMARY]
 GO
 
-/****** Object:  Table [dbo].[TrangThaiPhienBanMonAn] ******/
-CREATE TABLE [dbo].[TrangThaiPhienBanMonAn](
-    [MaTrangThai] [varchar](25) NOT NULL,
-    [TenTrangThai] [nvarchar](50) NOT NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaTrangThai] ASC
-) ON [PRIMARY]
-) ON [PRIMARY]
-GO
 
 /****** Object:  Table [dbo].[PhienBanMonAn] ******/
 CREATE TABLE [dbo].[PhienBanMonAn](
     [MaPhienBan] [varchar](25) NOT NULL,
-    [MaMonAn] [varchar](25) NOT NULL,
     [TenPhienBan] [nvarchar](100) NOT NULL,
-    [Gia] [decimal](10, 2) NOT NULL,
     [MaTrangThai] [varchar](25) NOT NULL,
-    [IsShow] [bit] NOT NULL,
     [ThuTu] [int] NULL,
 PRIMARY KEY CLUSTERED 
 (
@@ -292,16 +306,6 @@ PRIMARY KEY CLUSTERED
 ) ON [PRIMARY]
 GO
 
-/****** Object:  Table [dbo].[TrangThaiNhanVien] ******/
-CREATE TABLE [dbo].[TrangThaiNhanVien](
-    [MaTrangThai] [varchar](25) NOT NULL,
-    [TenTrangThai] [nvarchar](50) NOT NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaTrangThai] ASC
-) ON [PRIMARY]
-) ON [PRIMARY]
-GO
 
 /****** Object:  Table [dbo].[VaiTro] ******/
 CREATE TABLE [dbo].[VaiTro](
@@ -318,7 +322,7 @@ GO
 -- ===== THÊM CÁC GIÁ TRỊ DEFAULT =====
 ALTER TABLE [dbo].[BanAn] ADD  DEFAULT ((4)) FOR [SucChua]
 GO
-ALTER TABLE [dbo].[DonHang] ADD  DEFAULT ((1)) FOR [SoLuongNguoi]
+ALTER TABLE [dbo].[DonHang] ADD  DEFAULT ((1)) FOR [SoLuongNguoiDK]
 GO
 ALTER TABLE [dbo].[DonHang] ADD  DEFAULT ('CHO_XAC_NHAN') FOR [MaTrangThaiDonHang]
 GO
@@ -326,9 +330,9 @@ ALTER TABLE [dbo].[DonHang] ADD  DEFAULT ((0)) FOR [TienDatCoc]
 GO
 ALTER TABLE [dbo].[KhachHang] ADD  DEFAULT ((0)) FOR [NoShowCount]
 GO
-ALTER TABLE [dbo].[PhienBanMonAn] ADD  DEFAULT ((1)) FOR [IsShow]
-GO
 ALTER TABLE [dbo].[PhienBanMonAn] ADD  DEFAULT ('CON_HANG') FOR [MaTrangThai]
+GO
+ALTER TABLE [dbo].[CongThucNauAn] ADD  CONSTRAINT [CK_CongThucNauAn_Gia] CHECK ([Gia] >= 0)
 GO
 
 -- =====================================================
@@ -347,17 +351,29 @@ GO
 ALTER TABLE [dbo].[ChiTietDonHang]  WITH CHECK ADD FOREIGN KEY([MaPhienBan])
 REFERENCES [dbo].[PhienBanMonAn] ([MaPhienBan])
 GO
+ALTER TABLE [dbo].[ChiTietDonHang]  WITH CHECK ADD FOREIGN KEY([MaCongThuc])
+REFERENCES [dbo].[CongThucNauAn] ([MaCongThuc])
+GO
 ALTER TABLE [dbo].[ChiTietNhapNguyenLieu]  WITH CHECK ADD FOREIGN KEY([MaCungUng])
 REFERENCES [dbo].[CungUng] ([MaCungUng])
 GO
 ALTER TABLE [dbo].[ChiTietNhapNguyenLieu]  WITH CHECK ADD FOREIGN KEY([MaNhapHang])
 REFERENCES [dbo].[NhapNguyenLieu] ([MaNhapHang])
 GO
-ALTER TABLE [dbo].[CongThucNauAn]  WITH CHECK ADD FOREIGN KEY([MaNguyenLieu])
-REFERENCES [dbo].[NguyenLieu] ([MaNguyenLieu])
+ALTER TABLE [dbo].[ChiTietMonAn]  WITH CHECK ADD FOREIGN KEY([MaMonAn])
+REFERENCES [dbo].[MonAn] ([MaMonAn])
+GO
+ALTER TABLE [dbo].[CongThucNauAn]  WITH CHECK ADD FOREIGN KEY([MaCT])
+REFERENCES [dbo].[ChiTietMonAn] ([MaCT])
 GO
 ALTER TABLE [dbo].[CongThucNauAn]  WITH CHECK ADD FOREIGN KEY([MaPhienBan])
 REFERENCES [dbo].[PhienBanMonAn] ([MaPhienBan])
+GO
+ALTER TABLE [dbo].[ChiTietCongThuc]  WITH CHECK ADD FOREIGN KEY([MaCongThuc])
+REFERENCES [dbo].[CongThucNauAn] ([MaCongThuc])
+GO
+ALTER TABLE [dbo].[ChiTietCongThuc]  WITH CHECK ADD FOREIGN KEY([MaNguyenLieu])
+REFERENCES [dbo].[NguyenLieu] ([MaNguyenLieu])
 GO
 ALTER TABLE [dbo].[CungUng]  WITH CHECK ADD FOREIGN KEY([MaNguyenLieu])
 REFERENCES [dbo].[NguyenLieu] ([MaNguyenLieu])
@@ -383,24 +399,17 @@ GO
 ALTER TABLE [dbo].[MonAn]  WITH CHECK ADD FOREIGN KEY([MaDanhMuc])
 REFERENCES [dbo].[DanhMucMonAn] ([MaDanhMuc])
 GO
-ALTER TABLE [dbo].[NhanVien]  WITH CHECK ADD FOREIGN KEY([MaTrangThai])
-REFERENCES [dbo].[TrangThaiNhanVien] ([MaTrangThai])
-GO
 ALTER TABLE [dbo].[NhanVien]  WITH CHECK ADD FOREIGN KEY([MaVaiTro])
 REFERENCES [dbo].[VaiTro] ([MaVaiTro])
 GO
 ALTER TABLE [dbo].[NhapNguyenLieu]  WITH CHECK ADD FOREIGN KEY([MaNhanVien])
 REFERENCES [dbo].[NhanVien] ([MaNhanVien])
 GO
-ALTER TABLE [dbo].[PhienBanMonAn]  WITH CHECK ADD FOREIGN KEY([MaMonAn])
-REFERENCES [dbo].[MonAn] ([MaMonAn])
+CREATE INDEX [IX_ChiTietMonAn_MaMonAn] ON [dbo].[ChiTietMonAn]([MaMonAn])
 GO
-ALTER TABLE [dbo].[PhienBanMonAn]  WITH CHECK ADD  CONSTRAINT [FK_PhienBanMonAn_TrangThaiPhienBanMonAn] FOREIGN KEY([MaTrangThai])
-REFERENCES [dbo].[TrangThaiPhienBanMonAn] ([MaTrangThai])
+CREATE INDEX [IX_CongThucNauAn_MaCT] ON [dbo].[CongThucNauAn]([MaCT])
 GO
-ALTER TABLE [dbo].[PhienBanMonAn] ADD  CONSTRAINT [CK_PhienBanMonAn_Gia] CHECK ([Gia] >= 0)
-GO
-CREATE INDEX [IX_PhienBanMonAn_MaMonAn] ON [dbo].[PhienBanMonAn]([MaMonAn])
+CREATE INDEX [IX_CongThucNauAn_MaPhienBan] ON [dbo].[CongThucNauAn]([MaPhienBan])
 GO
 
 -- ============================================================
@@ -416,10 +425,6 @@ INSERT INTO [dbo].[TrangThaiBanAn] ([MaTrangThai], [TenTrangThai]) VALUES
 ('TTBA001', N'Trống'), ('TTBA002', N'Đang phục vụ'),
 ('TTBA003', N'Đã đặt'), ('TTBA004', N'Bảo trì')
 
--- 2. TrangThaiNhanVien
-INSERT INTO [dbo].[TrangThaiNhanVien] ([MaTrangThai], [TenTrangThai]) VALUES
-('TTNV001', N'Đang làm việc'), ('TTNV002', N'Đã nghỉ việc'),
-('TTNV003', N'Tạm nghỉ'), ('TTNV004', N'Thử việc');
 
 -- 3. TrangThaiDonHang (CẬP NHẬT THÊM 'CHO_THANH_TOAN')
 INSERT INTO [dbo].[TrangThaiDonHang] (MaTrangThai, TenTrangThai) VALUES
@@ -428,10 +433,6 @@ INSERT INTO [dbo].[TrangThaiDonHang] (MaTrangThai, TenTrangThai) VALUES
 ('NO_SHOW', N'Vắng mặt (No-Show)'), 
 ('CHO_THANH_TOAN', N'Chờ thanh toán');
 
--- 4. TrangThaiPhienBanMonAn
-INSERT INTO [dbo].[TrangThaiPhienBanMonAn] ([MaTrangThai], [TenTrangThai]) VALUES
-('CON_HANG', N'Còn hàng'), ('HET_HANG', N'Hết hàng'),
-('TAM_NGUNG', N'Tạm ngưng'), ('NGUNG_KINH_DOANH', N'Ngừng kinh doanh');
 
 
 -- chèn dữ liệu cho: VaiTro
@@ -612,28 +613,51 @@ INSERT INTO [dbo].[MonAn] ([MaMonAn], [TenMonAn], [MaDanhMuc]) VALUES
 ('MA037', N'Cua rang me', 'DM008'), ('MA038', N'Ghẹ hấp bia', 'DM008'),
 ('MA039', N'Mực chiên giòn', 'DM008'), ('MA040', N'Sò điệp nướng phô mai', 'DM008');
 
--- chèn dữ liệu cho: PhienBanMonAn
-INSERT INTO [dbo].[PhienBanMonAn] ([MaPhienBan], [MaMonAn], [TenPhienBan], [Gia], [MaTrangThai], [IsShow], [ThuTu]) VALUES
-('PB001', 'MA001', N'Phần', 30000, 'CON_HANG', 1, 1), ('PB002', 'MA002', N'Phần', 30000, 'CON_HANG', 1, 1),
-('PB003', 'MA003', N'Phần', 35000, 'CON_HANG', 1, 1), ('PB004', 'MA004', N'Phần', 35000, 'CON_HANG', 1, 1),
-('PB005', 'MA005', N'Dĩa', 40000, 'CON_HANG', 1, 1), ('PB006', 'MA006', N'Lẩu nhỏ', 250000, 'CON_HANG', 1, 1),
-('PB007', 'MA007', N'Lẩu nhỏ', 230000, 'CON_HANG', 1, 1), ('PB008', 'MA008', N'Lẩu nhỏ', 280000, 'CON_HANG', 1, 1),
-('PB009', 'MA009', N'Lẩu nhỏ', 300000, 'CON_HANG', 1, 1), ('PB010', 'MA010', N'Lẩu nhỏ', 220000, 'CON_HANG', 1, 1),
-('PB011', 'MA011', N'Phần', 25000, 'CON_HANG', 1, 1), ('PB012', 'MA012', N'Chén', 30000, 'CON_HANG', 1, 1),
-('PB013', 'MA013', N'Phần', 25000, 'CON_HANG', 1, 1), ('PB014', 'MA014', N'Viên', 40000, 'CON_HANG', 1, 1),
-('PB015', 'MA015', N'Ly', 35000, 'CON_HANG', 1, 1), ('PB016', 'MA016', N'Chai 500ml', 10000, 'CON_HANG', 1, 1),
-('PB017', 'MA017', N'Ly', 30000, 'CON_HANG', 1, 1), ('PB018', 'MA018', N'Lon', 40000, 'CON_HANG', 1, 1),
-('PB019', 'MA019', N'Chai', 30000, 'CON_HANG', 1, 1), ('PB020', 'MA020', N'Lon', 25000, 'CON_HANG', 1, 1),
-('PB021', 'MA021', N'Phần 300g', 150000, 'CON_HANG', 1, 1), ('PB022', 'MA022', N'Phần 3 con', 220000, 'CON_HANG', 1, 1),
-('PB023', 'MA023', N'Phần 300g', 200000, 'CON_HANG', 1, 1), ('PB024', 'MA024', N'Phần 200g', 180000, 'CON_HANG', 1, 1),
-('PB025', 'MA025', N'Nửa con', 200000, 'CON_HANG', 1, 1), ('PB026', 'MA026', N'Phần', 60000, 'CON_HANG', 1, 1),
-('PB027', 'MA027', N'Dĩa', 40000, 'CON_HANG', 1, 1), ('PB028', 'MA028', N'Tô', 45000, 'CON_HANG', 1, 1),
-('PB029', 'MA029', N'Dĩa', 55000, 'CON_HANG', 1, 1), ('PB030', 'MA030', N'Dĩa', 50000, 'CON_HANG', 1, 1),
-('PB031', 'MA031', N'Dĩa', 75000, 'CON_HANG', 1, 1), ('PB032', 'MA032', N'Dĩa', 70000, 'CON_HANG', 1, 1),
-('PB033', 'MA033', N'Dĩa', 85000, 'CON_HANG', 1, 1), ('PB034', 'MA034', N'Dĩa', 75000, 'CON_HANG', 1, 1),
-('PB035', 'MA035', N'Phần', 80000, 'CON_HANG', 1, 1), ('PB036', 'MA036', N'1 con (1kg)', 450000, 'CON_HANG', 1, 1),
-('PB037', 'MA037', N'1 con (700g)', 300000, 'CON_HANG', 1, 1), ('PB038', 'MA038', N'1 con (600g)', 280000, 'CON_HANG', 1, 1),
-('PB039', 'MA039', N'Dĩa 300g', 180000, 'CON_HANG', 1, 1), ('PB040', 'MA040', N'Phần 4 con', 250000, 'CON_HANG', 1, 1);
+-- chèn dữ liệu cho: ChiTietMonAn (mỗi món ăn có ít nhất 1 chi tiết)
+INSERT INTO [dbo].[ChiTietMonAn] ([MaCT], [TenCT], [MaMonAn]) VALUES
+('CT001', N'Chi tiết 1', 'MA001'), ('CT002', N'Chi tiết 1', 'MA002'),
+('CT003', N'Chi tiết 1', 'MA003'), ('CT004', N'Chi tiết 1', 'MA004'),
+('CT005', N'Chi tiết 1', 'MA005'), ('CT006', N'Chi tiết 1', 'MA006'),
+('CT007', N'Chi tiết 1', 'MA007'), ('CT008', N'Chi tiết 1', 'MA008'),
+('CT009', N'Chi tiết 1', 'MA009'), ('CT010', N'Chi tiết 1', 'MA010'),
+('CT011', N'Chi tiết 1', 'MA011'), ('CT012', N'Chi tiết 1', 'MA012'),
+('CT013', N'Chi tiết 1', 'MA013'), ('CT014', N'Chi tiết 1', 'MA014'),
+('CT015', N'Chi tiết 1', 'MA015'), ('CT016', N'Chi tiết 1', 'MA016'),
+('CT017', N'Chi tiết 1', 'MA017'), ('CT018', N'Chi tiết 1', 'MA018'),
+('CT019', N'Chi tiết 1', 'MA019'), ('CT020', N'Chi tiết 1', 'MA020'),
+('CT021', N'Chi tiết 1', 'MA021'), ('CT022', N'Chi tiết 1', 'MA022'),
+('CT023', N'Chi tiết 1', 'MA023'), ('CT024', N'Chi tiết 1', 'MA024'),
+('CT025', N'Chi tiết 1', 'MA025'), ('CT026', N'Chi tiết 1', 'MA026'),
+('CT027', N'Chi tiết 1', 'MA027'), ('CT028', N'Chi tiết 1', 'MA028'),
+('CT029', N'Chi tiết 1', 'MA029'), ('CT030', N'Chi tiết 1', 'MA030'),
+('CT031', N'Chi tiết 1', 'MA031'), ('CT032', N'Chi tiết 1', 'MA032'),
+('CT033', N'Chi tiết 1', 'MA033'), ('CT034', N'Chi tiết 1', 'MA034'),
+('CT035', N'Chi tiết 1', 'MA035'), ('CT036', N'Chi tiết 1', 'MA036'),
+('CT037', N'Chi tiết 1', 'MA037'), ('CT038', N'Chi tiết 1', 'MA038'),
+('CT039', N'Chi tiết 1', 'MA039'), ('CT040', N'Chi tiết 1', 'MA040');
+
+-- chèn dữ liệu cho: PhienBanMonAn (đã xóa MaMonAn và Gia)
+INSERT INTO [dbo].[PhienBanMonAn] ([MaPhienBan], [TenPhienBan], [MaTrangThai], [ThuTu]) VALUES
+('PB001', N'Phần', 'CON_HANG', 1), ('PB002', N'Phần', 'CON_HANG', 1),
+('PB003', N'Phần', 'CON_HANG', 1), ('PB004', N'Phần', 'CON_HANG', 1),
+('PB005', N'Dĩa', 'CON_HANG', 1), ('PB006', N'Lẩu nhỏ', 'CON_HANG', 1),
+('PB007', N'Lẩu nhỏ', 'CON_HANG', 1), ('PB008', N'Lẩu nhỏ', 'CON_HANG', 1),
+('PB009', N'Lẩu nhỏ', 'CON_HANG', 1), ('PB010', N'Lẩu nhỏ', 'CON_HANG', 1),
+('PB011', N'Phần', 'CON_HANG', 1), ('PB012', N'Chén', 'CON_HANG', 1),
+('PB013', N'Phần', 'CON_HANG', 1), ('PB014', N'Viên', 'CON_HANG', 1),
+('PB015', N'Ly', 'CON_HANG', 1), ('PB016', N'Chai 500ml', 'CON_HANG', 1),
+('PB017', N'Ly', 'CON_HANG', 1), ('PB018', N'Lon', 'CON_HANG', 1),
+('PB019', N'Chai', 'CON_HANG', 1), ('PB020', N'Lon', 'CON_HANG', 1),
+('PB021', N'Phần 300g', 'CON_HANG', 1), ('PB022', N'Phần 3 con', 'CON_HANG', 1),
+('PB023', N'Phần 300g', 'CON_HANG', 1), ('PB024', N'Phần 200g', 'CON_HANG', 1),
+('PB025', N'Nửa con', 'CON_HANG', 1), ('PB026', N'Phần', 'CON_HANG', 1),
+('PB027', N'Dĩa', 'CON_HANG', 1), ('PB028', N'Tô', 'CON_HANG', 1),
+('PB029', N'Dĩa', 'CON_HANG', 1), ('PB030', N'Dĩa', 'CON_HANG', 1),
+('PB031', N'Dĩa', 'CON_HANG', 1), ('PB032', N'Dĩa', 'CON_HANG', 1),
+('PB033', N'Dĩa', 'CON_HANG', 1), ('PB034', N'Dĩa', 'CON_HANG', 1),
+('PB035', N'Phần', 'CON_HANG', 1), ('PB036', N'1 con (1kg)', 'CON_HANG', 1),
+('PB037', N'1 con (700g)', 'CON_HANG', 1), ('PB038', N'1 con (600g)', 'CON_HANG', 1),
+('PB039', N'Dĩa 300g', 'CON_HANG', 1), ('PB040', N'Phần 4 con', 'CON_HANG', 1);
 
 -- chèn dữ liệu cho: HinhAnhMonAn
 DELETE FROM [dbo].[HinhAnhMonAn];
@@ -718,47 +742,47 @@ INSERT INTO [dbo].[NhapNguyenLieu] ([MaNhapHang], [MaNhanVien], [NgayNhapHang], 
 ('NH037', 'NV011', '2025-11-01 08:00:00', 0), ('NH038', 'NV001', '2025-11-02 08:00:00', 0),
 ('NH039', 'NV011', '2025-11-03 08:00:00', 0), ('NH040', 'NV001', '2025-11-04 08:00:00', 0);
 
-INSERT INTO [dbo].[DonHang] ([MaDonHang], [MaBan], [MaNhanVien], [MaKhachHang], [MaTrangThaiDonHang], [ThoiGianDatHang], [ThoiGianCho], [ThoiGianBatDau], [ThoiGianKetThuc], [SoLuongNguoi], [TienDatCoc], [GhiChu]) VALUES
-('DH001', 'B003', 'NV003', 'KH001', 'DA_HOAN_THANH', '2025-10-08 18:00:00', 15, '2025-10-08 18:15:00', '2025-10-08 20:00:00', 5, 0, N'Đã thanh toán (Tháng 10)'),
-('DH002', 'B008', 'NV004', 'KH002', 'DA_HOAN_THANH', '2025-10-08 19:00:00', 10, '2025-10-08 19:10:00', '2025-10-08 21:00:00', 10, 0, N'Đã thanh toán (Tháng 10)'),
-('DH003', 'B001', 'NV007', 'KH003', 'DA_HOAN_THANH', '2025-10-09 11:00:00', 5, '2025-10-09 11:05:00', '2025-10-09 12:00:00', 4, 0, N'Đã thanh toán (Tháng 10)'),
-('DH004', 'B002', 'NV008', 'KH004', 'DA_HOAN_THANH', '2025-10-09 12:00:00', 5, '2025-10-09 12:05:00', '2025-10-09 13:00:00', 2, 0, N'Đã thanh toán (Tháng 10)'),
-('DH005', 'B004', 'NV003', 'KH005', 'DA_HOAN_THANH', '2025-10-10 18:30:00', 10, '2025-10-10 18:40:00', '2025-10-10 20:30:00', 4, 0, N'Đã thanh toán (Tháng 10)'),
-('DH006', 'B007', 'NV004', 'KH006', 'DA_HOAN_THANH', '2025-10-11 19:00:00', 20, '2025-10-11 19:20:00', '2025-10-11 21:30:00', 9, 0, N'Đã thanh toán (Tháng 10)'),
-('DH007', 'B009', 'NV007', 'KH007', 'DA_HOAN_THANH', '2025-10-12 20:00:00', 5, '2025-10-12 20:05:00', '2025-10-12 21:00:00', 2, 0, N'Đã thanh toán (Tháng 10)'),
-('DH008', 'B010', 'NV008', 'KH008', 'DA_HOAN_THANH', '2025-10-13 17:00:00', 10, '2025-10-13 17:10:00', '2025-10-13 18:00:00', 3, 0, N'Đã thanh toán (Tháng 10)'),
-('DH009', 'B006', 'NV003', 'KH009', 'DA_HOAN_THANH', '2025-10-14 19:30:00', 15, '2025-10-14 19:45:00', '2025-10-14 21:00:00', 6, 0, N'Đã thanh toán (Tháng 10)'),
-('DH010', 'B011', 'NV004', 'KH010', 'DA_HOAN_THANH', '2025-10-15 18:00:00', 10, '2025-10-15 18:10:00', '2025-10-15 20:00:00', 7, 0, N'Đã thanh toán (Tháng 10)'),
-('DH011', 'B012', 'NV013', 'KH011', 'DA_HOAN_THANH', '2025-11-01 18:00:00', 10, '2025-11-01 18:10:00', '2025-11-01 20:00:00', 4, 0, N'Đã thanh toán (Tháng 11)'),
-('DH012', 'B013', 'NV018', 'KH012', 'DA_HOAN_THANH', '2025-11-01 18:05:00', 10, '2025-11-01 18:15:00', '2025-11-01 19:30:00', 3, 0, N'Đã thanh toán (Tháng 11)'),
-('DH013', 'B014', 'NV019', 'KH013', 'DA_HOAN_THANH', '2025-11-02 19:00:00', 15, '2025-11-02 19:15:00', '2025-11-02 21:00:00', 6, 0, N'Đã thanh toán (Tháng 11)'),
-('DH014', 'B017', 'NV013', 'KH014', 'DA_HOAN_THANH', '2025-11-03 12:00:00', 5, '2025-11-03 12:05:00', '2025-11-03 13:00:00', 2, 0, N'Đã thanh toán (Tháng 11)'),
-('DH015', 'B018', 'NV018', 'KH015', 'DA_HOAN_THANH', '2025-11-03 12:10:00', 5, '2025-11-03 12:15:00', '2025-11-03 13:15:00', 2, 0, N'Đã thanh toán (Tháng 11)'),
-('DH016', 'B020', 'NV019', 'KH016', 'DA_HOAN_THANH', '2025-11-05 19:00:00', 10, '2025-11-05 19:10:00', '2025-11-05 21:00:00', 18, 0, N'Đã thanh toán (Tháng 11)'),
-('DH017', 'B015', 'NV013', 'KH017', 'DA_HOAN_THANH', '2025-11-06 18:30:00', 15, '2025-11-06 18:45:00', '2025-11-06 20:30:00', 10, 0, N'Đã thanh toán (Tháng 11)'),
-('DH018', 'B021', 'NV018', 'KH018', 'DA_HOAN_THANH', '2025-11-07 11:00:00', 5, '2025-11-07 11:05:00', '2025-11-07 12:00:00', 1, 0, N'Đã thanh toán (Tháng 11)'),
-('DH019', 'B022', 'NV019', 'KH019', 'DA_HOAN_THANH', '2025-11-07 11:05:00', 5, '2025-11-07 11:10:00', '2025-11-07 12:30:00', 3, 0, N'Đã thanh toán (Tháng 11)'),
-('DH020', 'B023', 'NV013', 'KH020', 'DA_HOAN_THANH', '2025-11-08 19:00:00', 10, '2025-11-08 19:10:00', '2025-11-08 20:45:00', 5, 0, N'Đã thanh toán (Tháng 11)'),
-('DH021', 'B024', 'NV003', 'KH021', 'DA_HOAN_THANH', '2025-11-08 19:15:00', 10, '2025-11-08 19:25:00', '2025-11-08 21:00:00', 4, 0, N'Đã thanh toán (Tháng 11)'),
-('DH022', 'B025', 'NV004', 'KH022', 'DA_HOAN_THANH', '2025-11-09 12:00:00', 5, '2025-11-09 12:05:00', '2025-11-09 13:00:00', 6, 0, N'Đã thanh toán (Tháng 11)'),
-('DH023', 'B026', 'NV007', 'KH023', 'DA_HOAN_THANH', '2025-11-09 12:05:00', 5, '2025-11-09 12:10:00', '2025-11-09 13:30:00', 5, 0, N'Đã thanh toán (Tháng 11)'),
-('DH024', 'B005', 'NV008', 'KH024', 'DA_XAC_NHAN', '2025-11-10 18:00:00', NULL, NULL, NULL, 8, 500000.00, N'Đã đặt cọc 500k (B005)'),
-('DH025', 'B019', 'NV013', 'KH025', 'DA_XAC_NHAN', '2025-11-10 18:30:00', NULL, NULL, NULL, 15, 1000000.00, N'Đặt cọc 1 triệu (B019)'),
-('DH026', 'B027', 'NV018', 'KH026', 'DA_HOAN_THANH', '2025-11-10 19:00:00', 10, '2025-11-10 19:10:00', '2025-11-10 21:00:00', 7, 0, N'Đã thanh toán (Tháng 11)'),
-('DH027', 'B028', 'NV019', 'KH027', 'DA_HOAN_THANH', '2025-11-11 19:15:00', 10, '2025-11-11 19:25:00', '2025-11-11 20:30:00', 8, 0, N'Đã thanh toán (Tháng 11)'),
-('DH028', 'B029', 'NV003', 'KH028', 'DA_HUY', '2025-11-12 11:30:00', NULL, NULL, NULL, 9, 0, N'Khách gọi báo hủy'),
-('DH029', 'B030', 'NV004', 'KH029', 'DA_HOAN_THANH', '2025-11-12 12:00:00', 5, '2025-11-12 12:05:00', '2025-11-12 13:15:00', 10, 0, N'Đã thanh toán (Tháng 11)'),
-('DH030', 'B031', 'NV007', 'KH030', 'NO_SHOW', '2025-11-13 19:00:00', NULL, NULL, NULL, 2, 0, N'Khách không đến (No-Show)'),
-('DH031', 'B032', 'NV008', 'KH031', 'DA_HOAN_THANH', '2025-11-14 19:00:00', 10, '2025-11-14 19:10:00', '2025-11-14 21:00:00', 4, 0, N'Đã thanh toán (Tháng 11)'),
-('DH032', 'B033', 'NV013', 'KH032', 'CHO_XAC_NHAN', '2025-11-15 20:00:00', NULL, NULL, NULL, 2, 0, N'Đơn mới, chờ gọi xác nhận'),
-('DH033', 'B034', 'NV018', 'KH033', 'DA_HOAN_THANH', '2025-11-16 18:00:00', 10, '2025-11-16 18:10:00', '2025-11-16 19:00:00', 2, 0, N'Đã thanh toán (Tháng 11)'),
-('DH034', 'B035', 'NV019', 'KH034', 'DA_HOAN_THANH', '2025-11-17 11:00:00', 10, '2025-11-17 11:10:00', '2025-11-17 13:00:00', 12, 0, N'Đã thanh toán (Tháng 11)'),
-('DH035', 'B036', 'NV003', 'KH035', 'DA_HOAN_THANH', '2025-11-18 11:30:00', 10, '2025-11-18 11:40:00', '2025-11-18 13:00:00', 11, 0, N'Đã thanh toán (Tháng 11)'),
-('DH036', 'B039', 'NV004', 'KH036', 'DA_HOAN_THANH', '2025-11-19 19:00:00', 10, '2025-11-19 19:10:00', '2025-11-19 21:00:00', 7, 0, N'Đã thanh toán (Tháng 11)'),
-('DH037', 'B040', 'NV007', 'KH037', 'DA_HOAN_THANH', '2025-11-20 19:00:00', 10, '2025-11-20 19:10:00', '2025-11-20 21:30:00', 8, 0, N'Đã thanh toán (Tháng 11)'),
-('DH038', 'B001', 'NV008', 'KH038', 'DA_HOAN_THANH', '2025-11-21 12:00:00', 5, '2025-11-21 12:05:00', '2025-11-21 13:00:00', 3, 0, N'Đã thanh toán (Tháng 11)'),
-('DH039', 'B002', 'NV013', 'KH039', 'DA_HOAN_THANH', '2025-11-22 18:00:00', 10, '2025-11-22 18:10:00', '2025-11-22 20:00:00', 4, 0, N'Đã thanh toán (Tháng 11)'),
-('DH040', 'B003', 'NV018', 'KH040', 'DA_HOAN_THANH', '2025-11-23 19:00:00', 10, '2025-11-23 19:10:00', '2025-11-23 21:00:00', 5, 0, N'Đã thanh toán (Tháng 11)');
+INSERT INTO [dbo].[DonHang] ([MaDonHang], [MaBan], [MaNhanVien], [MaKhachHang], [MaTrangThaiDonHang], [ThoiGianDatHang], [TGDatDuKien], [TGNhanBan], [ThoiGianKetThuc], [SoLuongNguoiDK], [TienDatCoc], [GhiChu], [ThanhToan]) VALUES
+('DH001', 'B003', 'NV003', 'KH001', 'DA_HOAN_THANH', '2025-10-08 18:00:00', 15, '2025-10-08 18:15:00', '2025-10-08 20:00:00', 5, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH002', 'B008', 'NV004', 'KH002', 'DA_HOAN_THANH', '2025-10-08 19:00:00', 10, '2025-10-08 19:10:00', '2025-10-08 21:00:00', 10, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH003', 'B001', 'NV007', 'KH003', 'DA_HOAN_THANH', '2025-10-09 11:00:00', 5, '2025-10-09 11:05:00', '2025-10-09 12:00:00', 4, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH004', 'B002', 'NV008', 'KH004', 'DA_HOAN_THANH', '2025-10-09 12:00:00', 5, '2025-10-09 12:05:00', '2025-10-09 13:00:00', 2, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH005', 'B004', 'NV003', 'KH005', 'DA_HOAN_THANH', '2025-10-10 18:30:00', 10, '2025-10-10 18:40:00', '2025-10-10 20:30:00', 4, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH006', 'B007', 'NV004', 'KH006', 'DA_HOAN_THANH', '2025-10-11 19:00:00', 20, '2025-10-11 19:20:00', '2025-10-11 21:30:00', 9, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH007', 'B009', 'NV007', 'KH007', 'DA_HOAN_THANH', '2025-10-12 20:00:00', 5, '2025-10-12 20:05:00', '2025-10-12 21:00:00', 2, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH008', 'B010', 'NV008', 'KH008', 'DA_HOAN_THANH', '2025-10-13 17:00:00', 10, '2025-10-13 17:10:00', '2025-10-13 18:00:00', 3, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH009', 'B006', 'NV003', 'KH009', 'DA_HOAN_THANH', '2025-10-14 19:30:00', 15, '2025-10-14 19:45:00', '2025-10-14 21:00:00', 6, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH010', 'B011', 'NV004', 'KH010', 'DA_HOAN_THANH', '2025-10-15 18:00:00', 10, '2025-10-15 18:10:00', '2025-10-15 20:00:00', 7, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH011', 'B012', 'NV013', 'KH011', 'DA_HOAN_THANH', '2025-11-01 18:00:00', 10, '2025-11-01 18:10:00', '2025-11-01 20:00:00', 4, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH012', 'B013', 'NV018', 'KH012', 'DA_HOAN_THANH', '2025-11-01 18:05:00', 10, '2025-11-01 18:15:00', '2025-11-01 19:30:00', 3, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH013', 'B014', 'NV019', 'KH013', 'DA_HOAN_THANH', '2025-11-02 19:00:00', 15, '2025-11-02 19:15:00', '2025-11-02 21:00:00', 6, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH014', 'B017', 'NV013', 'KH014', 'DA_HOAN_THANH', '2025-11-03 12:00:00', 5, '2025-11-03 12:05:00', '2025-11-03 13:00:00', 2, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH015', 'B018', 'NV018', 'KH015', 'DA_HOAN_THANH', '2025-11-03 12:10:00', 5, '2025-11-03 12:15:00', '2025-11-03 13:15:00', 2, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH016', 'B020', 'NV019', 'KH016', 'DA_HOAN_THANH', '2025-11-05 19:00:00', 10, '2025-11-05 19:10:00', '2025-11-05 21:00:00', 18, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH017', 'B015', 'NV013', 'KH017', 'DA_HOAN_THANH', '2025-11-06 18:30:00', 15, '2025-11-06 18:45:00', '2025-11-06 20:30:00', 10, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH018', 'B021', 'NV018', 'KH018', 'DA_HOAN_THANH', '2025-11-07 11:00:00', 5, '2025-11-07 11:05:00', '2025-11-07 12:00:00', 1, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH019', 'B022', 'NV019', 'KH019', 'DA_HOAN_THANH', '2025-11-07 11:05:00', 5, '2025-11-07 11:10:00', '2025-11-07 12:30:00', 3, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH020', 'B023', 'NV013', 'KH020', 'DA_HOAN_THANH', '2025-11-08 19:00:00', 10, '2025-11-08 19:10:00', '2025-11-08 20:45:00', 5, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH021', 'B024', 'NV003', 'KH021', 'DA_HOAN_THANH', '2025-11-08 19:15:00', 10, '2025-11-08 19:25:00', '2025-11-08 21:00:00', 4, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH022', 'B025', 'NV004', 'KH022', 'DA_HOAN_THANH', '2025-11-09 12:00:00', 5, '2025-11-09 12:05:00', '2025-11-09 13:00:00', 6, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH023', 'B026', 'NV007', 'KH023', 'DA_HOAN_THANH', '2025-11-09 12:05:00', 5, '2025-11-09 12:10:00', '2025-11-09 13:30:00', 5, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH024', 'B005', 'NV008', 'KH024', 'DA_XAC_NHAN', '2025-11-10 18:00:00', NULL, NULL, NULL, 8, 500000.00, N'Đã đặt cọc 500k (B005)', 0),
+('DH025', 'B019', 'NV013', 'KH025', 'DA_XAC_NHAN', '2025-11-10 18:30:00', NULL, NULL, NULL, 15, 1000000.00, N'Đặt cọc 1 triệu (B019)', 0),
+('DH026', 'B027', 'NV018', 'KH026', 'DA_HOAN_THANH', '2025-11-10 19:00:00', 10, '2025-11-10 19:10:00', '2025-11-10 21:00:00', 7, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH027', 'B028', 'NV019', 'KH027', 'DA_HOAN_THANH', '2025-11-11 19:15:00', 10, '2025-11-11 19:25:00', '2025-11-11 20:30:00', 8, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH028', 'B029', 'NV003', 'KH028', 'DA_HUY', '2025-11-12 11:30:00', NULL, NULL, NULL, 9, 0, N'Khách gọi báo hủy', 0),
+('DH029', 'B030', 'NV004', 'KH029', 'DA_HOAN_THANH', '2025-11-12 12:00:00', 5, '2025-11-12 12:05:00', '2025-11-12 13:15:00', 10, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH030', 'B031', 'NV007', 'KH030', 'NO_SHOW', '2025-11-13 19:00:00', NULL, NULL, NULL, 2, 0, N'Khách không đến (No-Show)', 0),
+('DH031', 'B032', 'NV008', 'KH031', 'DA_HOAN_THANH', '2025-11-14 19:00:00', 10, '2025-11-14 19:10:00', '2025-11-14 21:00:00', 4, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH032', 'B033', 'NV013', 'KH032', 'CHO_XAC_NHAN', '2025-11-15 20:00:00', NULL, NULL, NULL, 2, 0, N'Đơn mới, chờ gọi xác nhận', 0),
+('DH033', 'B034', 'NV018', 'KH033', 'DA_HOAN_THANH', '2025-11-16 18:00:00', 10, '2025-11-16 18:10:00', '2025-11-16 19:00:00', 2, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH034', 'B035', 'NV019', 'KH034', 'DA_HOAN_THANH', '2025-11-17 11:00:00', 10, '2025-11-17 11:10:00', '2025-11-17 13:00:00', 12, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH035', 'B036', 'NV003', 'KH035', 'DA_HOAN_THANH', '2025-11-18 11:30:00', 10, '2025-11-18 11:40:00', '2025-11-18 13:00:00', 11, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH036', 'B039', 'NV004', 'KH036', 'DA_HOAN_THANH', '2025-11-19 19:00:00', 10, '2025-11-19 19:10:00', '2025-11-19 21:00:00', 7, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH037', 'B040', 'NV007', 'KH037', 'DA_HOAN_THANH', '2025-11-20 19:00:00', 10, '2025-11-20 19:10:00', '2025-11-20 21:30:00', 8, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH038', 'B001', 'NV008', 'KH038', 'DA_HOAN_THANH', '2025-11-21 12:00:00', 5, '2025-11-21 12:05:00', '2025-11-21 13:00:00', 3, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH039', 'B002', 'NV013', 'KH039', 'DA_HOAN_THANH', '2025-11-22 18:00:00', 10, '2025-11-22 18:10:00', '2025-11-22 20:00:00', 4, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH040', 'B003', 'NV018', 'KH040', 'DA_HOAN_THANH', '2025-11-23 19:00:00', 10, '2025-11-23 19:10:00', '2025-11-23 21:00:00', 5, 0, N'Đã thanh toán (Tháng 11)', 1);
 
 -- chèn dữ liệu cho: CheBienMonAn
 INSERT INTO [dbo].[CheBienMonAn] ([MaCheBien], [NgayNau], [MaPhienBan], [SoLuong]) VALUES
@@ -826,84 +850,110 @@ INSERT INTO [dbo].[ChiTietNhapNguyenLieu] ([MaNhapHang], [MaCungUng], [SoLuong],
 ('NH039', 'CU020', 50, 18000.00), ('NH039', 'CU001', 30, 180000.00),
 ('NH040', 'CU002', 15, 250000.00), ('NH040', 'CU003', 25, 100000.00);
 
--- chèn dữ liệu cho: CongThucNauAn
-INSERT INTO [dbo].[CongThucNauAn] ([MaCongThuc], [MaNguyenLieu], [MaPhienBan], [SoLuongCanDung]) VALUES
-('CT001', 'NL021', 'PB001', 1), ('CT002', 'NL022', 'PB002', 1),
-('CT003', 'NL023', 'PB003', 1), ('CT004', 'NL009', 'PB003', 1),
-('CT005', 'NL024', 'PB004', 1), ('CT006', 'NL025', 'PB005', 1),
-('CT007', 'NL024', 'PB005', 1), ('CT008', 'NL026', 'PB006', 1),
-('CT009', 'NL002', 'PB006', 1), ('CT010', 'NL004', 'PB006', 1),
-('CT011', 'NL039', 'PB006', 1), ('CT012', 'NL005', 'PB006', 2),
-('CT013', 'NL006', 'PB006', 1), ('CT014', 'NL003', 'PB007', 1),
-('CT015', 'NL027', 'PB007', 1), ('CT016', 'NL006', 'PB007', 1),
-('CT017', 'NL001', 'PB008', 2), ('CT018', 'NL028', 'PB008', 1),
-('CT019', 'NL005', 'PB008', 2), ('CT020', 'NL012', 'PB008', 1),
-('CT021', 'NL004', 'PB009', 1), ('CT022', 'NL002', 'PB010', 1),
-('CT023', 'NL013', 'PB011', 2), ('CT024', 'NL014', 'PB011', 1),
-('CT025', 'NL029', 'PB012', 1), ('CT026', 'NL030', 'PB013', 1),
-('CT027', 'NL031', 'PB016', 1), ('CT028', 'NL025', 'PB017', 1),
-('CT029', 'NL032', 'PB018', 1), ('CT030', 'NL008', 'PB019', 1),
-('CT031', 'NL033', 'PB020', 1), ('CT032', 'NL009', 'PB021', 1),
-('CT033', 'NL034', 'PB022', 3), ('CT034', 'NL035', 'PB022', 1),
-('CT035', 'NL002', 'PB023', 1), ('CT036', 'NL001', 'PB024', 1),
-('CT037', 'NL003', 'PB025', 1), ('CT038', 'NL010', 'PB026', 1),
-('CT039', 'NL007', 'PB026', 1), ('CT040', 'NL010', 'PB027', 2),
-('CT041', 'NL005', 'PB028', 1), ('CT042', 'NL010', 'PB028', 1),
-('CT043', 'NL006', 'PB029', 1), ('CT044', 'NL010', 'PB029', 1),
-('CT045', 'NL006', 'PB030', 1), ('CT046', 'NL009', 'PB031', 1),
-('CT047', 'NL007', 'PB031', 1), ('CT048', 'NL013', 'PB031', 1),
-('CT049', 'NL007', 'PB032', 1), ('CT050', 'NL012', 'PB032', 1),
-('CT051', 'NL007', 'PB033', 1), ('CT052', 'NL002', 'PB033', 1),
-('CT053', 'NL039', 'PB033', 1), ('CT054', 'NL007', 'PB034', 1),
-('CT055', 'NL003', 'PB034', 1), ('CT056', 'NL007', 'PB035', 1),
-('CT057', 'NL001', 'PB035', 1), ('CT058', 'NL012', 'PB035', 1),
-('CT059', 'NL036', 'PB036', 1), ('CT060', 'NL037', 'PB037', 1),
-('CT061', 'NL038', 'PB038', 1), ('CT062', 'NL008', 'PB038', 1),
-('CT063', 'NL039', 'PB039', 1), ('CT064', 'NL020', 'PB039', 1),
-('CT065', 'NL040', 'PB040', 4), ('CT066', 'NL035', 'PB040', 1);
+-- chèn dữ liệu cho: CongThucNauAn (MaCongThuc, MaCT, MaPhienBan, Gia)
+-- Mỗi công thức liên kết một ChiTietMonAn với một PhienBanMonAn và có giá
+INSERT INTO [dbo].[CongThucNauAn] ([MaCongThuc], [MaCT], [MaPhienBan], [Gia]) VALUES
+('CT001', 'CT001', 'PB001', 30000), ('CT002', 'CT002', 'PB002', 30000),
+('CT003', 'CT003', 'PB003', 35000), ('CT004', 'CT004', 'PB004', 35000),
+('CT005', 'CT005', 'PB005', 40000), ('CT006', 'CT006', 'PB006', 250000),
+('CT007', 'CT007', 'PB007', 230000), ('CT008', 'CT008', 'PB008', 280000),
+('CT009', 'CT009', 'PB009', 300000), ('CT010', 'CT010', 'PB010', 220000),
+('CT011', 'CT011', 'PB011', 25000), ('CT012', 'CT012', 'PB012', 30000),
+('CT013', 'CT013', 'PB013', 25000), ('CT014', 'CT014', 'PB014', 40000),
+('CT015', 'CT015', 'PB015', 35000), ('CT016', 'CT016', 'PB016', 10000),
+('CT017', 'CT017', 'PB017', 30000), ('CT018', 'CT018', 'PB018', 40000),
+('CT019', 'CT019', 'PB019', 30000), ('CT020', 'CT020', 'PB020', 25000),
+('CT021', 'CT021', 'PB021', 150000), ('CT022', 'CT022', 'PB022', 220000),
+('CT023', 'CT023', 'PB023', 200000), ('CT024', 'CT024', 'PB024', 180000),
+('CT025', 'CT025', 'PB025', 200000), ('CT026', 'CT026', 'PB026', 60000),
+('CT027', 'CT027', 'PB027', 40000), ('CT028', 'CT028', 'PB028', 45000),
+('CT029', 'CT029', 'PB029', 55000), ('CT030', 'CT030', 'PB030', 50000),
+('CT031', 'CT031', 'PB031', 75000), ('CT032', 'CT032', 'PB032', 70000),
+('CT033', 'CT033', 'PB033', 85000), ('CT034', 'CT034', 'PB034', 75000),
+('CT035', 'CT035', 'PB035', 80000), ('CT036', 'CT036', 'PB036', 450000),
+('CT037', 'CT037', 'PB037', 300000), ('CT038', 'CT038', 'PB038', 280000),
+('CT039', 'CT039', 'PB039', 180000), ('CT040', 'CT040', 'PB040', 250000);
 
--- chèn dữ liệu cho: ChiTietDonHang
-INSERT INTO [dbo].[ChiTietDonHang] ([MaDonHang], [MaPhienBan], [SoLuong]) VALUES
-('DH001', 'PB006', 1), ('DH001', 'PB003', 2), ('DH001', 'PB019', 5),
-('DH002', 'PB008', 2), ('DH002', 'PB021', 1), ('DH002', 'PB001', 1),
-('DH003', 'PB031', 4), ('DH003', 'PB020', 4),
-('DH004', 'PB034', 2), ('DH004', 'PB016', 2),
-('DH005', 'PB035', 2), ('DH005', 'PB027', 1), ('DH005', 'PB018', 4),
-('DH006', 'PB036', 1), ('DH006', 'PB037', 1), ('DH006', 'PB040', 2), ('DH006', 'PB019', 10),
-('DH007', 'PB023', 1), ('DH007', 'PB019', 4),
-('DH008', 'PB005', 1), ('DH008', 'PB011', 2), ('DH008', 'PB017', 2),
-('DH009', 'PB007', 1), ('DH009', 'PB024', 2), ('DH009', 'PB002', 1),
-('DH010', 'PB009', 1), ('DH010', 'PB010', 1), ('DH010', 'PB022', 2),
-('DH011', 'PB025', 2), ('DH011', 'PB018', 4),
-('DH012', 'PB026', 3), ('DH012', 'PB028', 1),
-('DH013', 'PB029', 2), ('DH013', 'PB030', 2), ('DH013', 'PB016', 6),
-('DH014', 'PB031', 1), ('DH014', 'PB032', 1), ('DH014', 'PB020', 2),
-('DH015', 'PB033', 1), ('DH015', 'PB034', 1),
-('DH016', 'PB006', 3), ('DH016', 'PB008', 3), ('DH016', 'PB021', 5), ('DH016', 'PB019', 20),
-('DH017', 'PB038', 2), ('DH017', 'PB039', 3), ('DH017', 'PB040', 3),
-('DH018', 'PB031', 1),
-('DH019', 'PB035', 3), ('DH019', 'PB016', 3),
-('DH020', 'PB006', 1), ('DH020', 'PB024', 2), ('DH020', 'PB003', 2),
-('DH021', 'PB007', 1), ('DH021', 'PB001', 1), ('DH021', 'PB019', 6),
-('DH022', 'PB031', 2), ('DH022', 'PB034', 2), ('DH022', 'PB032', 2),
-('DH023', 'PB035', 5), ('DH023', 'PB020', 5),
-('DH024', 'PB009', 1), ('DH024', 'PB003', 2),
-('DH025', 'PB036', 1), ('DH025', 'PB037', 2),
-('DH026', 'PB022', 3), ('DH026', 'PB021', 2), ('DH026', 'PB018', 7),
-('DH027', 'PB040', 4), ('DH027', 'PB039', 2), ('DH027', 'PB019', 10),
-('DH028', 'PB031', 9), ('DH028', 'PB016', 9),
-('DH029', 'PB030', 10), ('DH029', 'PB020', 10),
-('DH030', 'PB023', 1), ('DH030', 'PB001', 1), ('DH030', 'PB019', 2),
-('DH031', 'PB024', 2), ('DH031', 'PB018', 4),
-('DH032', 'PB005', 1), ('DH032', 'PB011', 2),
-('DH033', 'PB012', 1), ('DH033', 'PB013', 1),
-('DH034', 'PB032', 5), ('DH034', 'PB033', 5), ('DH034', 'PB016', 10),
-('DH035', 'PB031', 11), ('DH035', 'PB020', 11),
-('DH036', 'PB006', 1), ('DH036', 'PB007', 1), ('DH036', 'PB019', 8),
-('DH037', 'PB008', 2), ('DH037', 'PB021', 3), ('DH037', 'PB018', 8),
-('DH038', 'PB034', 3), ('DH038', 'PB016', 3),
-('DH039', 'PB035', 2), ('DH039', 'PB039', 1), ('DH039', 'PB020', 4),
-('DH040', 'PB006', 1), ('DH040', 'PB022', 2), ('DH040', 'PB019', 5);
+-- chèn dữ liệu cho: ChiTietCongThuc (MaCongThuc, MaNguyenLieu, SoLuongCanDung)
+-- Mỗi công thức có nhiều nguyên liệu
+INSERT INTO [dbo].[ChiTietCongThuc] ([MaCongThuc], [MaNguyenLieu], [SoLuongCanDung]) VALUES
+('CT001', 'NL021', 1), ('CT002', 'NL022', 1),
+('CT003', 'NL023', 1), ('CT003', 'NL009', 1),
+('CT004', 'NL024', 1), ('CT005', 'NL025', 1),
+('CT005', 'NL024', 1), ('CT006', 'NL026', 1),
+('CT006', 'NL002', 1), ('CT006', 'NL004', 1),
+('CT006', 'NL039', 1), ('CT006', 'NL005', 2),
+('CT006', 'NL006', 1), ('CT007', 'NL003', 1),
+('CT007', 'NL027', 1), ('CT007', 'NL006', 1),
+('CT008', 'NL001', 2), ('CT008', 'NL028', 1),
+('CT008', 'NL005', 2), ('CT008', 'NL012', 1),
+('CT009', 'NL004', 1), ('CT010', 'NL002', 1),
+('CT011', 'NL013', 2), ('CT011', 'NL014', 1),
+('CT012', 'NL029', 1), ('CT013', 'NL030', 1),
+('CT016', 'NL031', 1), ('CT017', 'NL025', 1),
+('CT018', 'NL032', 1), ('CT019', 'NL008', 1),
+('CT020', 'NL033', 1), ('CT021', 'NL009', 1),
+('CT022', 'NL034', 3), ('CT022', 'NL035', 1),
+('CT023', 'NL002', 1), ('CT024', 'NL001', 1),
+('CT025', 'NL003', 1), ('CT026', 'NL010', 1),
+('CT026', 'NL007', 1), ('CT027', 'NL010', 2),
+('CT028', 'NL005', 1), ('CT028', 'NL010', 1),
+('CT029', 'NL006', 1), ('CT029', 'NL010', 1),
+('CT030', 'NL006', 1), ('CT031', 'NL009', 1),
+('CT031', 'NL007', 1), ('CT031', 'NL013', 1),
+('CT032', 'NL007', 1), ('CT032', 'NL012', 1),
+('CT033', 'NL007', 1), ('CT033', 'NL002', 1),
+('CT033', 'NL039', 1), ('CT034', 'NL007', 1),
+('CT034', 'NL003', 1), ('CT035', 'NL007', 1),
+('CT035', 'NL001', 1), ('CT035', 'NL012', 1),
+('CT036', 'NL036', 1), ('CT037', 'NL037', 1),
+('CT038', 'NL038', 1), ('CT038', 'NL008', 1),
+('CT039', 'NL039', 1), ('CT039', 'NL020', 1),
+('CT040', 'NL040', 4), ('CT040', 'NL035', 1);
+
+-- chèn dữ liệu cho: ChiTietDonHang (đã thêm MaCongThuc)
+-- Mapping: PB001->CT001, PB002->CT002, ..., PB040->CT040
+INSERT INTO [dbo].[ChiTietDonHang] ([MaDonHang], [MaPhienBan], [MaCongThuc], [SoLuong]) VALUES
+('DH001', 'PB006', 'CT006', 1), ('DH001', 'PB003', 'CT003', 2), ('DH001', 'PB019', 'CT019', 5),
+('DH002', 'PB008', 'CT008', 2), ('DH002', 'PB021', 'CT021', 1), ('DH002', 'PB001', 'CT001', 1),
+('DH003', 'PB031', 'CT031', 4), ('DH003', 'PB020', 'CT020', 4),
+('DH004', 'PB034', 'CT034', 2), ('DH004', 'PB016', 'CT016', 2),
+('DH005', 'PB035', 'CT035', 2), ('DH005', 'PB027', 'CT027', 1), ('DH005', 'PB018', 'CT018', 4),
+('DH006', 'PB036', 'CT036', 1), ('DH006', 'PB037', 'CT037', 1), ('DH006', 'PB040', 'CT040', 2), ('DH006', 'PB019', 'CT019', 10),
+('DH007', 'PB023', 'CT023', 1), ('DH007', 'PB019', 'CT019', 4),
+('DH008', 'PB005', 'CT005', 1), ('DH008', 'PB011', 'CT011', 2), ('DH008', 'PB017', 'CT017', 2),
+('DH009', 'PB007', 'CT007', 1), ('DH009', 'PB024', 'CT024', 2), ('DH009', 'PB002', 'CT002', 1),
+('DH010', 'PB009', 'CT009', 1), ('DH010', 'PB010', 'CT010', 1), ('DH010', 'PB022', 'CT022', 2),
+('DH011', 'PB025', 'CT025', 2), ('DH011', 'PB018', 'CT018', 4),
+('DH012', 'PB026', 'CT026', 3), ('DH012', 'PB028', 'CT028', 1),
+('DH013', 'PB029', 'CT029', 2), ('DH013', 'PB030', 'CT030', 2), ('DH013', 'PB016', 'CT016', 6),
+('DH014', 'PB031', 'CT031', 1), ('DH014', 'PB032', 'CT032', 1), ('DH014', 'PB020', 'CT020', 2),
+('DH015', 'PB033', 'CT033', 1), ('DH015', 'PB034', 'CT034', 1),
+('DH016', 'PB006', 'CT006', 3), ('DH016', 'PB008', 'CT008', 3), ('DH016', 'PB021', 'CT021', 5), ('DH016', 'PB019', 'CT019', 20),
+('DH017', 'PB038', 'CT038', 2), ('DH017', 'PB039', 'CT039', 3), ('DH017', 'PB040', 'CT040', 3),
+('DH018', 'PB031', 'CT031', 1),
+('DH019', 'PB035', 'CT035', 3), ('DH019', 'PB016', 'CT016', 3),
+('DH020', 'PB006', 'CT006', 1), ('DH020', 'PB024', 'CT024', 2), ('DH020', 'PB003', 'CT003', 2),
+('DH021', 'PB007', 'CT007', 1), ('DH021', 'PB001', 'CT001', 1), ('DH021', 'PB019', 'CT019', 6),
+('DH022', 'PB031', 'CT031', 2), ('DH022', 'PB034', 'CT034', 2), ('DH022', 'PB032', 'CT032', 2),
+('DH023', 'PB035', 'CT035', 5), ('DH023', 'PB020', 'CT020', 5),
+('DH024', 'PB009', 'CT009', 1), ('DH024', 'PB003', 'CT003', 2),
+('DH025', 'PB036', 'CT036', 1), ('DH025', 'PB037', 'CT037', 2),
+('DH026', 'PB022', 'CT022', 3), ('DH026', 'PB021', 'CT021', 2), ('DH026', 'PB018', 'CT018', 7),
+('DH027', 'PB040', 'CT040', 4), ('DH027', 'PB039', 'CT039', 2), ('DH027', 'PB019', 'CT019', 10),
+('DH028', 'PB031', 'CT031', 9), ('DH028', 'PB016', 'CT016', 9),
+('DH029', 'PB030', 'CT030', 10), ('DH029', 'PB020', 'CT020', 10),
+('DH030', 'PB023', 'CT023', 1), ('DH030', 'PB001', 'CT001', 1), ('DH030', 'PB019', 'CT019', 2),
+('DH031', 'PB024', 'CT024', 2), ('DH031', 'PB018', 'CT018', 4),
+('DH032', 'PB005', 'CT005', 1), ('DH032', 'PB011', 'CT011', 2),
+('DH033', 'PB012', 'CT012', 1), ('DH033', 'PB013', 'CT013', 1),
+('DH034', 'PB032', 'CT032', 5), ('DH034', 'PB033', 'CT033', 5), ('DH034', 'PB016', 'CT016', 10),
+('DH035', 'PB031', 'CT031', 11), ('DH035', 'PB020', 'CT020', 11),
+('DH036', 'PB006', 'CT006', 1), ('DH036', 'PB007', 'CT007', 1), ('DH036', 'PB019', 'CT019', 8),
+('DH037', 'PB008', 'CT008', 2), ('DH037', 'PB021', 'CT021', 3), ('DH037', 'PB018', 'CT018', 8),
+('DH038', 'PB034', 'CT034', 3), ('DH038', 'PB016', 'CT016', 3),
+('DH039', 'PB035', 'CT035', 2), ('DH039', 'PB039', 'CT039', 1), ('DH039', 'PB020', 'CT020', 4),
+('DH040', 'PB006', 'CT006', 1), ('DH040', 'PB022', 'CT022', 2), ('DH040', 'PB019', 'CT019', 5);
 
 -- Cập nhật tổng tiền
 PRINT N'--- Đang cập nhật TONGTIEN cho các phiếu NhapNguyenLieu ---'
@@ -940,13 +990,13 @@ BEGIN
     )
     SELECT
         T.Thang,
-        COALESCE(SUM(CTDH.SoLuong * PB.Gia), 0) AS DoanhThu
+        COALESCE(SUM(CTDH.SoLuong * CTA.Gia), 0) AS DoanhThu
     FROM Thang T
     LEFT JOIN DonHang DH ON MONTH(DH.ThoiGianKetThuc) = T.Thang
                         AND YEAR(DH.ThoiGianKetThuc) = @Nam
                         AND DH.MaTrangThaiDonHang = 'DA_HOAN_THANH'
     LEFT JOIN ChiTietDonHang CTDH ON DH.MaDonHang = CTDH.MaDonHang
-    LEFT JOIN PhienBanMonAn PB ON CTDH.MaPhienBan = PB.MaPhienBan
+    LEFT JOIN CongThucNauAn CTA ON CTDH.MaCongThuc = CTA.MaCongThuc
     GROUP BY T.Thang
     ORDER BY T.Thang;
 END;
@@ -962,18 +1012,21 @@ BEGIN
         nv.HoTen AS 'TenNhanVien',
         ba.TenBan,
         kh.HoTen AS 'TenKhachHang',
-        dh.ThoiGianBatDau,
+        dh.TGNhanBan,
         ttdh.TenTrangThai AS 'TrangThaiDonHang',
         dh.TienDatCoc,
         ctdh.SoLuong,
         ma.TenMonAn,
+        ctma.TenCT AS 'TenChiTietMonAn',
         pb.TenPhienBan,
-        pb.Gia,
-        (ctdh.SoLuong * pb.Gia) AS 'ThanhTien'
+        cta.Gia,
+        (ctdh.SoLuong * cta.Gia) AS 'ThanhTien'
     FROM DonHang dh
     JOIN ChiTietDonHang ctdh ON ctdh.MaDonHang = dh.MaDonHang
+    JOIN CongThucNauAn cta ON ctdh.MaCongThuc = cta.MaCongThuc
+    JOIN ChiTietMonAn ctma ON cta.MaCT = ctma.MaCT
+    JOIN MonAn ma ON ctma.MaMonAn = ma.MaMonAn
     JOIN PhienBanMonAn pb ON ctdh.MaPhienBan = pb.MaPhienBan
-    JOIN MonAn ma ON pb.MaMonAn = ma.MaMonAn
     JOIN KhachHang kh ON kh.MaKhachHang = DH.MaKhachHang
     JOIN BanAn ba ON ba.MaBan = dh.MaBan
     JOIN NhanVien nv ON nv.MaNhanVien = dh.MaNhanVien
@@ -983,8 +1036,9 @@ END;
 GO
 
 
-ALTER TABLE DonHang ADD TenNguoiDat nvarchar(100) NULL;
-ALTER TABLE DonHang ADD SDTNguoiDat varchar(20) NULL;
+ALTER TABLE DonHang ADD TenNguoiNhan nvarchar(100) NULL;
+ALTER TABLE DonHang ADD SDTNguoiNhan varchar(20) NULL;
+ALTER TABLE DonHang ADD EmailNguoiNhan nvarchar(100) NULL;
 
 --USE [master];
 --GO
@@ -1044,4 +1098,237 @@ GO
 UPDATE [dbo].[BanAn]
 SET [MaTang] = 'T003'
 WHERE [MaBan] BETWEEN 'B028' AND 'B040';
+GO
+
+-- =============================================
+-- THIẾT KẾ BẢNG MENU
+-- =============================================
+
+-- Bảng LoaiMenu: Phân loại menu (Menu Set, Menu Buffet, Menu theo ngày, Menu đặc biệt...)
+CREATE TABLE [dbo].[LoaiMenu](
+    [MaLoaiMenu] [varchar](25) NOT NULL,
+    [TenLoaiMenu] [nvarchar](100) NOT NULL,
+    [MoTa] [nvarchar](500) NULL,
+CONSTRAINT [PK_LoaiMenu] PRIMARY KEY CLUSTERED ([MaLoaiMenu] ASC)
+);
+GO
+
+-- Bảng TrangThaiMenu: Trạng thái menu
+CREATE TABLE [dbo].[TrangThaiMenu](
+    [MaTrangThai] [varchar](25) NOT NULL,
+    [TenTrangThai] [nvarchar](50) NOT NULL,
+CONSTRAINT [PK_TrangThaiMenu] PRIMARY KEY CLUSTERED ([MaTrangThai] ASC)
+);
+GO
+
+-- Bảng Menu: Thông tin menu chính
+CREATE TABLE [dbo].[Menu](
+    [MaMenu] [varchar](25) NOT NULL,
+    [TenMenu] [nvarchar](200) NOT NULL,
+    [MaLoaiMenu] [varchar](25) NOT NULL,
+    [MaTrangThai] [varchar](25) NOT NULL,
+    [GiaMenu] [decimal](10, 2) NOT NULL, -- Giá menu (có thể giảm giá so với mua lẻ)
+    [GiaGoc] [decimal](10, 2) NULL, -- Tổng giá gốc nếu mua lẻ từng món (để tính % giảm giá)
+    [MoTa] [nvarchar](1000) NULL,
+    [HinhAnh] [nvarchar](max) NULL,
+    [NgayBatDau] [datetime] NULL, -- Ngày bắt đầu áp dụng menu
+    [NgayKetThuc] [datetime] NULL, -- Ngày kết thúc áp dụng menu
+    [IsShow] [bit] NOT NULL DEFAULT(1), -- Hiển thị trên app/website
+    [ThuTu] [int] NULL, -- Thứ tự hiển thị
+    [NgayTao] [datetime] NOT NULL DEFAULT(GETDATE()),
+    [NgayCapNhat] [datetime] NULL,
+CONSTRAINT [PK_Menu] PRIMARY KEY CLUSTERED ([MaMenu] ASC)
+);
+GO
+
+-- Bảng ChiTietMenu: Chi tiết các món trong menu
+CREATE TABLE [dbo].[ChiTietMenu](
+    [MaChiTietMenu] [bigint] IDENTITY(1,1) NOT NULL,
+    [MaMenu] [varchar](25) NOT NULL,
+    [MaCongThuc] [varchar](25) NOT NULL, -- Liên kết với CongThucNauAn
+    [SoLuong] [int] NOT NULL DEFAULT(1), -- Số lượng món trong menu (ví dụ: 1 phần cơm, 2 phần canh)
+    [GhiChu] [nvarchar](500) NULL, -- Ghi chú đặc biệt cho món này trong menu
+    [ThuTu] [int] NULL, -- Thứ tự hiển thị món trong menu
+CONSTRAINT [PK_ChiTietMenu] PRIMARY KEY CLUSTERED ([MaChiTietMenu] ASC)
+);
+GO
+
+-- Thêm các ràng buộc và giá trị mặc định
+ALTER TABLE [dbo].[Menu] ADD DEFAULT ((1)) FOR [IsShow];
+GO
+ALTER TABLE [dbo].[Menu] ADD CONSTRAINT [CK_Menu_GiaMenu] CHECK ([GiaMenu] >= 0);
+GO
+ALTER TABLE [dbo].[Menu] ADD CONSTRAINT [CK_Menu_GiaGoc] CHECK ([GiaGoc] IS NULL OR [GiaGoc] >= 0);
+GO
+ALTER TABLE [dbo].[ChiTietMenu] ADD CONSTRAINT [CK_ChiTietMenu_SoLuong] CHECK ([SoLuong] > 0);
+GO
+
+-- Thêm Foreign Keys
+ALTER TABLE [dbo].[Menu] WITH CHECK ADD CONSTRAINT [FK_Menu_LoaiMenu] 
+FOREIGN KEY([MaLoaiMenu]) REFERENCES [dbo].[LoaiMenu] ([MaLoaiMenu]);
+GO
+
+ALTER TABLE [dbo].[Menu] WITH CHECK ADD CONSTRAINT [FK_Menu_TrangThaiMenu] 
+FOREIGN KEY([MaTrangThai]) REFERENCES [dbo].[TrangThaiMenu] ([MaTrangThai]);
+GO
+
+ALTER TABLE [dbo].[ChiTietMenu] WITH CHECK ADD CONSTRAINT [FK_ChiTietMenu_Menu] 
+FOREIGN KEY([MaMenu]) REFERENCES [dbo].[Menu] ([MaMenu]) ON DELETE CASCADE;
+GO
+
+ALTER TABLE [dbo].[ChiTietMenu] WITH CHECK ADD CONSTRAINT [FK_ChiTietMenu_CongThucNauAn] 
+FOREIGN KEY([MaCongThuc]) REFERENCES [dbo].[CongThucNauAn] ([MaCongThuc]);
+GO
+
+-- Tạo Index để tối ưu truy vấn
+CREATE INDEX [IX_Menu_MaLoaiMenu] ON [dbo].[Menu]([MaLoaiMenu]);
+GO
+CREATE INDEX [IX_Menu_MaTrangThai] ON [dbo].[Menu]([MaTrangThai]);
+GO
+CREATE INDEX [IX_Menu_IsShow] ON [dbo].[Menu]([IsShow]);
+GO
+CREATE INDEX [IX_ChiTietMenu_MaMenu] ON [dbo].[ChiTietMenu]([MaMenu]);
+GO
+CREATE INDEX [IX_ChiTietMenu_MaCongThuc] ON [dbo].[ChiTietMenu]([MaCongThuc]);
+GO
+
+-- =============================================
+-- CHÈN DỮ LIỆU MẪU CHO MENU
+-- =============================================
+
+-- Chèn dữ liệu cho LoaiMenu
+INSERT INTO [dbo].[LoaiMenu] ([MaLoaiMenu], [TenLoaiMenu], [MoTa]) VALUES
+('LM001', N'Menu Set', N'Menu combo gồm nhiều món với giá ưu đãi'),
+('LM002', N'Menu Buffet', N'Menu buffet ăn thỏa thích'),
+('LM003', N'Menu theo ngày', N'Menu đặc biệt theo từng ngày trong tuần'),
+('LM004', N'Menu sự kiện', N'Menu đặc biệt cho các dịp lễ, sự kiện'),
+('LM005', N'Menu gia đình', N'Menu dành cho gia đình, nhóm đông người'),
+('LM006', N'Menu tiệc', N'Menu dành cho tiệc, hội nghị');
+GO
+
+-- Chèn dữ liệu cho TrangThaiMenu
+INSERT INTO [dbo].[TrangThaiMenu] ([MaTrangThai], [TenTrangThai]) VALUES
+('DANG_AP_DUNG', N'Đang áp dụng'),
+('HET_HAN', N'Hết hạn'),
+('TAM_NGUNG', N'Tạm ngưng'),
+('CHUA_AP_DUNG', N'Chưa áp dụng');
+GO
+
+-- Chèn dữ liệu mẫu cho Menu
+-- Menu Set A: Cơm + Canh + Món mặn + Nước
+INSERT INTO [dbo].[Menu] ([MaMenu], [TenMenu], [MaLoaiMenu], [MaTrangThai], [GiaMenu], [GiaGoc], [MoTa], [HinhAnh], [NgayBatDau], [NgayKetThuc], [IsShow], [ThuTu]) VALUES
+('MENU001', N'Menu Set A - Cơm tấm combo', 'LM001', 'DANG_AP_DUNG', 120000, 150000, N'Bao gồm: 1 phần cơm tấm sườn bì chả + 1 canh chua chay + 1 nước lọc', NULL, '2025-01-01', NULL, 1, 1),
+('MENU002', N'Menu Set B - Lẩu combo 2 người', 'LM001', 'DANG_AP_DUNG', 450000, 500000, N'Bao gồm: 1 lẩu Thái hải sản + 2 phần cơm + 2 nước', NULL, '2025-01-01', NULL, 1, 2),
+('MENU003', N'Menu Set C - Hải sản combo', 'LM001', 'DANG_AP_DUNG', 600000, 700000, N'Bao gồm: 1 tôm hùm nướng bơ tỏi + 1 cua rang me + 2 nước', NULL, '2025-01-01', NULL, 1, 3),
+('MENU004', N'Menu Buffet trưa', 'LM002', 'DANG_AP_DUNG', 250000, NULL, N'Buffet trưa thứ 2-6, từ 11h-14h', NULL, '2025-01-01', NULL, 1, 4),
+('MENU005', N'Menu gia đình 4 người', 'LM005', 'DANG_AP_DUNG', 800000, 950000, N'Menu đầy đủ cho gia đình 4 người: 4 phần cơm + 2 món mặn + 1 canh + 4 nước', NULL, '2025-01-01', NULL, 1, 5),
+('MENU006', N'Menu Tết Nguyên Đán 2025', 'LM004', 'CHUA_AP_DUNG', 1200000, 1400000, N'Menu đặc biệt dịp Tết, áp dụng từ 28/12 - 5/1', NULL, '2025-12-28', '2026-01-05', 1, 6);
+GO
+
+-- Chèn dữ liệu chi tiết cho Menu Set A
+INSERT INTO [dbo].[ChiTietMenu] ([MaMenu], [MaCongThuc], [SoLuong], [GhiChu], [ThuTu]) VALUES
+('MENU001', 'CT031', 1, N'Cơm tấm sườn bì chả', 1),
+('MENU001', 'CT028', 1, N'Canh chua chay', 2),
+('MENU001', 'CT016', 1, N'Nước lọc', 3);
+GO
+
+-- Chèn dữ liệu chi tiết cho Menu Set B
+INSERT INTO [dbo].[ChiTietMenu] ([MaMenu], [MaCongThuc], [SoLuong], [GhiChu], [ThuTu]) VALUES
+('MENU002', 'CT006', 1, N'Lẩu Thái hải sản', 1),
+('MENU002', 'CT031', 2, N'Cơm tấm (2 phần)', 2),
+('MENU002', 'CT016', 2, N'Nước lọc (2 chai)', 3);
+GO
+
+-- Chèn dữ liệu chi tiết cho Menu Set C
+INSERT INTO [dbo].[ChiTietMenu] ([MaMenu], [MaCongThuc], [SoLuong], [GhiChu], [ThuTu]) VALUES
+('MENU003', 'CT036', 1, N'Tôm hùm nướng bơ tỏi', 1),
+('MENU003', 'CT037', 1, N'Cua rang me', 2),
+('MENU003', 'CT016', 2, N'Nước lọc (2 chai)', 3);
+GO
+
+-- Chèn dữ liệu chi tiết cho Menu gia đình 4 người
+INSERT INTO [dbo].[ChiTietMenu] ([MaMenu], [MaCongThuc], [SoLuong], [GhiChu], [ThuTu]) VALUES
+('MENU005', 'CT031', 4, N'Cơm tấm (4 phần)', 1),
+('MENU005', 'CT021', 1, N'Sườn nướng BBQ', 2),
+('MENU005', 'CT024', 1, N'Ba chỉ bò nướng', 3),
+('MENU005', 'CT028', 1, N'Canh chua chay', 4),
+('MENU005', 'CT016', 4, N'Nước lọc (4 chai)', 5);
+GO
+
+-- =============================================
+-- STORED PROCEDURE: Lấy danh sách menu đang áp dụng
+-- =============================================
+CREATE PROCEDURE [dbo].[GetMenuDangApDung]
+    @MaLoaiMenu VARCHAR(25) = NULL -- NULL = lấy tất cả loại
+AS
+BEGIN
+    SELECT 
+        m.[MaMenu],
+        m.[TenMenu],
+        lm.[TenLoaiMenu],
+        m.[GiaMenu],
+        m.[GiaGoc],
+        CASE 
+            WHEN m.[GiaGoc] > 0 THEN CAST(((m.[GiaGoc] - m.[GiaMenu]) * 100.0 / m.[GiaGoc]) AS DECIMAL(5,2))
+            ELSE 0
+        END AS [PhanTramGiamGia],
+        m.[MoTa],
+        m.[HinhAnh],
+        m.[NgayBatDau],
+        m.[NgayKetThuc],
+        m.[ThuTu]
+    FROM [dbo].[Menu] m
+    INNER JOIN [dbo].[LoaiMenu] lm ON m.[MaLoaiMenu] = lm.[MaLoaiMenu]
+    WHERE m.[MaTrangThai] = 'DANG_AP_DUNG'
+        AND m.[IsShow] = 1
+        AND (m.[NgayBatDau] IS NULL OR m.[NgayBatDau] <= GETDATE())
+        AND (m.[NgayKetThuc] IS NULL OR m.[NgayKetThuc] >= GETDATE())
+        AND (@MaLoaiMenu IS NULL OR m.[MaLoaiMenu] = @MaLoaiMenu)
+    ORDER BY m.[ThuTu] ASC, m.[TenMenu] ASC;
+END;
+GO
+
+-- =============================================
+-- STORED PROCEDURE: Lấy chi tiết menu
+-- =============================================
+CREATE PROCEDURE [dbo].[GetChiTietMenu]
+    @MaMenu VARCHAR(25)
+AS
+BEGIN
+    -- Thông tin menu
+    SELECT 
+        m.[MaMenu],
+        m.[TenMenu],
+        lm.[TenLoaiMenu],
+        ttm.[TenTrangThai],
+        m.[GiaMenu],
+        m.[GiaGoc],
+        m.[MoTa],
+        m.[HinhAnh],
+        m.[NgayBatDau],
+        m.[NgayKetThuc]
+    FROM [dbo].[Menu] m
+    INNER JOIN [dbo].[LoaiMenu] lm ON m.[MaLoaiMenu] = lm.[MaLoaiMenu]
+    INNER JOIN [dbo].[TrangThaiMenu] ttm ON m.[MaTrangThai] = ttm.[MaTrangThai]
+    WHERE m.[MaMenu] = @MaMenu;
+
+    -- Chi tiết các món trong menu
+    SELECT 
+        ctm.[MaChiTietMenu],
+        ctm.[SoLuong],
+        ctm.[GhiChu],
+        ctm.[ThuTu],
+        ma.[TenMonAn],
+        ctma.[TenCT] AS [TenChiTietMonAn],
+        pb.[TenPhienBan],
+        cta.[Gia] AS [GiaGoc],
+        (ctm.[SoLuong] * cta.[Gia]) AS [ThanhTien]
+    FROM [dbo].[ChiTietMenu] ctm
+    INNER JOIN [dbo].[CongThucNauAn] cta ON ctm.[MaCongThuc] = cta.[MaCongThuc]
+    INNER JOIN [dbo].[ChiTietMonAn] ctma ON cta.[MaCT] = ctma.[MaCT]
+    INNER JOIN [dbo].[MonAn] ma ON ctma.[MaMonAn] = ma.[MaMonAn]
+    INNER JOIN [dbo].[PhienBanMonAn] pb ON cta.[MaPhienBan] = pb.[MaPhienBan]
+    WHERE ctm.[MaMenu] = @MaMenu
+    ORDER BY ctm.[ThuTu] ASC;
+END;
 GO
