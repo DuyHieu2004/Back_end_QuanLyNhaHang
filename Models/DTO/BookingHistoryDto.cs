@@ -12,5 +12,6 @@
         public bool DaHuy { get; set; }
         public bool CoTheHuy { get; set; } 
         public string? TrangThai { get; set; }
+        public string? MaTrangThai { get; set; }
     }
 }

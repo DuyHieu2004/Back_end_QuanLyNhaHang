@@ -11,6 +11,9 @@
 
         public string TenNguoiDat { get; set; }
         public string SDTNguoiDat { get; set; }
+        public string TenBan { get; set; }      // <--- THÊM
+        public DateTime? ThoiGianNhanBan { get; set; }
+
         public List<MonAnDatDTO> MonAns { get; set; }
     }
 }

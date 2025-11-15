@@ -10,6 +10,8 @@
 
         public int? sucChua {  get; set; }
 
-  
+        public string tenTang { get; set; }
+
+
     }
 }

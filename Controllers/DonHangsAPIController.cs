@@ -36,6 +36,7 @@ namespace QuanLyNhaHang.Controllers
             var maKhachHang = currentUserId;
 
             var query = _context.DonHangs
+                .Include(dh => dh.MaBanNavigation)
                 .Include(dh => dh.ChiTietDonHangs)
                     .ThenInclude(ct => ct.MaPhienBanNavigation)
                         .ThenInclude(pb => pb.MaMonAnNavigation)
@@ -77,7 +78,11 @@ namespace QuanLyNhaHang.Controllers
             {
                 MaDonHang = donHang.MaDonHang,
                 ThoiGianDat = donHang.ThoiGianDatHang ?? DateTime.Now, // Cái này có thể Null nên giữ lại ??
+                TenBan = donHang.MaBanNavigation?.TenBan ?? "Bàn chưa xác định",
 
+                // Lấy giờ ăn thực tế (Giả sử trong DB bạn lưu là ThoiGianAn)
+                // Nếu DB bạn không có cột ThoiGianAn mà dùng chung cột ThoiGianDatHang thì logic DB bị sai nhé!
+                ThoiGianNhanBan = donHang.ThoiGianBatDau,
                 // SỬA Ở ĐÂY: Bỏ ?? 0
                 SoNguoi = donHang.SoLuongNguoi,
 

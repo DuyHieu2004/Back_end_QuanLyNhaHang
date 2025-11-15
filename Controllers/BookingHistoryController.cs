@@ -47,6 +47,7 @@ public class BookingHistoryController : ControllerBase
                 SoLuongNguoi = dh.SoLuongNguoi,
                 GhiChu = dh.GhiChu,
                 DaHuy = (dh.MaTrangThaiDonHang == "DA_HUY"),
+                MaTrangThai = dh.MaTrangThaiDonHang,
                 // "Có thể hủy" NẾU: chưa diễn ra VÀ chưa bị hủy
                 CoTheHuy = ((dh.ThoiGianBatDau ?? dh.ThoiGianDatHang) > DateTime.Now && dh.MaTrangThaiDonHang != "DA_HUY"),
                 TrangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai

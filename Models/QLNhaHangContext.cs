@@ -82,6 +82,18 @@ public partial class QLNhaHangContext : DbContext
             entity.Property(e => e.SucChua).HasDefaultValue(4);
             entity.Property(e => e.TenBan).HasMaxLength(50);
 
+            entity.Property(e => e.MaTang)
+                .HasMaxLength(25)
+                .IsUnicode(false)
+                .HasColumnName("MaTang");
+
+            // Cấu hình khóa ngoại trỏ sang bảng Tang
+            entity.HasOne(d => d.MaTangNavigation)
+                .WithMany(p => p.BanAns)
+                .HasForeignKey(d => d.MaTang)
+                .OnDelete(DeleteBehavior.ClientSetNull) // Hoặc Cascade tùy bạn
+                .HasConstraintName("FK_BanAn_Tang");
+
             entity.HasOne(d => d.MaTrangThaiNavigation).WithMany(p => p.BanAns)
                 .HasForeignKey(d => d.MaTrangThai)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -514,6 +526,15 @@ public partial class QLNhaHangContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.TenVaiTro).HasMaxLength(50);
         });
+
+        modelBuilder.Entity<Tang>(entity =>
+        {
+            entity.HasKey(e => e.MaTang);
+            entity.ToTable("Tang");
+            entity.Property(e => e.MaTang).HasMaxLength(25).IsUnicode(false).HasColumnName("MaTang");
+            entity.Property(e => e.TenTang).HasMaxLength(50).HasColumnName("TenTang");
+        });
+
 
         OnModelCreatingPartial(modelBuilder);
     }

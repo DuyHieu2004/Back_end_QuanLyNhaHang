@@ -49,47 +49,55 @@ namespace QuanLyNhaHang.Controllers
                 return NotFound();
             }
 
-            var thoiGianBatDauKhachChon = dateTime;
-            var thoiGianKetThucKhachChon = dateTime.AddMinutes(120);
+            // 1. Xác định khung giờ khách chọn (Ăn trong 2 tiếng)
+            var gioBatDau = dateTime;
+            var gioKetThuc = dateTime.AddMinutes(120);
 
-
+            // 2. Tìm các bàn bị trùng lịch
+            // (Đã sửa logic: So sánh với ThoiGianBatDau ăn, chứ không phải ThoiGianDatHang)
             var conflictingBookingIds = await _context.DonHangs
                 .Where(dh =>
-                    dh.ThoiGianKetThuc == null &&
-                    dh.ThoiGianDatHang != null &&
-                    (thoiGianBatDauKhachChon < dh.ThoiGianDatHang.Value.AddMinutes(120)) &&
-                    (thoiGianKetThucKhachChon > dh.ThoiGianDatHang.Value)
+                    // Chỉ check các đơn đang hoạt động
+                    (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" || dh.MaTrangThaiDonHang == "DA_XAC_NHAN" || dh.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
+
+                    dh.ThoiGianBatDau != null &&
+                    // Logic trùng giờ: (StartA < EndB) && (EndA > StartB)
+                    (gioBatDau < dh.ThoiGianKetThuc) &&
+                    (gioKetThuc > dh.ThoiGianBatDau)
                 )
                 .Select(dh => dh.MaBan)
                 .Distinct()
                 .ToListAsync();
 
-
+            // 3. Lấy danh sách bàn + Kèm thông tin Tầng
             var allTables = await _context.BanAns
                 .Include(b => b.MaTrangThaiNavigation)
+                .Include(b => b.MaTangNavigation) // <--- QUAN TRỌNG: Lấy thông tin Tầng
                 .Select(ban => new
                 {
                     ban.MaBan,
                     ban.TenBan,
                     ban.SucChua,
                     TrangThaiGoc = ban.MaTrangThaiNavigation.TenTrangThai,
-
-                    IsConflicting = conflictingBookingIds.Contains(ban.MaBan)
+                    // Lấy tên tầng (xử lý null nếu lỡ chưa gán)
+                    TenTang = ban.MaTangNavigation != null ? ban.MaTangNavigation.TenTang : "Chưa phân tầng",
+                    IsConflicting = conflictingBookingIds.Contains(ban.MaBan),
+                    MaTrangThaiCode = ban.MaTrangThai // Lấy mã trạng thái để check Bảo trì
                 })
                 .ToListAsync();
 
-
+            // 4. Map sang DTO trả về
             var result = allTables.Select(ban => new BanAnDTO
             {
                 maBan = ban.MaBan,
                 tenBan = ban.TenBan,
                 sucChua = ban.SucChua,
-
+                tenTang = ban.TenTang, // <--- Gán tên tầng vào DTO
 
                 tenTrangThai =
-                    (ban.TrangThaiGoc.ToLower() == "đang bảo trì") ? "Đang bảo trì" :
-                    (ban.SucChua < soNguoi) ? "Không đủ sức chứa" :
+                    (ban.MaTrangThaiCode == "TTBA004") ? "Đang bảo trì" : // Check mã cứng cho chắc
                     (ban.IsConflicting) ? "Đã đặt" :
+                    (ban.SucChua < soNguoi) ? "Không đủ sức chứa" :
                     "Đang trống"
             }).ToList();
 
@@ -97,41 +105,42 @@ namespace QuanLyNhaHang.Controllers
         }
 
 
-        // API MỚI: Lấy danh sách bàn theo trạng thái chi tiết cho Khách Hàng
         [HttpGet("GetAvailableBanAns")]
         public async Task<IActionResult> GetAvailableBanAns(
             [FromQuery] DateTime dateTime,
             [FromQuery] int soNguoi,
-            [FromQuery] string? maKhachHang) // Nhận thêm MaKhachHang để phân biệt chủ sở hữu
+            [FromQuery] string? maKhachHang)
         {
-            // Kiểm tra null để tránh lỗi server
             if (_context.BanAns == null || _context.DonHangs == null)
             {
                 return NotFound("Cơ sở dữ liệu chưa sẵn sàng.");
             }
 
-            // 1. Xác định khung giờ khách muốn đặt (Mặc định ăn 2 tiếng)
-            var gioBatDau = dateTime;
-            var gioKetThuc = dateTime.AddMinutes(120);
+            // 1. Xác định khung giờ khách muốn đặt (Khách đến -> +2 tiếng)
+            var gioBatDauKhachChon = dateTime;
+            var gioKetThucKhachChon = dateTime.AddMinutes(120);
 
-            // 2. Lấy danh sách các đơn hàng GÂY XUNG ĐỘT (Trùng giờ & Trạng thái đang hoạt động)
-            // Dựa vào hình bạn gửi: Chỉ quan tâm đơn "CHO_XAC_NHAN" và "DA_XAC_NHAN"
+            // 2. Tìm các đơn hàng GÂY XUNG ĐỘT
             var conflictingOrders = await _context.DonHangs
                 .Where(dh =>
-                    // Lọc trạng thái đơn hàng: Chỉ lấy đơn Chờ duyệt hoặc Đã duyệt
-                    (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" || dh.MaTrangThaiDonHang == "DA_XAC_NHAN") &&
+                    // Lọc trạng thái: Chỉ tính các đơn đang "Sống"
+                    (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
+                     dh.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
+                     dh.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
 
-                    dh.ThoiGianDatHang != null &&
-                    // Logic trùng giờ: (StartA < EndB) && (EndA > StartB)
-                    (gioBatDau < dh.ThoiGianDatHang.Value.AddMinutes(120)) &&
-                    (gioKetThuc > dh.ThoiGianDatHang.Value)
+                    // Phải kiểm tra trên THỜI GIAN BẮT ĐẦU và KẾT THÚC của bữa ăn
+                    dh.ThoiGianBatDau != null &&
+                    dh.ThoiGianKetThuc != null &&
+
+                    // Công thức trùng lịch chuẩn: (StartA < EndB) && (EndA > StartB)
+                    // A: Khách đang chọn | B: Đơn trong DB
+                    (gioBatDauKhachChon < dh.ThoiGianKetThuc) &&
+                    (gioKetThucKhachChon > dh.ThoiGianBatDau)
                 )
-                .Select(dh => new { dh.MaBan, dh.MaKhachHang }) // Lấy thêm MaKhachHang để so sánh
+                .Select(dh => new { dh.MaBan, dh.MaKhachHang })
                 .ToListAsync();
 
-            // Tách ra 2 danh sách ID bàn:
-            // - Bàn do chính khách hàng này đặt (CuaTui)
-            // - Bàn do người khác đặt (DaDat)
+            // Tách danh sách ID bàn
             var banNguoiKhacDatIds = conflictingOrders
                 .Where(o => o.MaKhachHang != maKhachHang)
                 .Select(o => o.MaBan).Distinct().ToList();
@@ -140,45 +149,40 @@ namespace QuanLyNhaHang.Controllers
                 .Where(o => o.MaKhachHang == maKhachHang)
                 .Select(o => o.MaBan).Distinct().ToList();
 
-            // 3. Lấy tất cả bàn từ DB và gán trạng thái hiển thị
-            // (Include bảng TrangThaiBanAn để check mã TTBA004)
+            // 3. Lấy danh sách bàn (Kèm Tầng)
             var allTables = await _context.BanAns
                 .Include(b => b.MaTrangThaiNavigation)
+                .Include(b => b.MaTangNavigation)
                 .ToListAsync();
 
+            // 4. Map kết quả ra DTO
             var result = allTables.Select(ban =>
             {
                 string trangThaiHienThi = "Trong";
 
-                // --- QUY TẮC ƯU TIÊN ---
-
-                // Ưu tiên 1: Check trạng thái CỨNG của bàn (Dựa vào hình 3: TTBA004 - Bảo trì)
-                // Nếu bàn đang bảo trì thì chặn luôn, không quan tâm giờ giấc.
+                // Ưu tiên 1: Bàn hỏng/Bảo trì (Check mã cứng)
                 if (ban.MaTrangThai == "TTBA004")
                 {
                     trangThaiHienThi = "BaoTri";
                 }
-                // Ưu tiên 2: Check xem có phải bàn MÌNH đã đặt không?
+                // Ưu tiên 2: Bàn Của Tui (Trùng lịch với chính mình)
                 else if (banCuaTuiIds.Contains(ban.MaBan))
                 {
-                    trangThaiHienThi = "CuaTui"; // Trả về mã này để Flutter hiện màu Tím
+                    trangThaiHienThi = "CuaTui";
                 }
-                // Ưu tiên 3: Check xem có phải bàn NGƯỜI KHÁC đã đặt không?
+                // Ưu tiên 3: Bàn Người Khác (Trùng lịch với người khác)
                 else if (banNguoiKhacDatIds.Contains(ban.MaBan))
                 {
-                    trangThaiHienThi = "DaDat"; // Trả về mã này để Flutter hiện màu Đỏ/Xám
+                    trangThaiHienThi = "DaDat";
                 }
-                // Ưu tiên 4: Bàn trống nhưng KHÔNG ĐỦ CHỖ
+                // Ưu tiên 4: Bàn nhỏ
                 else if (ban.SucChua < soNguoi)
                 {
-                    trangThaiHienThi = "CanGhep"; // Trả về mã này để Flutter hiện màu Cam
+                    trangThaiHienThi = "CanGhep";
                 }
-                // Ưu tiên 5: Bàn trống và đủ chỗ (Perfect)
                 else
                 {
-                    // Lưu ý: Các trạng thái như TTBA005 (Dọn dẹp) hay TTBA002 (Đang phục vụ)
-                    // tui coi là "Trong" vì đây là đặt bàn cho tương lai.
-                    trangThaiHienThi = "Trong"; // Trả về mã này để Flutter hiện màu Xanh
+                    trangThaiHienThi = "Trong";
                 }
 
                 return new BanAnDTO
@@ -186,18 +190,17 @@ namespace QuanLyNhaHang.Controllers
                     maBan = ban.MaBan,
                     tenBan = ban.TenBan,
                     sucChua = ban.SucChua,
-                    // Trả về keyword để Flutter switch-case: "Trong", "CuaTui", "DaDat", "CanGhep", "BaoTri"
-                    tenTrangThai = trangThaiHienThi
+                    tenTrangThai = trangThaiHienThi,
+                    tenTang = ban.MaTangNavigation != null ? ban.MaTangNavigation.TenTang : ""
                 };
             }).ToList();
 
             return Ok(result);
         }
-
     }
-
-
-
-
-
 }
+
+
+
+
+
