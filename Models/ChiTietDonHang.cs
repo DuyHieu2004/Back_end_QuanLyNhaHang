@@ -11,7 +11,11 @@ public partial class ChiTietDonHang
 
     public string MaPhienBan { get; set; } = null!;
 
+    public string MaCongThuc { get; set; } = null!;
+
     public int SoLuong { get; set; }
+
+    public virtual CongThucNauAn MaCongThucNavigation { get; set; } = null!;
 
     public virtual DonHang MaDonHangNavigation { get; set; } = null!;
 

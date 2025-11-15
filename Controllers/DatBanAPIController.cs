@@ -13,7 +13,7 @@ namespace QuanLyNhaHang.Controllers
     {
         private readonly QLNhaHangContext _context;
 
-        public DatBanAPIController(QLNhaHangContext  context)
+        public DatBanAPIController(QLNhaHangContext context)
         {
             _context = context;
         }
@@ -26,26 +26,24 @@ namespace QuanLyNhaHang.Controllers
 
             try
             {
-                // =================================================================
-                // BƯỚC 1: KIỂM TRA BÀN & LỊCH
-                // =================================================================
+               
                 var banAn = await _context.BanAns.FindAsync(datBanDto.MaBan);
                 if (banAn == null) return NotFound(new { message = "Không tìm thấy bàn." });
 
-                // Check sức chứa
+               
                 if (datBanDto.SoLuongNguoi > banAn.SucChua)
                 {
                     return BadRequest(new { message = $"Số lượng người ({datBanDto.SoLuongNguoi}) vượt quá sức chứa tối đa ({banAn.SucChua})." });
                 }
 
-                // Check trùng lịch
+                
                 var thoiGianBatDau = datBanDto.ThoiGianDatHang;
                 var thoiGianKetThuc = thoiGianBatDau.AddMinutes(120);
 
                 var bookingConflict = await _context.DonHangs
                     .AnyAsync(dh =>
-                        dh.MaBan == datBanDto.MaBan &&
-                        // Chỉ check đơn đang hoạt động
+                        dh.MaBans.Any(b => b.MaBan == datBanDto.MaBan) &&
+
                         (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" || dh.MaTrangThaiDonHang == "DA_XAC_NHAN" || dh.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
                         dh.ThoiGianDatHang != null &&
                         (thoiGianBatDau < dh.ThoiGianDatHang.Value.AddMinutes(120)) &&
@@ -220,24 +218,24 @@ namespace QuanLyNhaHang.Controllers
                 var newDonHang = new DonHang
                 {
                     MaDonHang = "DH" + DateTime.Now.ToString("yyMMddHHmmss"),
-                    MaBan = datBanDto.MaBan,
+                  
                     MaKhachHang = maKhachHangCuoiCung,
 
-                    TenNguoiDat = datBanDto.HoTenKhach,       // Lưu tên người đi ăn (ví dụ: Bố bạn)
-                    SDTNguoiDat = datBanDto.SoDienThoaiKhach,
-                    EmailNguoiDat = datBanDto.Email,
+                    TenNguoiNhan = datBanDto.HoTenKhach,       // Lưu tên người đi ăn (ví dụ: Bố bạn)
+                    SDTNguoiNhan = datBanDto.SoDienThoaiKhach,
+                    EmailNguoiNhan = datBanDto.Email,
 
                     MaNhanVien = datBanDto.MaNhanVien,
                     MaTrangThaiDonHang = trangThaiBanDau,
 
-                    
+
 
                     ThoiGianDatHang = DateTime.Now,
-                    ThoiGianBatDau = datBanDto.ThoiGianDatHang,
+                    TgdatDuKien = datBanDto.ThoiGianDatHang,
                     ThoiGianKetThuc = datBanDto.ThoiGianDatHang.AddMinutes(120),
 
-                    ThoiGianCho = 60,
-                    SoLuongNguoi = datBanDto.SoLuongNguoi,
+                   
+                    SoLuongNguoiDk = datBanDto.SoLuongNguoi,
                     GhiChu = datBanDto.GhiChu,
 
                     TienDatCoc = tienCocYeuCau
@@ -246,22 +244,17 @@ namespace QuanLyNhaHang.Controllers
                 _context.DonHangs.Add(newDonHang);
                 await _context.SaveChangesAsync();
 
-                // =================================================================
-                // BƯỚC 5: XỬ LÝ KẾT QUẢ (THANH TOÁN / GỬI EMAIL)
-                // =================================================================
                 string paymentUrl = "";
                 string messageRes = "Đặt bàn thành công! Đã gửi vé qua email.";
 
                 if (canThanhToanOnline)
                 {
-                    // Giả lập link thanh toán VNPAY
                     paymentUrl = $"https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?token={newDonHang.MaDonHang}";
                     messageRes = "Đơn hàng cần đặt cọc. Vui lòng thanh toán.";
                 }
                 else
                 {
-                    // Nếu không cần cọc -> Gửi email xác nhận ngay
-                    // Ưu tiên gửi về Email khách nhập trong Form (để nhận vé ngay)
+                 
                     string emailNhanVe = !string.IsNullOrEmpty(datBanDto.Email)
                                          ? datBanDto.Email
                                          : khachHang?.Email;
@@ -277,8 +270,8 @@ namespace QuanLyNhaHang.Controllers
                                 khachHang?.HoTen ?? datBanDto.HoTenKhach,
                                 newDonHang.MaDonHang,
                                 banAn.TenBan,
-                                newDonHang.ThoiGianBatDau ?? DateTime.Now,
-                                newDonHang.SoLuongNguoi,
+                                newDonHang.TgdatDuKien ?? DateTime.Now,
+                                newDonHang.SoLuongNguoiDk,
                                 newDonHang.GhiChu
                             );
                         }
@@ -328,11 +321,10 @@ namespace QuanLyNhaHang.Controllers
 
             donHang.MaTrangThaiDonHang = maTrangThai;
 
-            // Nếu hoàn thành mà chưa có ThoiGianBatDau/KetThuc thì set nhanh theo khung 2h
             if (maTrangThai == "DA_HOAN_THANH")
             {
-                donHang.ThoiGianBatDau ??= donHang.ThoiGianDatHang;
-                donHang.ThoiGianKetThuc ??= (donHang.ThoiGianBatDau ?? DateTime.Now).AddMinutes(120);
+                donHang.ThoiGianDatHang ??= donHang.ThoiGianDatHang;
+                donHang.ThoiGianKetThuc ??= (donHang.ThoiGianKetThuc?? DateTime.Now).AddMinutes(120);
             }
 
             _context.DonHangs.Update(donHang);

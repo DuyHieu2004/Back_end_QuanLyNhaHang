@@ -17,9 +17,9 @@ public partial class BanAn
 
     public bool IsShow { get; set; }
 
-    public virtual ICollection<DonHang> DonHangs { get; set; } = new List<DonHang>();
-
     public virtual Tang? MaTangNavigation { get; set; }
 
     public virtual TrangThaiBanAn MaTrangThaiNavigation { get; set; } = null!;
+
+    public virtual ICollection<DonHang> MaDonHangs { get; set; } = new List<DonHang>();
 }

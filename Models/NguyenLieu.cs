@@ -13,7 +13,7 @@ public partial class NguyenLieu
 
     public int SoLuongTonKho { get; set; }
 
-    public virtual ICollection<CongThucNauAn> CongThucNauAns { get; set; } = new List<CongThucNauAn>();
+    public virtual ICollection<ChiTietCongThuc> ChiTietCongThucs { get; set; } = new List<ChiTietCongThuc>();
 
     public virtual ICollection<CungUng> CungUngs { get; set; } = new List<CungUng>();
 }

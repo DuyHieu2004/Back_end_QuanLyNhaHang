@@ -56,8 +56,8 @@ namespace QuanLyNhaHang.Services
                                 .Include(dh => dh.MaKhachHangNavigation)
                                 .Where(dh =>
                                     (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" || dh.MaTrangThaiDonHang == "DA_XAC_NHAN") &&
-                                    dh.ThoiGianBatDau > now &&
-                                    dh.ThoiGianBatDau <= thoiGianQuetDen
+                                    dh.ThoiGianDatHang > now &&
+                                    dh.ThoiGianDatHang <= thoiGianQuetDen
                                 ).ToListAsync(stoppingToken);
 
                             int countEmail = 0;
@@ -68,8 +68,8 @@ namespace QuanLyNhaHang.Services
                             {
                                 // Lấy thông tin liên hệ (Ưu tiên người đi ăn thực tế nếu có)
                                 var email = dh.MaKhachHangNavigation.Email;
-                                var sdt = dh.SDTNguoiDat ?? dh.MaKhachHangNavigation.SoDienThoai;
-                                var ten = dh.TenNguoiDat ?? dh.MaKhachHangNavigation.HoTen;
+                                var sdt = dh.SDTNguoiNhan ?? dh.MaKhachHangNavigation.SoDienThoai;
+                                var ten = dh.TenNguoiNhan ?? dh.MaKhachHangNavigation.HoTen;
 
                                 // 3. LẤY URL TỪ FILE CẤU HÌNH (Thay vì hardcode)
                                 string baseUrl = _configuration["AppBaseUrl"];
@@ -88,7 +88,7 @@ namespace QuanLyNhaHang.Services
                                         await emailService.SendReminderEmailAsync(
                                             email,
                                             ten,
-                                            dh.ThoiGianBatDau ?? DateTime.Now,
+                                            dh.ThoiGianDatHang ?? DateTime.Now,
                                             "", // Link xác nhận (nếu cần thì thêm)
                                             linkHuy
                                         );
@@ -103,7 +103,7 @@ namespace QuanLyNhaHang.Services
                                 else
                                 {
                                     Console.ForegroundColor = ConsoleColor.Yellow;
-                                    Console.WriteLine($"[SMS MOCK - AUTOMATED] Gửi đến {sdt}: Chào {ten}, nhắc bạn có lịch đặt bàn lúc {dh.ThoiGianBatDau:HH:mm}.");
+                                    Console.WriteLine($"[SMS MOCK - AUTOMATED] Gửi đến {sdt}: Chào {ten}, nhắc bạn có lịch đặt bàn lúc {dh.ThoiGianDatHang:HH:mm}.");
                                     Console.ResetColor();
                                     countSMS++;
                                 }

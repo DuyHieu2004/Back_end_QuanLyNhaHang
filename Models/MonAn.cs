@@ -13,9 +13,9 @@ public partial class MonAn
 
     public bool IsShow { get; set; }
 
+    public virtual ICollection<ChiTietMonAn> ChiTietMonAns { get; set; } = new List<ChiTietMonAn>();
+
     public virtual ICollection<HinhAnhMonAn> HinhAnhMonAns { get; set; } = new List<HinhAnhMonAn>();
 
     public virtual DanhMucMonAn? MaDanhMucNavigation { get; set; }
-
-    public virtual ICollection<PhienBanMonAn> PhienBanMonAns { get; set; } = new List<PhienBanMonAn>();
 }

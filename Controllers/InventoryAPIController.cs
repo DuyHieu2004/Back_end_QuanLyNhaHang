@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuanLyNhaHang.Models;
+using QuanLyNhaHang.Models.DTO;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
@@ -26,12 +27,63 @@ namespace QuanLyNhaHang.Controllers
                     n.MaNguyenLieu,
                     n.TenNguyenLieu,
                     n.DonViTinh,
-                    Stock = 0, // Cần tính từ các bảng nhập/xuất
+                    Stock = n.SoLuongTonKho,
                     MinStock = 0
                 })
                 .ToListAsync();
 
             return Ok(ingredients);
+        }
+
+        [HttpPost("ingredients")]
+        public async Task<IActionResult> CreateIngredient([FromBody] CreateNguyenLieuDTO dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                // Tạo mã nguyên liệu mới
+                var maNguyenLieu = "NL" + DateTime.Now.ToString("yyMMddHHmmss");
+
+                // Kiểm tra tên nguyên liệu đã tồn tại chưa
+                var existing = await _context.NguyenLieus
+                    .FirstOrDefaultAsync(n => n.TenNguyenLieu.ToLower() == dto.TenNguyenLieu.ToLower());
+
+                if (existing != null)
+                {
+                    return BadRequest(new { message = $"Nguyên liệu \"{dto.TenNguyenLieu}\" đã tồn tại trong hệ thống." });
+                }
+
+                var nguyenLieu = new NguyenLieu
+                {
+                    MaNguyenLieu = maNguyenLieu,
+                    TenNguyenLieu = dto.TenNguyenLieu,
+                    DonViTinh = dto.DonViTinh,
+                    SoLuongTonKho = dto.SoLuongTonKho
+                };
+
+                _context.NguyenLieus.Add(nguyenLieu);
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message = "Thêm nguyên liệu thành công!",
+                    ingredient = new
+                    {
+                        maNguyenLieu = nguyenLieu.MaNguyenLieu,
+                        tenNguyenLieu = nguyenLieu.TenNguyenLieu,
+                        donViTinh = nguyenLieu.DonViTinh,
+                        soLuongTonKho = nguyenLieu.SoLuongTonKho
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi thêm nguyên liệu: " + ex.Message });
+            }
         }
 
         [HttpGet("ingredients/{maNguyenLieu}")]
@@ -86,7 +138,7 @@ namespace QuanLyNhaHang.Controllers
                 string maNhapHang = "NH" + DateTime.Now.ToString("yyMMddHHmmss");
                 decimal tongTien = dto.ChiTiet.Sum(c => c.SoLuong * c.GiaNhap);
 
-                var nhapNguyenLieu = new NhapNguyenLieu
+                var nhapNguyenLieu = new NhapHang
                 {
                     MaNhapHang = maNhapHang,
                     MaNhanVien = dto.MaNhanVien,
@@ -94,7 +146,7 @@ namespace QuanLyNhaHang.Controllers
                     TongTien = tongTien
                 };
 
-                _context.NhapNguyenLieus.Add(nhapNguyenLieu);
+                _context.NhapHangs.Add(nhapNguyenLieu);
 
                 foreach (var item in dto.ChiTiet)
                 {
@@ -106,20 +158,20 @@ namespace QuanLyNhaHang.Controllers
                         return BadRequest(new { message = $"Không tìm thấy cung ứng: {item.MaCungUng}" });
                     }
 
-                    var chiTiet = new ChiTietNhapNguyenLieu
+                    var chiTiet = new ChiTietNhapHang
                     {
                         MaNhapHang = maNhapHang,
                         MaCungUng = item.MaCungUng,
                         SoLuong = item.SoLuong,
                         GiaNhap = item.GiaNhap
                     };
-                    _context.ChiTietNhapNguyenLieus.Add(chiTiet);
+                    _context.ChiTietNhapHangs.Add(chiTiet);
                 }
 
                 await _context.SaveChangesAsync();
 
-                var result = await _context.NhapNguyenLieus
-                    .Include(n => n.ChiTietNhapNguyenLieus)
+                var result = await _context.NhapHangs
+                    .Include(n => n.ChiTietNhapHangs)
                         .ThenInclude(c => c.MaCungUngNavigation)
                             .ThenInclude(c => c.MaNguyenLieuNavigation)
                     .Include(n => n.MaNhanVienNavigation)
@@ -136,8 +188,8 @@ namespace QuanLyNhaHang.Controllers
         [HttpGet("transactions")]
         public async Task<IActionResult> GetTransactions([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
         {
-            var query = _context.NhapNguyenLieus
-                .Include(n => n.ChiTietNhapNguyenLieus)
+            var query = _context.NhapHangs
+                .Include(n => n.ChiTietNhapHangs)
                     .ThenInclude(c => c.MaCungUngNavigation)
                         .ThenInclude(c => c.MaNguyenLieuNavigation)
                 .Include(n => n.MaNhanVienNavigation)

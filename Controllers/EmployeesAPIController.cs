@@ -22,7 +22,7 @@ namespace QuanLyNhaHang.Controllers
         {
             var employees = await _context.NhanViens
                 .Include(n => n.MaVaiTroNavigation)
-                .Include(n => n.MaTrangThaiNavigation)
+              
                 .Select(n => new
                 {
                     n.MaNhanVien,
@@ -31,7 +31,6 @@ namespace QuanLyNhaHang.Controllers
                     n.SoDienThoai,
                     n.TenDangNhap,
                     VaiTro = n.MaVaiTroNavigation != null ? n.MaVaiTroNavigation.TenVaiTro : null,
-                    TrangThai = n.MaTrangThaiNavigation != null ? n.MaTrangThaiNavigation.TenTrangThai : null
                 })
                 .ToListAsync();
 
@@ -43,7 +42,6 @@ namespace QuanLyNhaHang.Controllers
         {
             var employee = await _context.NhanViens
                 .Include(n => n.MaVaiTroNavigation)
-                .Include(n => n.MaTrangThaiNavigation)
                 .FirstOrDefaultAsync(n => n.MaNhanVien == maNhanVien);
 
             if (employee == null)
@@ -110,7 +108,6 @@ namespace QuanLyNhaHang.Controllers
 
                 var result = await _context.NhanViens
                     .Include(n => n.MaVaiTroNavigation)
-                    .Include(n => n.MaTrangThaiNavigation)
                     .FirstOrDefaultAsync(n => n.MaNhanVien == maNhanVien);
 
                 return Ok(new { message = "Tạo nhân viên thành công!", nhanVien = result });
@@ -164,21 +161,12 @@ namespace QuanLyNhaHang.Controllers
                 nhanVien.MaVaiTro = dto.MaVaiTro;
             }
 
-            if (!string.IsNullOrEmpty(dto.MaTrangThai))
-            {
-                var trangThai = await _context.TrangThaiNhanViens.FindAsync(dto.MaTrangThai);
-                if (trangThai == null)
-                {
-                    return BadRequest(new { message = "Trạng thái không tồn tại." });
-                }
-                nhanVien.MaTrangThai = dto.MaTrangThai;
-            }
+          
 
             await _context.SaveChangesAsync();
 
             var result = await _context.NhanViens
                 .Include(n => n.MaVaiTroNavigation)
-                .Include(n => n.MaTrangThaiNavigation)
                 .FirstOrDefaultAsync(n => n.MaNhanVien == maNhanVien);
 
             return Ok(new { message = "Cập nhật nhân viên thành công!", nhanVien = result });
