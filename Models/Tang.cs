@@ -11,3 +11,4 @@ public partial class Tang
 
     public virtual ICollection<BanAn> BanAns { get; set; } = new List<BanAn>();
 }
+

@@ -65,6 +65,10 @@ public partial class QLNhaHangContext : DbContext
 
     public virtual DbSet<VaiTro> VaiTros { get; set; }
 
+    public virtual DbSet<Tang> Tangs { get; set; }
+
+    public virtual DbSet<TrangThaiPhienBanMonAn> TrangThaiPhienBanMonAns { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Server=LAPTOP-1RKGC1HF\\SQLEXPRESS;Database=QL_NhaHang_DoAn_Test2;Trusted_Connection=True;TrustServerCertificate=True;");
@@ -87,7 +91,11 @@ public partial class QLNhaHangContext : DbContext
             entity.Property(e => e.MaTrangThai)
                 .HasMaxLength(25)
                 .IsUnicode(false);
+            entity.Property(e => e.MaTang)
+                .HasMaxLength(25)
+                .IsUnicode(false);
             entity.Property(e => e.SucChua).HasDefaultValue(4);
+            entity.Property(e => e.IsShow).HasDefaultValue(true);
             entity.Property(e => e.TenBan).HasMaxLength(50);
 
             entity.HasOne(d => d.MaTangNavigation).WithMany(p => p.BanAns)
@@ -98,6 +106,10 @@ public partial class QLNhaHangContext : DbContext
                 .HasForeignKey(d => d.MaTrangThai)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_BanAn_TrangThaiBanAn");
+
+            entity.HasOne(d => d.MaTangNavigation).WithMany(p => p.BanAns)
+                .HasForeignKey(d => d.MaTang)
+                .HasConstraintName("FK_BanAn_Tang");
         });
 
         modelBuilder.Entity<ChiTietCongThuc>(entity =>
@@ -489,6 +501,7 @@ public partial class QLNhaHangContext : DbContext
                 .HasMaxLength(25)
                 .IsUnicode(false);
             entity.Property(e => e.TenMonAn).HasMaxLength(100);
+            entity.Property(e => e.IsShow).HasDefaultValue(true);
 
             entity.HasOne(d => d.MaDanhMucNavigation).WithMany(p => p.MonAns)
                 .HasForeignKey(d => d.MaDanhMuc)
@@ -652,6 +665,30 @@ public partial class QLNhaHangContext : DbContext
                 .HasMaxLength(25)
                 .IsUnicode(false);
             entity.Property(e => e.TenVaiTro).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<Tang>(entity =>
+        {
+            entity.HasKey(e => e.MaTang).HasName("PK_Tang");
+
+            entity.ToTable("Tang");
+
+            entity.Property(e => e.MaTang)
+                .HasMaxLength(25)
+                .IsUnicode(false);
+            entity.Property(e => e.TenTang).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<TrangThaiPhienBanMonAn>(entity =>
+        {
+            entity.HasKey(e => e.MaTrangThai).HasName("PK__TrangThaiPhienBanMonAn");
+
+            entity.ToTable("TrangThaiPhienBanMonAn");
+
+            entity.Property(e => e.MaTrangThai)
+                .HasMaxLength(25)
+                .IsUnicode(false);
+            entity.Property(e => e.TenTrangThai).HasMaxLength(50);
         });
 
         OnModelCreatingPartial(modelBuilder);

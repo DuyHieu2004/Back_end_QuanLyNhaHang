@@ -27,13 +27,18 @@ namespace QuanLyNhaHang.Controllers
 
             var banAns = await _context.BanAns
                 .Include(b => b.MaTrangThaiNavigation)
+                .Include(b => b.MaTangNavigation)
+                .Where(b => b.IsShow == true)
                 .Select(b => new BanAnDTO
                 {
                     maBan = b.MaBan,
                     tenBan = b.TenBan,
                     maTrangThai = b.MaTrangThai,
                     tenTrangThai = b.MaTrangThaiNavigation.TenTrangThai,
-                    sucChua = b.SucChua
+                    sucChua = b.SucChua,
+                    maTang = b.MaTang,
+                    tenTang = b.MaTangNavigation != null ? b.MaTangNavigation.TenTang : null,
+                    isShow = b.IsShow
                 }
                 ).ToListAsync();
 
