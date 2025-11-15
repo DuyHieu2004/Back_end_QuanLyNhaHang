@@ -65,7 +65,6 @@ public partial class QLNhaHangContext : DbContext
 
     public virtual DbSet<VaiTro> VaiTros { get; set; }
 
-    public virtual DbSet<Tang> Tangs { get; set; }
 
     public virtual DbSet<TrangThaiPhienBanMonAn> TrangThaiPhienBanMonAns { get; set; }
 
