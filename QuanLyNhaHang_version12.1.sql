@@ -1428,3 +1428,41 @@ BEGIN
     ORDER BY ctm.[ThuTu] ASC;
 END;
 GO
+
+CREATE TRIGGER [dbo].[trg_OnDonHangUpdate_IncrementNoShow]
+ON [dbo].[DonHang]
+AFTER UPDATE
+AS
+BEGIN
+    -- Tắt các thông báo không cần thiết
+    SET NOCOUNT ON;
+
+    -- Kiểm tra xem cột MaTrangThaiDonHang có thực sự bị UPDATE hay không
+    IF NOT UPDATE(MaTrangThaiDonHang)
+    BEGIN
+        RETURN;
+    END
+
+    -- Cập nhật bảng KhachHang
+    UPDATE KH
+    SET
+        -- Tăng NoShowCount lên 1, nếu đang là NULL thì coi như 0 + 1
+        NoShowCount = ISNULL(KH.NoShowCount, 0) + 1
+    FROM
+        [dbo].[KhachHang] AS KH
+    JOIN
+        -- 'inserted' là bảng tạm chứa dữ liệu MỚI (sau khi UPDATE)
+        inserted AS i ON KH.MaKhachHang = i.MaKhachHang
+    JOIN
+        -- 'deleted' là bảng tạm chứa dữ liệu CŨ (trước khi UPDATE)
+        deleted AS d ON i.MaDonHang = d.MaDonHang
+    WHERE
+        -- Điều kiện 1: Trạng thái MỚI là 'NO_SHOW'
+        i.MaTrangThaiDonHang = 'NO_SHOW'
+        AND
+        -- Điều kiện 2: Trạng thái CŨ không phải là 'NO_SHOW'
+        -- (Để tránh trường hợp ai đó update ghi chú... của đơn NO_SHOW,
+        -- làm trigger chạy và tăng count 2 lần)
+        ISNULL(d.MaTrangThaiDonHang, '') <> 'NO_SHOW';
+END
+GO

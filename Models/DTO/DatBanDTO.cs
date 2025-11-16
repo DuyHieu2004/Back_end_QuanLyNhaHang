@@ -5,7 +5,8 @@ namespace QuanLyNhaHang.Models.DTO
     public class DatBanDTO
     {
         [Required]
-        public string MaBan { get; set; } = null!;
+        public List<string> DanhSachMaBan { get; set; } = new List<string>();
+
         [Required]
         public string HoTenKhach { get; set; } = null!;
         [Required]

@@ -67,7 +67,7 @@ public partial class QLNhaHangContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=MR_HIEN;Database=QL_NhaHang_DoAn_Test2;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;");
+        => optionsBuilder.UseSqlServer("Server=LAPTOP-1RKGC1HF\\SQLEXPRESS;Database=QL_NhaHang_DoAn_Test2;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -309,7 +309,9 @@ public partial class QLNhaHangContext : DbContext
         {
             entity.HasKey(e => e.MaDonHang).HasName("PK__DonHang__129584ADCC454E1D");
 
-            entity.ToTable("DonHang");
+            entity.ToTable("DonHang", tb => tb.HasTrigger("trg_OnDonHangUpdate_IncrementNoShow"));
+
+            
 
             entity.Property(e => e.MaDonHang)
                 .HasMaxLength(25)
