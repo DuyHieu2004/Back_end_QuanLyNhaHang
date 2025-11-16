@@ -21,8 +21,6 @@ public partial class NhanVien
 
     public string? HinhAnh { get; set; }
 
-    public string MaTrangThai { get; set; } = null!;
-
     public virtual ICollection<DonHang> DonHangs { get; set; } = new List<DonHang>();
 
     public virtual VaiTro MaVaiTroNavigation { get; set; } = null!;

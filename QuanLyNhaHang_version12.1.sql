@@ -424,6 +424,7 @@ ALTER TABLE [dbo].[NhapHang]  WITH CHECK ADD FOREIGN KEY([MaNhanVien])
 REFERENCES [dbo].[NhanVien] ([MaNhanVien])
 GO
 
+
 ALTER TABLE [dbo].[BanAnDonHang] WITH CHECK ADD CONSTRAINT [FK_BanAnDonHang_DonHang] 
 FOREIGN KEY([MaDonHang]) REFERENCES [dbo].[DonHang] ([MaDonHang]) ON DELETE CASCADE
 GO
