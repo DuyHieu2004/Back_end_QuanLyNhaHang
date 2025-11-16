@@ -424,6 +424,7 @@ ALTER TABLE [dbo].[NhapHang]  WITH CHECK ADD FOREIGN KEY([MaNhanVien])
 REFERENCES [dbo].[NhanVien] ([MaNhanVien])
 GO
 
+
 ALTER TABLE [dbo].[BanAnDonHang] WITH CHECK ADD CONSTRAINT [FK_BanAnDonHang_DonHang] 
 FOREIGN KEY([MaDonHang]) REFERENCES [dbo].[DonHang] ([MaDonHang]) ON DELETE CASCADE
 GO
@@ -589,38 +590,6 @@ INSERT INTO [dbo].[NguyenLieu] ([MaNguyenLieu], [TenNguyenLieu], [DonViTinh], [S
 ('NL039', N'Mực ống', N'kg', 30), ('NL040', N'Sò điệp', N'kg', 15);
 
 -- chèn dữ liệu cho: NhanVien
-INSERT INTO [dbo].[NhanVien] ([MaNhanVien], [HoTen], [TenDangNhap], [MatKhau], [MaVaiTro], [Email], [SoDienThoai], [HinhAnh], [MaTrangThai]) VALUES
-('NV001', N'Nguyễn Văn Quản Lý', 'manager1', 'hashed_password_A', 'VT001', 'quanly@email.com', '0987654321', 'anh_a.jpg', 'TTNV001'),
-('NV002', N'Trần Thị Thu Ngân', 'cashier1', 'hashed_password_B', 'VT004', 'thungan1@email.com', '0987654322', 'anh_b.jpg', 'TTNV001'),
-('NV003', N'Lê Văn Phục Vụ', 'staff1', 'hashed_password_C', 'VT002', 'phucvu1@email.com', '0987654323', 'anh_c.jpg', 'TTNV001'),
-('NV004', N'Phạm Thị Phục Vụ', 'staff2', 'hashed_password_D', 'VT002', 'phucvu2@email.com', '0987654324', 'anh_d.jpg', 'TTNV001'),
-('NV005', N'Hoàng Văn Bếp Trưởng', 'chef1', 'hashed_password_E', 'VT003', 'beptruong@email.com', '0987654325', 'anh_e.jpg', 'TTNV001'),
-('NV006', N'Vũ Thị Bếp Phó', 'chef2', 'hashed_password_F', 'VT003', 'beppho@email.com', '0987654326', 'anh_f.jpg', 'TTNV001'),
-('NV007', N'Đặng Văn Phục Vụ', 'staff3', 'hashed_password_G', 'VT002', 'phucvu3@email.com', '0987654327', 'anh_g.jpg', 'TTNV001'),
-('NV008', N'Bùi Thị Phục Vụ', 'staff4', 'hashed_password_H', 'VT002', 'phucvu4@email.com', '0987654328', 'anh_h.jpg', 'TTNV001'),
-('NV009', N'Ngô Văn Thu Ngân', 'cashier2', 'hashed_password_I', 'VT004', 'thungan2@email.com', '0987654329', 'anh_i.jpg', 'TTNV001'),
-('NV010', N'Dương Thị Nghỉ Việc', 'old_staff', 'hashed_password_K', 'VT002', 'nghiviec@email.com', '0987654330', 'anh_k.jpg', 'TTNV002'),
-('NV011', N'Phan Thanh Quản Trị', 'admin2', 'hashed_pass_11', 'VT001', 'admin2@email.com', '0911111101', 'anh_nv11.jpg', 'TTNV001'),
-('NV012', N'Lê Thị Bảo Vệ', 'security1', 'hashed_pass_12', 'VT005', 'security1@email.com', '0911111102', 'anh_nv12.jpg', 'TTNV001'),
-('NV013', N'Trần Văn Phục Vụ Mới', 'staff5', 'hashed_pass_13', 'VT002', 'staff5@email.com', '0911111103', 'anh_nv13.jpg', 'TTNV004'),
-('NV014', N'Ngô Thị Tạp Vụ', 'cleaner1', 'hashed_pass_14', 'VT006', 'cleaner1@email.com', '0911111104', 'anh_nv14.jpg', 'TTNV001'),
-('NV015', N'Vũ Hữu Bếp Phụ', 'chef3', 'hashed_pass_15', 'VT003', 'chef3@email.com', '0911111105', 'anh_nv15.jpg', 'TTNV001'),
-('NV016', N'Hà Thị Thu Ngân 3', 'cashier3', 'hashed_pass_16', 'VT004', 'cashier3@email.com', '0911111106', 'anh_nv16.jpg', 'TTNV001'),
-('NV017', N'Đặng Văn Thực Tập', 'intern1', 'hashed_pass_17', 'VT002', 'intern1@email.com', '0911111107', 'anh_nv17.jpg', 'TTNV004'),
-('NV018', N'Nguyễn Thị Phục Vụ 6', 'staff6', 'hashed_pass_18', 'VT002', 'staff6@email.com', '0911111108', 'anh_nv18.jpg', 'TTNV001'),
-('NV019', N'Lý Văn Phục Vụ 7', 'staff7', 'hashed_pass_19', 'VT002', 'staff7@email.com', '0911111109', 'anh_nv19.jpg', 'TTNV001'),
-('NV020', N'Bùi Thanh Nghỉ Phép', 'staff8', 'hashed_pass_20', 'VT002', 'staff8@email.com', '0911111110', 'anh_nv20.jpg', 'TTNV003'),
-('NV021', N'Trần Hữu Danh', 'staff9', 'hashed_pass_21', 'VT002', 'danh.tran@email.com', '0911111111', 'anh_nv21.jpg', 'TTNV001'),
-('NV022', N'Lê Thị Kiều', 'staff10', 'hashed_pass_22', 'VT002', 'kieu.le@email.com', '0911111112', 'anh_nv22.jpg', 'TTNV001'),
-('NV023', N'Phạm Văn Mách', 'security2', 'hashed_pass_23', 'VT005', 'mach.pham@email.com', '0911111113', 'anh_nv23.jpg', 'TTNV001'),
-('NV024', N'Đỗ Thị Nở', 'cleaner2', 'hashed_pass_24', 'VT006', 'no.do@email.com', '0911111114', 'anh_nv24.jpg', 'TTNV001'),
-('NV025', N'Quách Tĩnh', 'chef4', 'hashed_pass_25', 'VT003', 'tinh.quach@email.com', '0911111115', 'anh_nv25.jpg', 'TTNV001'),
-('NV026', N'Hoàng Dung', 'chef5', 'hashed_pass_26', 'VT003', 'dung.hoang@email.com', '0911111116', 'anh_nv26.jpg', 'TTNV001'),
-('NV027', N'Dương Khang', 'staff11', 'hashed_pass_27', 'VT002', 'khang.duong@email.com', '0911111117', 'anh_nv27.jpg', 'TTNV001'),
-('NV028', N'Mục Niệm Từ', 'staff12', 'hashed_pass_28', 'VT002', 'tu.muc@email.com', '0911111118', 'anh_nv28.jpg', 'TTNV001'),
-('NV029', N'Âu Dương Phong', 'chef_master', 'hashed_pass_29', 'VT003', 'phong.au@email.com', '0911111119', 'anh_nv29.jpg', 'TTNV001'),
-('NV030', N'Hồng Thất Công', 'manager2', 'hashed_pass_30', 'VT001', 'cong.hong@email.com', '0911111120', 'anh_nv30.jpg', 'TTNV001');
-
 INSERT INTO [dbo].[NhanVien] ([MaNhanVien], [HoTen], [TenDangNhap], [MatKhau], [MaVaiTro], [Email], [SoDienThoai], [HinhAnh]) VALUES
 ('NV001', N'Nguyễn Văn Quản Lý', 'manager1', 'hashed_password_A', 'VT001', 'quanly@email.com', '0987654321', 'anh_a.jpg'),
 ('NV002', N'Trần Thị Thu Ngân', 'cashier1', 'hashed_password_B', 'VT004', 'thungan1@email.com', '0987654322', 'anh_b.jpg'),
@@ -1148,7 +1117,6 @@ BEGIN
     JOIN MonAn ma ON ctma.MaMonAn = ma.MaMonAn
     JOIN PhienBanMonAn pb ON ctdh.MaPhienBan = pb.MaPhienBan
     JOIN KhachHang kh ON kh.MaKhachHang = DH.MaKhachHang
-    JOIN BanAn ba ON ba.MaBan = dh.MaBan
     JOIN NhanVien nv ON nv.MaNhanVien = dh.MaNhanVien
     LEFT JOIN TrangThaiDonHang ttdh ON dh.MaTrangThaiDonHang = ttdh.MaTrangThai
     

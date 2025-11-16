@@ -64,7 +64,6 @@ namespace QuanLyNhaHang.Controllers
             public string? SoDienThoai { get; set; }
             [Required]
             public string MaVaiTro { get; set; } = null!;
-            public string MaTrangThai { get; set; } = "DANG_LAM_VIEC";
         }
 
         [HttpPost]
@@ -99,8 +98,7 @@ namespace QuanLyNhaHang.Controllers
                     MatKhau = BCrypt.Net.BCrypt.HashPassword(dto.MatKhau),
                     Email = dto.Email,
                     SoDienThoai = dto.SoDienThoai,
-                    MaVaiTro = dto.MaVaiTro,
-                    MaTrangThai = dto.MaTrangThai
+                    MaVaiTro = dto.MaVaiTro
                 };
 
                 _context.NhanViens.Add(nhanVien);
@@ -124,7 +122,6 @@ namespace QuanLyNhaHang.Controllers
             public string? Email { get; set; }
             public string? SoDienThoai { get; set; }
             public string? MaVaiTro { get; set; }
-            public string? MaTrangThai { get; set; }
         }
 
         [HttpPut("{maNhanVien}")]
@@ -181,10 +178,11 @@ namespace QuanLyNhaHang.Controllers
                 return NotFound(new { message = "Không tìm thấy nhân viên." });
             }
 
-            nhanVien.MaTrangThai = "DA_NGHI_VIEC";
+            // Xóa nhân viên thay vì đánh dấu nghỉ việc (vì không có MaTrangThai)
+            _context.NhanViens.Remove(nhanVien);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Nhân viên đã được đánh dấu nghỉ việc." });
+            return Ok(new { message = "Nhân viên đã được xóa thành công." });
         }
 
         [HttpGet("roles")]
