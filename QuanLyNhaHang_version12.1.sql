@@ -590,6 +590,9 @@ INSERT INTO [dbo].[NguyenLieu] ([MaNguyenLieu], [TenNguyenLieu], [DonViTinh], [S
 ('NL039', N'Mực ống', N'kg', 30), ('NL040', N'Sò điệp', N'kg', 15);
 
 
+
+-- chèn dữ liệu cho: NhanVien
+--dev-thaihien-api-synchron-models-database
 INSERT INTO [dbo].[NhanVien] ([MaNhanVien], [HoTen], [TenDangNhap], [MatKhau], [MaVaiTro], [Email], [SoDienThoai], [HinhAnh]) VALUES
 ('NV001', N'Nguyễn Văn Quản Lý', 'manager1', 'hashed_password_A', 'VT001', 'quanly@email.com', '0987654321', 'anh_a.jpg'),
 ('NV002', N'Trần Thị Thu Ngân', 'cashier1', 'hashed_password_B', 'VT004', 'thungan1@email.com', '0987654322', 'anh_b.jpg'),
@@ -620,7 +623,8 @@ INSERT INTO [dbo].[NhanVien] ([MaNhanVien], [HoTen], [TenDangNhap], [MatKhau], [
 ('NV027', N'Dương Khang', 'staff11', 'hashed_pass_27', 'VT002', 'khang.duong@email.com', '0911111117', 'anh_nv27.jpg'),
 ('NV028', N'Mục Niệm Từ', 'staff12', 'hashed_pass_28', 'VT002', 'tu.muc@email.com', '0911111118', 'anh_nv28.jpg'),
 ('NV029', N'Âu Dương Phong', 'chef_master', 'hashed_pass_29', 'VT003', 'phong.au@email.com', '0911111119', 'anh_nv29.jpg'),
-('NV030', N'Hồng Thất Công', 'manager2', 'hashed_pass_30', 'VT001', 'cong.hong@email.com', '0911111120', 'anh_nv30.jpg');
+('NV030', N'Hồng Thất Công', 'manager2', 'hashed_pass_30', 'VT001', 'cong.hong@email.com', '0911111120', 'anh_nv30.jpg'),
+('NV000', N'Nhân Viên Tạm Thời', 'manager000', 'hashed_pass_000', 'VT001', 'tamthoi@email.com', '0911111120', 'anh_nv30.jpg');
 -- chèn dữ liệu cho: MonAn
 INSERT INTO [dbo].[MonAn] ([MaMonAn], [TenMonAn], [MaDanhMuc]) VALUES
 ('MA001', N'Hạt dưa', 'DM001'), ('MA002', N'Đậu phộng', 'DM001'),
