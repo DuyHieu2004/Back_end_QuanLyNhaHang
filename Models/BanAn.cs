@@ -21,5 +21,5 @@ public partial class BanAn
 
     public virtual TrangThaiBanAn MaTrangThaiNavigation { get; set; } = null!;
 
-    public virtual ICollection<DonHang> MaDonHangs { get; set; } = new List<DonHang>();
+    public virtual ICollection<BanAnDonHang> BanAnDonHangs { get; set; } = new List<BanAnDonHang>();
 }

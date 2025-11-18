@@ -31,7 +31,9 @@ namespace QuanLyNhaHang.Controllers
 
             var activeStatuses = new[] { "CHO_XAC_NHAN", "DA_XAC_NHAN", "CHO_THANH_TOAN" };
             var bookings = await _context.DonHangs
-                .Include(dh => dh.MaBans) // Lấy thông tin các bàn
+                // SỬA: Include bảng trung gian để lấy bàn
+                .Include(dh => dh.BanAnDonHangs)
+                    .ThenInclude(badh => badh.MaBanNavigation)
                 .Include(dh => dh.MaTrangThaiDonHangNavigation) // Lấy tên trạng thái
                 .Where(dh =>
                     activeStatuses.Contains(dh.MaTrangThaiDonHang) &&
@@ -48,8 +50,8 @@ namespace QuanLyNhaHang.Controllers
                     thoiGianNhanBan = dh.TgnhanBan,
                     trangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai,
                     maTrangThai = dh.MaTrangThaiDonHang,
-                    // Trả về danh sách TÊN BÀN (List<string>)
-                    banAn = dh.MaBans.Select(b => b.TenBan).ToList()
+                    // SỬA: Lấy danh sách TÊN BÀN từ bảng trung gian
+                    banAn = dh.BanAnDonHangs.Select(b => b.MaBanNavigation.TenBan).ToList()
                 })
                 .ToListAsync();
 
@@ -63,13 +65,18 @@ namespace QuanLyNhaHang.Controllers
             [FromQuery] string? maBan,
             [FromQuery] DateTime? dateTime)
         {
-            // Logic query không thay đổi (đã giải thích ở trên)
+            // SỬA: Cập nhật Include path cho query
             var query = _context.DonHangs
-                .Include(dh => dh.MaBans)
+                // Include bảng trung gian
+                .Include(dh => dh.BanAnDonHangs)
+                    .ThenInclude(badh => badh.MaBanNavigation)
+
                 .Include(dh => dh.MaKhachHangNavigation)
                 .Include(dh => dh.MaTrangThaiDonHangNavigation)
+
                 .Include(dh => dh.ChiTietDonHangs)
                     .ThenInclude(ct => ct.MaPhienBanNavigation)
+
                 .Include(dh => dh.ChiTietDonHangs)
                     .ThenInclude(ct => ct.MaCongThucNavigation)
                         .ThenInclude(ctnau => ctnau.MaCtNavigation)
@@ -87,10 +94,10 @@ namespace QuanLyNhaHang.Controllers
             else if (!string.IsNullOrEmpty(maBan) && dateTime != null)
             {
                 var gioBatDau = dateTime.Value;
-                // Logic tìm bàn trong danh sách N-N:
+                // SỬA: Logic tìm bàn trong danh sách N-N (qua bảng trung gian):
                 donHang = await query.FirstOrDefaultAsync(dh =>
-                    // Trong danh sách bàn của đơn hàng, có bàn nào trùng mã bàn cần tìm không?
-                    dh.MaBans.Any(b => b.MaBan == maBan) &&
+                    // Trong danh sách bảng trung gian, có dòng nào chứa MaBan này không?
+                    dh.BanAnDonHangs.Any(b => b.MaBan == maBan) &&
 
                     (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" || dh.MaTrangThaiDonHang == "DA_XAC_NHAN" || dh.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
 
@@ -109,8 +116,9 @@ namespace QuanLyNhaHang.Controllers
             }
 
             // --- MAP DATA ---
-            string tenCacBan = donHang.MaBans.Any()
-                ? string.Join(", ", donHang.MaBans.Select(b => b.TenBan))
+            // SỬA: Lấy tên bàn từ bảng trung gian
+            string tenCacBan = donHang.BanAnDonHangs != null && donHang.BanAnDonHangs.Any()
+                ? string.Join(", ", donHang.BanAnDonHangs.Select(b => b.MaBanNavigation.TenBan))
                 : "Chưa xếp bàn";
 
             var result = new ChiTietDatBanDto
@@ -136,7 +144,8 @@ namespace QuanLyNhaHang.Controllers
                     var congThuc = ct.MaCongThucNavigation;
                     var phienBan = ct.MaPhienBanNavigation;
                     var monAn = congThuc?.MaCtNavigation?.MaMonAnNavigation;
-                    string hinhAnhUrl = monAn?.HinhAnhMonAns.FirstOrDefault()?.URLHinhAnh ?? ""; // Check lại URLHinhAnh/UrlhinhAnh
+                    // Lấy ảnh đầu tiên
+                    string hinhAnhUrl = monAn?.HinhAnhMonAns.FirstOrDefault()?.URLHinhAnh ?? "";
 
                     return new MonAnDatDto
                     {
@@ -151,7 +160,7 @@ namespace QuanLyNhaHang.Controllers
 
             return Ok(result);
         }
-    
+
 
         // API: Lấy danh sách cần gọi điện (Giữ nguyên logic nhưng update tên biến)
         [HttpGet("get-customers-to-call")]

@@ -34,18 +34,15 @@ namespace QuanLyNhaHang.Controllers
                 // BƯỚC 1: KIỂM TRA DANH SÁCH BÀN & SỨC CHỨA
                 // =================================================================
 
-                // Lấy danh sách Object Bàn từ DB
                 var listBanAn = await _context.BanAns
-                                    .Where(b => datBanDto.DanhSachMaBan.Contains(b.MaBan))
-                                    .ToListAsync();
+                                            .Where(b => datBanDto.DanhSachMaBan.Contains(b.MaBan))
+                                            .ToListAsync();
 
-                // Kiểm tra số lượng bàn lấy được có khớp với số lượng gửi lên không
                 if (listBanAn.Count != datBanDto.DanhSachMaBan.Count)
                 {
                     return NotFound(new { message = "Một số mã bàn không tồn tại." });
                 }
 
-                // Kiểm tra tổng sức chứa
                 int tongSucChua = listBanAn.Sum(b => b.SucChua);
                 if (datBanDto.SoLuongNguoi > tongSucChua)
                 {
@@ -53,27 +50,27 @@ namespace QuanLyNhaHang.Controllers
                 }
 
                 // =================================================================
-                // BƯỚC 2: KIỂM TRA TRÙNG LỊCH (Sửa theo tên biến MaBans)
+                // BƯỚC 2: KIỂM TRA TRÙNG LỊCH (Đã sửa query qua BanAnDonHangs)
                 // =================================================================
                 var thoiGianBatDauDuKien = datBanDto.ThoiGianDatHang;
                 var thoiGianKetThucDuKien = thoiGianBatDauDuKien.AddMinutes(120);
 
                 var bookingConflict = await _context.DonHangs
-                    .Include(d => d.MaBans) // <--- SỬA: Dùng MaBans thay vì BanAns
+                    .Include(d => d.BanAnDonHangs)
                     .AnyAsync(dh =>
-                        // 1. Đơn hàng đang active
+                        // 1. Đơn hàng đang hoạt động
                         (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
                          dh.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
                          dh.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
 
-                        dh.TgnhanBan != null && // <--- SỬA: Dùng TgnhanBan làm mốc thời gian nhận bàn
+                        dh.TgnhanBan != null &&
 
-                        // 2. Check va chạm thời gian (dùng TgnhanBan + 120 phút)
+                        // 2. Check va chạm thời gian (dựa trên giờ nhận bàn)
                         (thoiGianBatDauDuKien < dh.TgnhanBan.Value.AddMinutes(120)) &&
                         (thoiGianKetThucDuKien > dh.TgnhanBan.Value) &&
 
-                        // 3. Có chứa ít nhất 1 bàn mà khách đang chọn
-                        dh.MaBans.Any(b => datBanDto.DanhSachMaBan.Contains(b.MaBan))
+                        // 3. Check xem có bàn nào trùng trong bảng trung gian không
+                        dh.BanAnDonHangs.Any(b => datBanDto.DanhSachMaBan.Contains(b.MaBan))
                     );
 
                 if (bookingConflict)
@@ -87,7 +84,7 @@ namespace QuanLyNhaHang.Controllers
                 string maKhachHangCuoiCung = "";
                 KhachHang? khachHang = null;
 
-                // 3.1 Kiểm tra user đăng nhập
+                // 3.1 Kiểm tra user nếu có gửi mã
                 if (!string.IsNullOrEmpty(datBanDto.MaKhachHang))
                 {
                     var khachDangNhap = await _context.KhachHangs.FindAsync(datBanDto.MaKhachHang);
@@ -96,13 +93,12 @@ namespace QuanLyNhaHang.Controllers
                         string sdtTrongDb = khachDangNhap.SoDienThoai?.Trim() ?? "";
                         string sdtNhapVao = datBanDto.SoDienThoaiKhach?.Trim() ?? "";
 
-                        // Nếu SĐT khớp hoặc trong DB chưa có SĐT -> Là chính chủ
+                        // Nếu SĐT khớp hoặc DB chưa có SĐT -> Chấp nhận là chính chủ
                         if ((sdtTrongDb == sdtNhapVao) || string.IsNullOrEmpty(sdtTrongDb))
                         {
                             khachHang = khachDangNhap;
                             bool changed = false;
 
-                            // Update thông tin thiếu
                             if (string.IsNullOrEmpty(sdtTrongDb) && !string.IsNullOrEmpty(sdtNhapVao))
                             {
                                 bool existSdt = await _context.KhachHangs.AnyAsync(k => k.SoDienThoai == sdtNhapVao && k.MaKhachHang != khachHang.MaKhachHang);
@@ -119,27 +115,25 @@ namespace QuanLyNhaHang.Controllers
                                 await _context.SaveChangesAsync();
                             }
                         }
-                        // Nếu khác SĐT -> Xuống dưới tạo mới hoặc tìm theo SĐT (đặt hộ)
                     }
                 }
 
-                // 3.2 Tìm theo SĐT
+                // 3.2 Tìm theo SĐT (nếu chưa tìm thấy ở trên)
                 if (khachHang == null)
                 {
                     khachHang = await _context.KhachHangs.FirstOrDefaultAsync(k => k.SoDienThoai == datBanDto.SoDienThoaiKhach);
                 }
 
-                // 3.3 Tìm theo Email
+                // 3.3 Tìm theo Email (nếu chưa tìm thấy)
                 if (khachHang == null && !string.IsNullOrEmpty(datBanDto.Email))
                 {
                     khachHang = await _context.KhachHangs.FirstOrDefaultAsync(k => k.Email == datBanDto.Email);
                 }
 
-                // 3.4 Chốt khách
+                // 3.4 Chốt khách hàng (Tạo mới nếu chưa có)
                 if (khachHang != null)
                 {
                     maKhachHangCuoiCung = khachHang.MaKhachHang;
-                    // Update Email nếu thiếu
                     if (string.IsNullOrEmpty(khachHang.Email) && !string.IsNullOrEmpty(datBanDto.Email))
                     {
                         khachHang.Email = datBanDto.Email;
@@ -171,14 +165,13 @@ namespace QuanLyNhaHang.Controllers
                 bool canThanhToanOnline = false;
 
                 bool isDongNguoi = datBanDto.SoLuongNguoi >= 6;
-                bool isHayBungKeo = (khachHang.NoShowCount ?? 0) > 3;
+                bool isHayBungKeo = (khachHang?.NoShowCount ?? 0) > 3;
 
                 if (isDongNguoi || isHayBungKeo)
                 {
-                    decimal donGiaCoc = 50000; // 50k một người
+                    decimal donGiaCoc = 50000;
                     tienCocYeuCau = datBanDto.SoLuongNguoi * donGiaCoc;
 
-                    // (Tùy chọn) Nếu muốn số tiền cọc tối thiểu phải là 200k dù đi ít người (với khách bùng kèo)
                     if (tienCocYeuCau < 200000)
                     {
                         tienCocYeuCau = 200000;
@@ -186,35 +179,40 @@ namespace QuanLyNhaHang.Controllers
                     canThanhToanOnline = true;
                 }
 
-                //string trangThaiBanDau = canThanhToanOnline ? "CHO_THANH_TOAN" : "CHO_XAC_NHAN";
                 string trangThaiBanDau = "CHO_XAC_NHAN";
 
                 // =================================================================
-                // BƯỚC 5: TẠO ĐƠN HÀNG & GHÉP BÀN (Sửa theo Model DonHang.cs)
+                // BƯỚC 5: TẠO ĐƠN HÀNG & BẢNG TRUNG GIAN (Đã sửa logic)
                 // =================================================================
+
+                string maDonHangMoi = "DH" + DateTime.Now.ToString("yyMMddHHmmss");
+
                 var newDonHang = new DonHang
                 {
-                    MaDonHang = "DH" + DateTime.Now.ToString("yyMMddHHmmss"),
+                    MaDonHang = maDonHangMoi,
 
-                    // Gán danh sách bàn vào thuộc tính MaBans (như trong Model bạn gửi)
-                    MaBans = listBanAn,
+                    // Logic mới: Tạo danh sách BanAnDonHang thay vì gán listBanAn
+                    BanAnDonHangs = listBanAn.Select(b => new BanAnDonHang
+                    {
+                        MaBanAnDonHang = $"BDH_{maDonHangMoi}_{b.MaBan}", // Tự sinh Key duy nhất
+                        MaDonHang = maDonHangMoi,
+                        MaBan = b.MaBan
+                    }).ToList(),
 
                     MaKhachHang = maKhachHangCuoiCung,
-
-                    // Map thông tin người nhận từ DTO
                     TenNguoiNhan = datBanDto.HoTenKhach,
                     SDTNguoiNhan = datBanDto.SoDienThoaiKhach,
                     EmailNguoiNhan = datBanDto.Email,
-
                     MaNhanVien = datBanDto.MaNhanVien,
+
                     MaTrangThaiDonHang = trangThaiBanDau,
 
-                    ThoiGianDatHang = DateTime.Now, // Thời gian tạo đơn
-                    TgnhanBan = datBanDto.ThoiGianDatHang, // <--- Thời gian khách đến ăn (Dùng TgnhanBan)
-                    TgdatDuKien = datBanDto.ThoiGianDatHang, // Cũng lưu vào Dự kiến để tham khảo
+                    ThoiGianDatHang = DateTime.Now,
+                    TgnhanBan = datBanDto.ThoiGianDatHang,
+                    TgdatDuKien = datBanDto.ThoiGianDatHang,
                     ThoiGianKetThuc = datBanDto.ThoiGianDatHang.AddMinutes(120),
 
-                    SoLuongNguoiDk = datBanDto.SoLuongNguoi, // <--- SỬA: Dùng SoLuongNguoiDk
+                    SoLuongNguoiDk = datBanDto.SoLuongNguoi,
                     GhiChu = datBanDto.GhiChu,
                     TienDatCoc = tienCocYeuCau,
                     ThanhToan = false
@@ -224,7 +222,7 @@ namespace QuanLyNhaHang.Controllers
                 await _context.SaveChangesAsync();
 
                 // =================================================================
-                // BƯỚC 6: KẾT QUẢ & EMAIL
+                // BƯỚC 6: XỬ LÝ THANH TOÁN ONLINE & EMAIL
                 // =================================================================
                 string paymentUrl = "";
                 string messageRes = "Đặt bàn thành công! Đã gửi vé qua email.";
@@ -232,70 +230,63 @@ namespace QuanLyNhaHang.Controllers
 
                 if (canThanhToanOnline)
                 {
+                    // Cấu hình VNPay Sandbox
                     string vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-                    string vnp_TmnCode = "FUAECD4Z"; 
-                    string vnp_HashSecret = "AUEIM3PYKKST5ATLESXNJYPBEMTUHDKT"; 
+                    string vnp_TmnCode = "FUAECD4Z";
+                    string vnp_HashSecret = "AUEIM3PYKKST5ATLESXNJYPBEMTUHDKT";
 
-                    // Khởi tạo thư viện
                     VnPayLibrary vnpay = new VnPayLibrary();
 
                     vnpay.AddRequestData("vnp_Version", "2.1.0");
                     vnpay.AddRequestData("vnp_Command", "pay");
                     vnpay.AddRequestData("vnp_TmnCode", vnp_TmnCode);
 
-                    // Số tiền (VNPay yêu cầu nhân 100)
-                    // Ví dụ: 200,000 VND -> 20000000
                     long amount = (long)(tienCocYeuCau * 100);
                     vnpay.AddRequestData("vnp_Amount", amount.ToString());
 
                     vnpay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
                     vnpay.AddRequestData("vnp_CurrCode", "VND");
-
-                    // Địa chỉ IP của khách (lấy tạm)
                     vnpay.AddRequestData("vnp_IpAddr", "127.0.0.1");
                     vnpay.AddRequestData("vnp_Locale", "vn");
-
-                    // Nội dung thanh toán
                     vnpay.AddRequestData("vnp_OrderInfo", "Dat coc don hang " + newDonHang.MaDonHang);
                     vnpay.AddRequestData("vnp_OrderType", "other");
 
                     var request = HttpContext.Request;
                     var baseUrl = $"{request.Scheme}://{request.Host}";
-                  
-
-                    // 2. Nối với đường dẫn Callback
                     vnpay.AddRequestData("vnp_ReturnUrl", $"{baseUrl}/api/DatBanAPI/PaymentCallback");
 
-              
-
-                    // Mã tham chiếu đơn hàng (Phải là duy nhất mỗi lần gửi)
-                    // Mình dùng Mã Đơn Hàng luôn
                     vnpay.AddRequestData("vnp_TxnRef", newDonHang.MaDonHang);
 
-                    // TẠO URL
                     paymentUrl = vnpay.CreateRequestUrl(vnp_Url, vnp_HashSecret);
-
                     messageRes = "Đơn hàng cần đặt cọc. Đang chuyển sang cổng thanh toán...";
                 }
                 else
                 {
+                    // Gửi Email xác nhận
                     string emailNhanVe = !string.IsNullOrEmpty(datBanDto.Email) ? datBanDto.Email : khachHang?.Email;
                     if (!string.IsNullOrEmpty(emailNhanVe))
                     {
                         try
                         {
-                            var emailService = HttpContext.RequestServices.GetRequiredService<Services.IEmailService>();
-                            _ = emailService.SendBookingConfirmationEmailAsync(
-                                emailNhanVe,
-                                khachHang?.HoTen ?? datBanDto.HoTenKhach,
-                                newDonHang.MaDonHang,
-                                tenCacBan,
-                                newDonHang.TgnhanBan ?? DateTime.Now, // Gửi giờ nhận bàn
-                                newDonHang.SoLuongNguoiDk,
-                                newDonHang.GhiChu
-                            );
+                            // Resolve Service gửi mail (đảm bảo bạn đã đăng ký trong Program.cs)
+                            var emailService = HttpContext.RequestServices.GetService<Services.IEmailService>();
+                            if (emailService != null)
+                            {
+                                _ = emailService.SendBookingConfirmationEmailAsync(
+                                    emailNhanVe,
+                                    khachHang?.HoTen ?? datBanDto.HoTenKhach,
+                                    newDonHang.MaDonHang,
+                                    tenCacBan,
+                                    newDonHang.TgnhanBan ?? DateTime.Now,
+                                    newDonHang.SoLuongNguoiDk,
+                                    newDonHang.GhiChu
+                                );
+                            }
                         }
-                        catch { }
+                        catch
+                        {
+                            // Log lỗi gửi mail nếu cần, nhưng không chặn flow chính
+                        }
                     }
                 }
 
@@ -306,7 +297,7 @@ namespace QuanLyNhaHang.Controllers
                     requirePayment = canThanhToanOnline,
                     paymentUrl = paymentUrl,
                     depositAmount = tienCocYeuCau,
-                    donHang = newDonHang,
+                    maDonHang = newDonHang.MaDonHang,
                     danhSachBan = tenCacBan
                 });
             }
@@ -316,7 +307,6 @@ namespace QuanLyNhaHang.Controllers
                 return StatusCode(500, new { message = "Lỗi máy chủ: " + ex.Message });
             }
         }
-
 
 
         [HttpGet("PaymentCallback")]
@@ -426,7 +416,7 @@ namespace QuanLyNhaHang.Controllers
         //}
 
 
-        // Sửa lại hàm này trong file DatBanAPIController.cs
+
 
         [HttpPut("CapNhatTrangThai/{maDonHang}")]
         public async Task<IActionResult> CapNhatTrangThai(string maDonHang, [FromBody] string maTrangThai)
@@ -434,8 +424,9 @@ namespace QuanLyNhaHang.Controllers
             if (string.IsNullOrWhiteSpace(maTrangThai)) return BadRequest(new { message = "Mã trạng thái không hợp lệ." });
 
             var donHang = await _context.DonHangs
-                                    .Include(dh => dh.MaBans) // Lấy các bàn liên quan
-                                    .FirstOrDefaultAsync(dh => dh.MaDonHang == maDonHang);
+                .Include(dh => dh.BanAnDonHangs)
+                .ThenInclude(badh => badh.MaBanNavigation)
+                .FirstOrDefaultAsync(dh => dh.MaDonHang == maDonHang);
 
             if (donHang == null) return NotFound(new { message = "Không tìm thấy đơn hàng." });
 
@@ -448,33 +439,34 @@ namespace QuanLyNhaHang.Controllers
 
             switch (maTrangThai)
             {
-                case "CHO_THANH_TOAN": // Khách check-in, bắt đầu ăn
-                    maTrangThaiBanMoi = "TTBA002"; // "Đang phục vụ"
-                    donHang.TgnhanBan ??= DateTime.Now; // Ghi nhận giờ check-in nếu chưa có
+                case "CHO_THANH_TOAN":
+                    maTrangThaiBanMoi = "TTBA002";
+                    if (donHang.TgnhanBan == null) donHang.TgnhanBan = DateTime.Now;
                     break;
 
                 case "DA_HOAN_THANH":
-                    maTrangThaiBanMoi = "TTBA001"; 
-                    donHang.ThoiGianKetThuc ??= DateTime.Now;
+                    maTrangThaiBanMoi = "TTBA001";
+                    if (donHang.ThoiGianKetThuc == null) donHang.ThoiGianKetThuc = DateTime.Now;
                     donHang.ThanhToan = true;
                     break;
 
                 case "DA_HUY":
                 case "NO_SHOW":
-                    maTrangThaiBanMoi = "TTBA001"; // "Trống"
+                    maTrangThaiBanMoi = "TTBA001";
                     break;
             }
 
-           
-            if (maTrangThaiBanMoi != null && donHang.MaBans != null && donHang.MaBans.Any())
+            if (maTrangThaiBanMoi != null && donHang.BanAnDonHangs != null && donHang.BanAnDonHangs.Any())
             {
-                foreach (var ban in donHang.MaBans)
+                foreach (var banAnDonHang in donHang.BanAnDonHangs)
                 {
-                    ban.MaTrangThai = maTrangThaiBanMoi;
-                    _context.BanAns.Update(ban);
+                    if (banAnDonHang.MaBanNavigation != null)
+                    {
+                        banAnDonHang.MaBanNavigation.MaTrangThai = maTrangThaiBanMoi;
+                        _context.BanAns.Update(banAnDonHang.MaBanNavigation);
+                    }
                 }
             }
-           
 
             _context.DonHangs.Update(donHang);
             await _context.SaveChangesAsync();

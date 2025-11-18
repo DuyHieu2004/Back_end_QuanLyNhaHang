@@ -33,15 +33,18 @@ public class BookingHistoryController : ControllerBase
 
         var donHangs = await _context.DonHangs
             .Where(dh => dh.MaKhachHang == maKhachHang)
-            .Include(dh => dh.MaBans) 
+            // SỬA: Include bảng trung gian để lấy thông tin bàn
+            .Include(dh => dh.BanAnDonHangs)
+                .ThenInclude(badh => badh.MaBanNavigation)
             .Include(dh => dh.MaTrangThaiDonHangNavigation)
             .OrderByDescending(dh => dh.ThoiGianDatHang)
             .Select(dh => new BookingHistoryDto
             {
                 MaDonHang = dh.MaDonHang,
-                TenBan = string.Join(", ", dh.MaBans.Select(b => b.TenBan)),
-                ThoiGianBatDau = dh.ThoiGianDatHang ?? DateTime.Now, 
-                SoLuongNguoi = dh.SoLuongNguoiDk, 
+                // SỬA: Lấy tên bàn từ bảng trung gian
+                TenBan = string.Join(", ", dh.BanAnDonHangs.Select(b => b.MaBanNavigation.TenBan)),
+                ThoiGianBatDau = dh.ThoiGianDatHang ?? DateTime.Now,
+                SoLuongNguoi = dh.SoLuongNguoiDk,
                 GhiChu = dh.GhiChu,
                 DaHuy = (dh.MaTrangThaiDonHang == "DA_HUY"),
                 MaTrangThai = dh.MaTrangThaiDonHang,
@@ -53,66 +56,66 @@ public class BookingHistoryController : ControllerBase
         return Ok(donHangs);
     }
 
-    // HÀM 2: HỦY ĐẶT BÀN
-    [HttpPost("cancel/{maDonHang}")]
-    [Authorize]
-    public async Task<IActionResult> CancelBooking(string maDonHang)
+    [HttpPost("cancel")]
+    public async Task<IActionResult> CancelBooking([FromBody] CancelBookingRequest request)
     {
+        // Lấy user ID từ Token để đảm bảo khách chỉ hủy đơn của chính mình
         var maKhachHang = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (maKhachHang == null) return Unauthorized();
 
         var donHang = await _context.DonHangs
-            .Include(dh => dh.MaKhachHangNavigation)
-            .Include(dh => dh.MaBans) 
-            .FirstOrDefaultAsync(d => d.MaDonHang == maDonHang);
+            // SỬA: Include bảng trung gian để cập nhật trạng thái bàn
+            .Include(dh => dh.BanAnDonHangs)
+                .ThenInclude(badh => badh.MaBanNavigation)
+            .FirstOrDefaultAsync(d => d.MaDonHang == request.MaDonHang && d.MaKhachHang == maKhachHang);
 
-        if (donHang == null) return NotFound(new { Message = "Không tìm thấy đơn." });
-        if (donHang.MaKhachHang != maKhachHang) return Forbid();
-
-        if (donHang.MaTrangThaiDonHang == "DA_HUY" || donHang.MaTrangThaiDonHang == "DA_HOAN_THANH")
-            return BadRequest(new { Message = "Trạng thái đơn hàng không hợp lệ để hủy." });
-
-        var gioAn = donHang.ThoiGianDatHang ?? DateTime.Now;
-        if (DateTime.Now >= gioAn)
-            return BadRequest(new { Message = "Không thể hủy đơn đã diễn ra." });
-
-        bool duocHoanTien = false;
-        var gioDat = donHang.ThoiGianDatHang ?? DateTime.Now; 
-        double phutTuLucDat = (DateTime.Now - gioDat).TotalMinutes;
-        double gioConLai = (gioAn - DateTime.Now).TotalHours;
-
-        if (donHang.TienDatCoc > 0 && (gioConLai >= 12 || phutTuLucDat <= 30))
+        if (donHang == null)
         {
-            duocHoanTien = true;
+            return NotFound(new { message = "Đơn hàng không tồn tại hoặc không thuộc quyền sở hữu." });
         }
 
-        donHang.MaTrangThaiDonHang = "DA_HUY";
-        donHang.GhiChu += duocHoanTien ? " | Khách hủy (Hoàn tiền)." : " | Khách hủy (Mất cọc).";
-
-        foreach (var ban in donHang.MaBans)
+        if (donHang.MaTrangThaiDonHang == "DA_HUY")
         {
-            ban.MaTrangThai = "TTBA001";
+            return BadRequest(new { message = "Đơn hàng đã bị hủy trước đó." });
+        }
+
+        if (donHang.MaTrangThaiDonHang == "DA_HOAN_THANH")
+        {
+            return BadRequest(new { message = "Đơn hàng đã hoàn thành, không thể hủy." });
+        }
+
+        // Kiểm tra thời gian (Ví dụ: Không cho hủy nếu đã quá giờ đặt hoặc sắp tới giờ đặt)
+        var gioAn = donHang.TgdatDuKien ?? donHang.ThoiGianDatHang ?? DateTime.Now;
+        if (DateTime.Now >= gioAn)
+        {
+            return BadRequest(new { message = "Đã quá giờ đặt bàn, không thể hủy online. Vui lòng gọi hotline." });
+        }
+
+        // --- TIẾN HÀNH HỦY ---
+        donHang.MaTrangThaiDonHang = "DA_HUY";
+        donHang.GhiChu += $" | Khách tự hủy lúc {DateTime.Now:HH:mm dd/MM}";
+
+        // Cập nhật trạng thái bàn về TRỐNG (TTBA001)
+        // SỬA: Lặp qua danh sách BanAnDonHangs
+        if (donHang.BanAnDonHangs != null)
+        {
+            foreach (var banAnDonHang in donHang.BanAnDonHangs)
+            {
+                if (banAnDonHang.MaBanNavigation != null)
+                {
+                    banAnDonHang.MaBanNavigation.MaTrangThai = "TTBA001"; // Mã bàn Trống
+                }
+            }
         }
 
         await _context.SaveChangesAsync();
 
-        if (!string.IsNullOrEmpty(donHang.MaKhachHangNavigation.Email))
-        {
-            string tenBanGop = string.Join(", ", donHang.MaBans.Select(b => b.TenBan));
-
-            _ = _emailService.SendCancellationEmailAsync(
-                donHang.MaKhachHangNavigation.Email,
-                donHang.MaKhachHangNavigation.HoTen,
-                donHang.MaDonHang,
-                tenBanGop,
-                gioAn,
-                donHang.TienDatCoc ?? 0,
-                duocHoanTien
-            );
-        }
-
-        return Ok(new { Message = "Hủy thành công.", DuocHoanTien = duocHoanTien });
+        return Ok(new { message = "Hủy đặt bàn thành công." });
     }
+
+
+
+
 
     // =================================================================
     // ENDPOINT 2: GỬI NHẮC NHỞ (Quét đơn trong 24h tới)
@@ -167,10 +170,14 @@ public class BookingHistoryController : ControllerBase
 
     // ENDPOINT 3: HỦY NHANH TỪ EMAIL (Quick Cancel)
     [HttpGet("quick-cancel/{maDonHang}")]
-    [AllowAnonymous] 
+    [AllowAnonymous]
     public async Task<IActionResult> QuickCancelFromEmail(string maDonHang, [FromQuery] bool confirm = false)
     {
-        var donHang = await _context.DonHangs.FirstOrDefaultAsync(d => d.MaDonHang == maDonHang);
+        var donHang = await _context.DonHangs
+            // SỬA: Include bảng trung gian để cập nhật trạng thái bàn
+            .Include(dh => dh.BanAnDonHangs)
+                .ThenInclude(badh => badh.MaBanNavigation)
+            .FirstOrDefaultAsync(d => d.MaDonHang == maDonHang);
 
         if (donHang == null || donHang.MaTrangThaiDonHang == "DA_HUY")
         {
@@ -191,10 +198,10 @@ public class BookingHistoryController : ControllerBase
             return Content(htmlLoi, "text/html");
         }
         // TRƯỜNG HỢP A: CHƯA XÁC NHẬN -> HIỆN TRANG WEB CÓ NÚT BẤM
-        
+
         if (confirm == false)
         {
-
+            // Lưu ý: Thay đổi Base URL cho đúng với Domain thật khi deploy
             string linkXacNhan = $"/api/BookingHistory/quick-cancel/{maDonHang}?confirm=true";
 
             string htmlConfirm = _emailService.GetHtml_XacNhanHuy(maDonHang, linkXacNhan);
@@ -202,20 +209,32 @@ public class BookingHistoryController : ControllerBase
             return Content(htmlConfirm, "text/html");
         }
 
-   
+
         // TRƯỜNG HỢP B: ĐÃ BẤM XÁC NHẬN (confirm=true) -> TIẾN HÀNH HỦY
         donHang.MaTrangThaiDonHang = "DA_HUY";
         donHang.GhiChu += " | Khách hủy nhanh qua Email.";
 
-        foreach (var ban in donHang.MaBans)
+        // SỬA: Cập nhật trạng thái bàn qua bảng trung gian
+        if (donHang.BanAnDonHangs != null)
         {
-            ban.MaTrangThai = "TTBA001"; 
+            foreach (var banAnDonHang in donHang.BanAnDonHangs)
+            {
+                if (banAnDonHang.MaBanNavigation != null)
+                {
+                    banAnDonHang.MaBanNavigation.MaTrangThai = "TTBA001";
+                }
+            }
         }
-  
+
         await _context.SaveChangesAsync();
 
         string htmlSuccess = _emailService.GetHtml_HuyThanhCong();
         return Content(htmlSuccess, "text/html");
     }
 
+}
+
+public class CancelBookingRequest
+{
+    public string MaDonHang { get; set; }
 }

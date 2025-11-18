@@ -1,7 +1,7 @@
 ﻿USE [master];
 GO
 
----- Xóa DB cũ nếu tồn tại (Để chạy lại từ đầu cho sạch)
+---- Xóa DB cũ nếu tồn tại
 IF DB_ID('QL_NhaHang_DoAn_Test2') IS NOT NULL
 BEGIN
     ALTER DATABASE [QL_NhaHang_DoAn_Test2] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
@@ -15,434 +15,252 @@ USE [QL_NhaHang_DoAn_Test2]
 GO
 
 -- =============================================
--- TẠO CÁC BẢNG
+-- 1. TẠO CÁC BẢNG DANH MỤC & CƠ BẢN TRƯỚC
 -- =============================================
 
-/****** Object:  Table [dbo].[BanAn] ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[BanAn](
-    [MaBan] [varchar](25) NOT NULL,
-    [TenBan] [nvarchar](50) NOT NULL,
-    [MaTrangThai] [varchar](25) NOT NULL,
-    [SucChua] [int] NOT NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaBan] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
+CREATE TABLE [dbo].[TrangThaiBanAn](
+    [MaTrangThai] [varchar](25) NOT NULL PRIMARY KEY,
+    [TenTrangThai] [nvarchar](50) NOT NULL
+)
 GO
 
-/****** Object:  Table [dbo].[CheBienMonAn] ******/
---CREATE TABLE [dbo].[CheBienMonAn](
---    [MaCheBien] [varchar](25) NOT NULL,
---    [NgayNau] [datetime] NULL,
---    [MaPhienBan] [varchar](25) NOT NULL,
---    [SoLuong] [int] NULL,
---PRIMARY KEY CLUSTERED 
---(
---    [MaCheBien] ASC
---) ON [PRIMARY]
---) ON [PRIMARY]
---GO
-
-/****** Object:  Table [dbo].[ChiTietDonHang] ******/
-CREATE TABLE [dbo].[ChiTietDonHang](
-    [MaChiTietDonHang] [bigint] IDENTITY(1,1) NOT NULL,
-    [MaDonHang] [varchar](25) NOT NULL,
-    [MaPhienBan] [varchar](25) NOT NULL,
-    [MaCongThuc] [varchar](25) NOT NULL,
-    [SoLuong] [int] NOT NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaChiTietDonHang] ASC
-) ON [PRIMARY]
-) ON [PRIMARY]
+CREATE TABLE [dbo].[TrangThaiDonHang](
+    [MaTrangThai] [varchar](25) NOT NULL PRIMARY KEY,
+    [TenTrangThai] [nvarchar](100) NOT NULL
+)
 GO
 
-/****** Object:  Table [dbo].[ChiTietNhapHang] ******/
-CREATE TABLE [dbo].[ChiTietNhapHang](
-    [MaChiTietNhapHang] [bigint] IDENTITY(1,1) NOT NULL,
-    [MaNhapHang] [varchar](25) NOT NULL,
-    [MaCungUng] [varchar](25) NOT NULL,
-    [SoLuong] [int] NOT NULL,
-    [GiaNhap] [decimal](10, 2) NOT NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaChiTietNhapHang] ASC
-) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-
-/****** Object:  Table [dbo].[ChiTietMonAn] ******/
-CREATE TABLE [dbo].[ChiTietMonAn](
-    [MaCT] [varchar](25) NOT NULL,
-    [TenCT] [nvarchar](100) NOT NULL,
-    [MaMonAn] [varchar](25) NOT NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaCT] ASC
-) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-
-/****** Object:  Table [dbo].[CongThucNauAn] ******/
-CREATE TABLE [dbo].[CongThucNauAn](
-    [MaCongThuc] [varchar](25) NOT NULL,
-    [MaCT] [varchar](25) NOT NULL,
-    [MaPhienBan] [varchar](25) NOT NULL,
-    [Gia] [decimal](10, 2) NOT NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaCongThuc] ASC
-) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-
-/****** Object:  Table [dbo].[ChiTietCongThuc] ******/
-CREATE TABLE [dbo].[ChiTietCongThuc](
-    [MaChiTietCongThuc] [bigint] IDENTITY(1,1) NOT NULL,
-    [MaCongThuc] [varchar](25) NOT NULL,
-    [MaNguyenLieu] [varchar](25) NOT NULL,
-    [SoLuongCanDung] [int] NOT NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaChiTietCongThuc] ASC
-) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-
-/****** Object:  Table [dbo].[CungUng] ******/
-CREATE TABLE [dbo].[CungUng](
-    [MaCungUng] [varchar](25) NOT NULL,
-    [MaNguyenLieu] [varchar](25) NULL,
-    [MaNhaCungCap] [varchar](25) NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaCungUng] ASC
-) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-
-/****** Object:  Table [dbo].[DanhMucMonAn] ******/
 CREATE TABLE [dbo].[DanhMucMonAn](
-    [MaDanhMuc] [varchar](25) NOT NULL,
-    [TenDanhMuc] [nvarchar](255) NOT NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaDanhMuc] ASC
-) ON [PRIMARY]
-) ON [PRIMARY]
+    [MaDanhMuc] [varchar](25) NOT NULL PRIMARY KEY,
+    [TenDanhMuc] [nvarchar](255) NOT NULL
+)
 GO
 
-/****** Object:  Table [dbo].[DonHang] ******/
-CREATE TABLE [dbo].[DonHang](
-    [MaDonHang] [varchar](25) NOT NULL,
-    --[MaBan] [varchar](25) NOT NULL,
-    [MaNhanVien] [varchar](25) NULL,
-    [MaKhachHang] [varchar](25) NOT NULL,
-    [MaTrangThaiDonHang] [varchar](25) NOT NULL,
-    [ThoiGianDatHang] [datetime] NULL,
-    [TGDatDuKien] [datetime] NULL,
-    [TGNhanBan] [datetime] NULL,
-    [ThanhToan] [bit] NOT NULL DEFAULT(0),
-    [ThoiGianKetThuc] [datetime] NULL,
-    [SoLuongNguoiDK] [int] NOT NULL,
-    [TienDatCoc] [decimal](10, 2) NULL,
-    [GhiChu] [nvarchar](500) NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaDonHang] ASC
-) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-
-/****** Object:  Table [dbo].[HinhAnhMonAn] ******/
-CREATE TABLE [dbo].[HinhAnhMonAn](
-    [Id] [int] IDENTITY(1,1) NOT NULL,
-    [MaMonAn] [varchar](25) NOT NULL,
-    [URLHinhAnh] [nvarchar](max) NOT NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [Id] ASC
-) ON [PRIMARY]
-) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
-GO
-
-/****** Object:  Table [dbo].[KhachHang] (ĐÃ SỬA LOGIC UNIQUE) ******/
-CREATE TABLE [dbo].[KhachHang](
-    [MaKhachHang] [varchar](25) NOT NULL,
-    [HoTen] [nvarchar](100) NOT NULL,
-    [SoDienThoai] [nvarchar](15) NOT NULL,
-    [Email] [nvarchar](100) NULL, -- Cho phép NULL
-    [HinhAnh] [nvarchar](max) NULL,
-    [NoShowCount] [int] NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaKhachHang] ASC
-) ON [PRIMARY]
--- Lưu ý: Đã xóa dòng UNIQUE Email ở đây để tạo Index riêng bên dưới
-) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
-GO
-
--- [QUAN TRỌNG] Tạo Unique Index cho Email nhưng cho phép nhiều NULL
-CREATE UNIQUE NONCLUSTERED INDEX [IX_KhachHang_Email_Unique]
-ON [dbo].[KhachHang]([Email])
-WHERE [Email] IS NOT NULL;
-GO
-
-/****** Object:  Table [dbo].[MonAn] ******/
-CREATE TABLE [dbo].[MonAn](
-    [MaMonAn] [varchar](25) NOT NULL,
-    [TenMonAn] [nvarchar](100) NOT NULL,
-    [MaDanhMuc] [varchar](25) NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaMonAn] ASC
-) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-
-/****** Object:  Table [dbo].[NguyenLieu] ******/
 CREATE TABLE [dbo].[NguyenLieu](
-    [MaNguyenLieu] [varchar](25) NOT NULL,
+    [MaNguyenLieu] [varchar](25) NOT NULL PRIMARY KEY,
     [TenNguyenLieu] [nvarchar](100) NOT NULL,
     [DonViTinh] [nvarchar](50) NULL,
-    [SoLuongTonKho] [int] NOT NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaNguyenLieu] ASC
-) ON [PRIMARY]
-) ON [PRIMARY]
+    [SoLuongTonKho] [int] NOT NULL DEFAULT 0
+)
 GO
 
-/****** Object:  Table [dbo].[NhaCungCap] ******/
 CREATE TABLE [dbo].[NhaCungCap](
-    [MaNhaCungCap] [varchar](25) NOT NULL,
+    [MaNhaCungCap] [varchar](25) NOT NULL PRIMARY KEY,
     [TenNhaCungCap] [nvarchar](255) NOT NULL,
     [SoDienThoai] [nvarchar](15) NOT NULL,
-    [DiaChi] [nvarchar](255) NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaNhaCungCap] ASC
-) ON [PRIMARY]
-) ON [PRIMARY]
+    [DiaChi] [nvarchar](255) NULL
+)
 GO
 
-/****** Object:  Table [dbo].[NhanVien] (ĐÃ SỬA LOGIC UNIQUE) ******/
+CREATE TABLE [dbo].[VaiTro](
+    [MaVaiTro] [varchar](25) NOT NULL PRIMARY KEY,
+    [TenVaiTro] [nvarchar](50) NOT NULL
+)
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_VaiTro_Ten] ON [dbo].[VaiTro]([TenVaiTro]);
+GO
+
+CREATE TABLE [dbo].[PhienBanMonAn](
+    [MaPhienBan] [varchar](25) NOT NULL PRIMARY KEY,
+    [TenPhienBan] [nvarchar](100) NOT NULL,
+    [MaTrangThai] [varchar](25) NOT NULL DEFAULT 'CON_HANG',
+    [ThuTu] [int] NULL
+)
+GO
+
+CREATE TABLE [dbo].[Tang]( -- (Thêm bảng Tầng cho đầy đủ nếu cần mapping BanAn)
+    [MaTang] [varchar](25) NOT NULL PRIMARY KEY,
+    [TenTang] [nvarchar](50) NOT NULL
+)
+GO
+
+-- =============================================
+-- 2. TẠO CÁC BẢNG CHÍNH
+-- =============================================
+
+CREATE TABLE [dbo].[BanAn](
+    [MaBan] [varchar](25) NOT NULL PRIMARY KEY,
+    [TenBan] [nvarchar](50) NOT NULL,
+    [MaTrangThai] [varchar](25) NOT NULL,
+    [MaTang] [varchar](25) NULL, -- Thêm cột này để khớp với Model C#
+    [SucChua] [int] NOT NULL DEFAULT 4,
+    [IsShow] [bit] DEFAULT 1 -- Thêm cột này khớp Model
+)
+GO
+
+CREATE TABLE [dbo].[KhachHang](
+    [MaKhachHang] [varchar](25) NOT NULL PRIMARY KEY,
+    [HoTen] [nvarchar](100) NOT NULL,
+    [SoDienThoai] [nvarchar](15) NOT NULL,
+    [Email] [nvarchar](100) NULL,
+    [HinhAnh] [nvarchar](max) NULL,
+    [NoShowCount] [int] DEFAULT 0
+)
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [IX_KhachHang_Email_Unique] ON [dbo].[KhachHang]([Email]) WHERE [Email] IS NOT NULL;
+GO
+
 CREATE TABLE [dbo].[NhanVien](
-    [MaNhanVien] [varchar](25) NOT NULL,
+    [MaNhanVien] [varchar](25) NOT NULL PRIMARY KEY,
     [HoTen] [nvarchar](100) NOT NULL,
     [TenDangNhap] [nvarchar](50) NOT NULL,
     [MatKhau] [nvarchar](256) NOT NULL,
     [MaVaiTro] [varchar](25) NOT NULL,
     [Email] [nvarchar](100) NULL,
     [SoDienThoai] [nvarchar](15) NULL,
-    [HinhAnh] [nvarchar](max) NULL,
-    --[MaTrangThai] [varchar](25) NOT NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaNhanVien] ASC
-) ON [PRIMARY],
-UNIQUE NONCLUSTERED ([TenDangNhap] ASC)
--- Đã xóa Unique Email và SĐT ở đây để xử lý riêng
-) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+    [HinhAnh] [nvarchar](max) NULL
+)
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_NhanVien_TenDangNhap] ON [dbo].[NhanVien]([TenDangNhap]);
+CREATE UNIQUE NONCLUSTERED INDEX [IX_NhanVien_Email_Unique] ON [dbo].[NhanVien]([Email]) WHERE [Email] IS NOT NULL;
 GO
 
--- Tạo Index Unique cho Email Nhân viên (Bỏ qua NULL)
-CREATE UNIQUE NONCLUSTERED INDEX [IX_NhanVien_Email_Unique]
-ON [dbo].[NhanVien]([Email])
-WHERE [Email] IS NOT NULL;
+CREATE TABLE [dbo].[MonAn](
+    [MaMonAn] [varchar](25) NOT NULL PRIMARY KEY,
+    [TenMonAn] [nvarchar](100) NOT NULL,
+    [MaDanhMuc] [varchar](25) NULL,
+    [IsShow] [bit] DEFAULT 1
+)
 GO
 
-/****** Object:  Table [dbo].[NhapHang] ******/
+CREATE TABLE [dbo].[DonHang](
+    [MaDonHang] [varchar](25) NOT NULL PRIMARY KEY,
+    [MaNhanVien] [varchar](25) NULL,
+    [MaKhachHang] [varchar](25) NOT NULL,
+    [MaTrangThaiDonHang] [varchar](25) NOT NULL DEFAULT 'CHO_XAC_NHAN',
+    [ThoiGianDatHang] [datetime] NULL,
+    [TGDatDuKien] [datetime] NULL, -- Mapping với C#
+    [TGNhanBan] [datetime] NULL,
+    [ThanhToan] [bit] NOT NULL DEFAULT 0,
+    [ThoiGianKetThuc] [datetime] NULL,
+    [SoLuongNguoiDK] [int] NOT NULL DEFAULT 1,
+    [TienDatCoc] [decimal](10, 2) NULL DEFAULT 0,
+    [GhiChu] [nvarchar](500) NULL,
+    -- Thông tin người nhận (cho trường hợp đặt hộ)
+    [TenNguoiNhan] [nvarchar](100) NULL,
+    [SDTNguoiNhan] [varchar](20) NULL,
+    [EmailNguoiNhan] [nvarchar](100) NULL
+)
+GO
+
+-- =============================================
+-- 3. TẠO CÁC BẢNG TRUNG GIAN & CHI TIẾT (QUAN TRỌNG)
+-- =============================================
+
+-- BẢNG NÀY GIẢI QUYẾT LOGIC BÀN - ĐƠN HÀNG
+CREATE TABLE [dbo].[BanAnDonHang] (
+    [MaBanAnDonHang] VARCHAR(25) NOT NULL PRIMARY KEY, 
+    [MaDonHang] VARCHAR(25) NOT NULL,
+    [MaBan] VARCHAR(25) NOT NULL
+)
+GO
+
+CREATE TABLE [dbo].[ChiTietDonHang](
+    [MaChiTietDonHang] [bigint] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [MaDonHang] [varchar](25) NOT NULL,
+    [MaPhienBan] [varchar](25) NOT NULL,
+    [MaCongThuc] [varchar](25) NOT NULL,
+    [SoLuong] [int] NOT NULL,
+    [MaBanAnDonHang] [varchar](25) NULL -- CỘT QUAN TRỌNG ĐỂ LINK VỚI BÀN CỤ THỂ
+)
+GO
+
+CREATE TABLE [dbo].[ChiTietMonAn](
+    [MaCT] [varchar](25) NOT NULL PRIMARY KEY,
+    [TenCT] [nvarchar](100) NOT NULL,
+    [MaMonAn] [varchar](25) NOT NULL
+)
+GO
+
+CREATE TABLE [dbo].[CongThucNauAn](
+    [MaCongThuc] [varchar](25) NOT NULL PRIMARY KEY,
+    [MaCT] [varchar](25) NOT NULL,
+    [MaPhienBan] [varchar](25) NOT NULL,
+    [Gia] [decimal](10, 2) NOT NULL CHECK ([Gia] >= 0)
+)
+GO
+
+CREATE TABLE [dbo].[ChiTietCongThuc](
+    [MaChiTietCongThuc] [bigint] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [MaCongThuc] [varchar](25) NOT NULL,
+    [MaNguyenLieu] [varchar](25) NOT NULL,
+    [SoLuongCanDung] [int] NOT NULL
+)
+GO
+
+CREATE TABLE [dbo].[CungUng](
+    [MaCungUng] [varchar](25) NOT NULL PRIMARY KEY,
+    [MaNguyenLieu] [varchar](25) NULL,
+    [MaNhaCungCap] [varchar](25) NULL
+)
+GO
+
 CREATE TABLE [dbo].[NhapHang](
-    [MaNhapHang] [varchar](25) NOT NULL,
+    [MaNhapHang] [varchar](25) NOT NULL PRIMARY KEY,
     [MaNhanVien] [varchar](25) NOT NULL,
     [NgayNhapHang] [datetime] NOT NULL,
-    [TongTien] [decimal](10, 2) NOT NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaNhapHang] ASC
-) ON [PRIMARY]
-) ON [PRIMARY]
+    [TongTien] [decimal](10, 2) NOT NULL
+)
 GO
 
-
-/****** Object:  Table [dbo].[PhienBanMonAn] ******/
-CREATE TABLE [dbo].[PhienBanMonAn](
-    [MaPhienBan] [varchar](25) NOT NULL,
-    [TenPhienBan] [nvarchar](100) NOT NULL,
-    [MaTrangThai] [varchar](25) NOT NULL,
-    [ThuTu] [int] NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaPhienBan] ASC
-) ON [PRIMARY]
-) ON [PRIMARY]
+CREATE TABLE [dbo].[ChiTietNhapHang](
+    [MaChiTietNhapHang] [bigint] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [MaNhapHang] [varchar](25) NOT NULL,
+    [MaCungUng] [varchar](25) NOT NULL,
+    [SoLuong] [int] NOT NULL,
+    [GiaNhap] [decimal](10, 2) NOT NULL
+)
 GO
 
-/****** Object:  Table [dbo].[TrangThaiBanAn] ******/
-CREATE TABLE [dbo].[TrangThaiBanAn](
-    [MaTrangThai] [varchar](25) NOT NULL,
-    [TenTrangThai] [nvarchar](50) NOT NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaTrangThai] ASC
-) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-
-/****** Object:  Table [dbo].[TrangThaiDonHang] ******/
-CREATE TABLE [dbo].[TrangThaiDonHang](
-    [MaTrangThai] [varchar](25) NOT NULL,
-    [TenTrangThai] [nvarchar](100) NOT NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaTrangThai] ASC
-) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-
-
-/****** Object:  Table [dbo].[VaiTro] ******/
-CREATE TABLE [dbo].[VaiTro](
-    [MaVaiTro] [varchar](25) NOT NULL,
-    [TenVaiTro] [nvarchar](50) NOT NULL,
-PRIMARY KEY CLUSTERED 
-(
-    [MaVaiTro] ASC
-) ON [PRIMARY],
-UNIQUE NONCLUSTERED ([TenVaiTro] ASC)
-) ON [PRIMARY]
-GO
-
-CREATE TABLE [dbo].[BanAnDonHang](
-    -- Khóa Chính (Khóa ngoại tham chiếu đến DonHang)
-    [MaDonHang] [varchar](25) NOT NULL,
-    
-    -- Khóa Chính (Khóa ngoại tham chiếu đến BanAn)
-    [MaBan] [varchar](25) NOT NULL,
-    
-    -- XÓA CỘT [NgayTao] theo yêu cầu của bạn vì thông tin này đã có trong bảng DonHang
-
-PRIMARY KEY CLUSTERED 
-(
-    [MaDonHang] ASC,
-    [MaBan] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-
-
--- ===== THÊM CÁC GIÁ TRỊ DEFAULT =====
-ALTER TABLE [dbo].[BanAn] ADD  DEFAULT ((4)) FOR [SucChua]
-GO
-ALTER TABLE [dbo].[DonHang] ADD  DEFAULT ((1)) FOR [SoLuongNguoiDK]
-GO
-ALTER TABLE [dbo].[DonHang] ADD  DEFAULT ('CHO_XAC_NHAN') FOR [MaTrangThaiDonHang]
-GO
-ALTER TABLE [dbo].[DonHang] ADD  DEFAULT ((0)) FOR [TienDatCoc]
-GO
-ALTER TABLE [dbo].[KhachHang] ADD  DEFAULT ((0)) FOR [NoShowCount]
-GO
-ALTER TABLE [dbo].[PhienBanMonAn] ADD  DEFAULT ('CON_HANG') FOR [MaTrangThai]
-GO
-ALTER TABLE [dbo].[CongThucNauAn] ADD  CONSTRAINT [CK_CongThucNauAn_Gia] CHECK ([Gia] >= 0)
+CREATE TABLE [dbo].[HinhAnhMonAn](
+    [Id] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [MaMonAn] [varchar](25) NOT NULL,
+    [URLHinhAnh] [nvarchar](max) NOT NULL
+)
 GO
 
 -- =====================================================
--- THÊM TẤT CẢ KHÓA NGOẠI (FOREIGN KEYS)
+-- 4. THÊM KHÓA NGOẠI (FOREIGN KEYS) - PHẦN QUAN TRỌNG NHẤT
 -- =====================================================
--- (Phần này giữ nguyên như cũ của bạn)
 
-
-ALTER TABLE [dbo].[BanAn]  WITH CHECK ADD  CONSTRAINT [FK_BanAn_TrangThaiBanAn] FOREIGN KEY([MaTrangThai])
-REFERENCES [dbo].[TrangThaiBanAn] ([MaTrangThai])
-GO
---ALTER TABLE [dbo].[CheBienMonAn]  WITH CHECK ADD FOREIGN KEY([MaPhienBan])
---REFERENCES [dbo].[PhienBanMonAn] ([MaPhienBan])
-GO
-ALTER TABLE [dbo].[ChiTietDonHang]  WITH CHECK ADD FOREIGN KEY([MaDonHang])
-REFERENCES [dbo].[DonHang] ([MaDonHang])
-GO
-ALTER TABLE [dbo].[ChiTietDonHang]  WITH CHECK ADD FOREIGN KEY([MaPhienBan])
-REFERENCES [dbo].[PhienBanMonAn] ([MaPhienBan])
-GO
-ALTER TABLE [dbo].[ChiTietDonHang]  WITH CHECK ADD FOREIGN KEY([MaCongThuc])
-REFERENCES [dbo].[CongThucNauAn] ([MaCongThuc])
-GO
-ALTER TABLE [dbo].[ChiTietNhapHang]  WITH CHECK ADD FOREIGN KEY([MaCungUng])
-REFERENCES [dbo].[CungUng] ([MaCungUng])
-GO
-ALTER TABLE [dbo].[ChiTietNhapHang]  WITH CHECK ADD FOREIGN KEY([MaNhapHang])
-REFERENCES [dbo].[NhapHang] ([MaNhapHang])
-GO
-ALTER TABLE [dbo].[ChiTietMonAn]  WITH CHECK ADD FOREIGN KEY([MaMonAn])
-REFERENCES [dbo].[MonAn] ([MaMonAn])
-GO
-ALTER TABLE [dbo].[CongThucNauAn]  WITH CHECK ADD FOREIGN KEY([MaCT])
-REFERENCES [dbo].[ChiTietMonAn] ([MaCT])
-GO
-ALTER TABLE [dbo].[CongThucNauAn]  WITH CHECK ADD FOREIGN KEY([MaPhienBan])
-REFERENCES [dbo].[PhienBanMonAn] ([MaPhienBan])
-GO
-ALTER TABLE [dbo].[ChiTietCongThuc]  WITH CHECK ADD FOREIGN KEY([MaCongThuc])
-REFERENCES [dbo].[CongThucNauAn] ([MaCongThuc])
-GO
-ALTER TABLE [dbo].[ChiTietCongThuc]  WITH CHECK ADD FOREIGN KEY([MaNguyenLieu])
-REFERENCES [dbo].[NguyenLieu] ([MaNguyenLieu])
-GO
-ALTER TABLE [dbo].[CungUng]  WITH CHECK ADD FOREIGN KEY([MaNguyenLieu])
-REFERENCES [dbo].[NguyenLieu] ([MaNguyenLieu])
-GO
-ALTER TABLE [dbo].[CungUng]  WITH CHECK ADD FOREIGN KEY([MaNhaCungCap])
-REFERENCES [dbo].[NhaCungCap] ([MaNhaCungCap])
+-- BanAn
+ALTER TABLE [dbo].[BanAn] WITH CHECK ADD CONSTRAINT [FK_BanAn_TrangThaiBanAn] FOREIGN KEY([MaTrangThai]) REFERENCES [dbo].[TrangThaiBanAn] ([MaTrangThai])
+ALTER TABLE [dbo].[BanAn] WITH CHECK ADD CONSTRAINT [FK_BanAn_Tang] FOREIGN KEY([MaTang]) REFERENCES [dbo].[Tang] ([MaTang])
 GO
 
-ALTER TABLE [dbo].[DonHang]  WITH CHECK ADD FOREIGN KEY([MaKhachHang])
-REFERENCES [dbo].[KhachHang] ([MaKhachHang])
-GO
-ALTER TABLE [dbo].[DonHang]  WITH CHECK ADD FOREIGN KEY([MaNhanVien])
-REFERENCES [dbo].[NhanVien] ([MaNhanVien])
-GO
-ALTER TABLE [dbo].[DonHang]  WITH CHECK ADD  CONSTRAINT [FK_DonHang_TrangThaiDonHang] FOREIGN KEY([MaTrangThaiDonHang])
-REFERENCES [dbo].[TrangThaiDonHang] ([MaTrangThai])
-GO
-ALTER TABLE [dbo].[HinhAnhMonAn]  WITH CHECK ADD FOREIGN KEY([MaMonAn])
-REFERENCES [dbo].[MonAn] ([MaMonAn])
-GO
-ALTER TABLE [dbo].[MonAn]  WITH CHECK ADD FOREIGN KEY([MaDanhMuc])
-REFERENCES [dbo].[DanhMucMonAn] ([MaDanhMuc])
-GO
-ALTER TABLE [dbo].[NhanVien]  WITH CHECK ADD FOREIGN KEY([MaVaiTro])
-REFERENCES [dbo].[VaiTro] ([MaVaiTro])
-GO
-ALTER TABLE [dbo].[NhapHang]  WITH CHECK ADD FOREIGN KEY([MaNhanVien])
-REFERENCES [dbo].[NhanVien] ([MaNhanVien])
+-- BanAnDonHang (Mối quan hệ: Đơn - Bàn)
+ALTER TABLE [dbo].[BanAnDonHang] WITH CHECK ADD CONSTRAINT [FK_BanAnDonHang_DonHang] FOREIGN KEY([MaDonHang]) REFERENCES [dbo].[DonHang] ([MaDonHang]) ON DELETE CASCADE
+ALTER TABLE [dbo].[BanAnDonHang] WITH CHECK ADD CONSTRAINT [FK_BanAnDonHang_BanAn] FOREIGN KEY([MaBan]) REFERENCES [dbo].[BanAn] ([MaBan])
 GO
 
-
-ALTER TABLE [dbo].[BanAnDonHang] WITH CHECK ADD CONSTRAINT [FK_BanAnDonHang_DonHang] 
-FOREIGN KEY([MaDonHang]) REFERENCES [dbo].[DonHang] ([MaDonHang]) ON DELETE CASCADE
+-- ChiTietDonHang (Mối quan hệ: Món - Đơn - Bàn)
+ALTER TABLE [dbo].[ChiTietDonHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietDonHang_DonHang] FOREIGN KEY([MaDonHang]) REFERENCES [dbo].[DonHang] ([MaDonHang])
+ALTER TABLE [dbo].[ChiTietDonHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietDonHang_PhienBan] FOREIGN KEY([MaPhienBan]) REFERENCES [dbo].[PhienBanMonAn] ([MaPhienBan])
+ALTER TABLE [dbo].[ChiTietDonHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietDonHang_CongThuc] FOREIGN KEY([MaCongThuc]) REFERENCES [dbo].[CongThucNauAn] ([MaCongThuc])
+ALTER TABLE [dbo].[ChiTietDonHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietDonHang_BanAnDonHang] FOREIGN KEY([MaBanAnDonHang]) REFERENCES [dbo].[BanAnDonHang] ([MaBanAnDonHang])
 GO
 
-ALTER TABLE [dbo].[BanAnDonHang] WITH CHECK ADD CONSTRAINT [FK_BanAnDonHang_BanAn] 
-FOREIGN KEY([MaBan]) REFERENCES [dbo].[BanAn] ([MaBan])
-GO
+-- Các bảng khác
+ALTER TABLE [dbo].[DonHang] WITH CHECK ADD CONSTRAINT [FK_DonHang_KhachHang] FOREIGN KEY([MaKhachHang]) REFERENCES [dbo].[KhachHang] ([MaKhachHang])
+ALTER TABLE [dbo].[DonHang] WITH CHECK ADD CONSTRAINT [FK_DonHang_NhanVien] FOREIGN KEY([MaNhanVien]) REFERENCES [dbo].[NhanVien] ([MaNhanVien])
+ALTER TABLE [dbo].[DonHang] WITH CHECK ADD CONSTRAINT [FK_DonHang_TrangThai] FOREIGN KEY([MaTrangThaiDonHang]) REFERENCES [dbo].[TrangThaiDonHang] ([MaTrangThai])
 
-CREATE INDEX [IX_BanAnDonHang_MaBan] ON [dbo].[BanAnDonHang]([MaBan])
-GO
-CREATE INDEX [IX_ChiTietMonAn_MaMonAn] ON [dbo].[ChiTietMonAn]([MaMonAn])
-GO
-CREATE INDEX [IX_CongThucNauAn_MaCT] ON [dbo].[CongThucNauAn]([MaCT])
-GO
-CREATE INDEX [IX_CongThucNauAn_MaPhienBan] ON [dbo].[CongThucNauAn]([MaPhienBan])
-GO
+ALTER TABLE [dbo].[ChiTietMonAn] WITH CHECK ADD CONSTRAINT [FK_ChiTietMonAn_MonAn] FOREIGN KEY([MaMonAn]) REFERENCES [dbo].[MonAn] ([MaMonAn])
+ALTER TABLE [dbo].[CongThucNauAn] WITH CHECK ADD CONSTRAINT [FK_CongThucNauAn_ChiTietMonAn] FOREIGN KEY([MaCT]) REFERENCES [dbo].[ChiTietMonAn] ([MaCT])
+ALTER TABLE [dbo].[CongThucNauAn] WITH CHECK ADD CONSTRAINT [FK_CongThucNauAn_PhienBan] FOREIGN KEY([MaPhienBan]) REFERENCES [dbo].[PhienBanMonAn] ([MaPhienBan])
+ALTER TABLE [dbo].[ChiTietCongThuc] WITH CHECK ADD CONSTRAINT [FK_ChiTietCongThuc_CongThuc] FOREIGN KEY([MaCongThuc]) REFERENCES [dbo].[CongThucNauAn] ([MaCongThuc])
+ALTER TABLE [dbo].[ChiTietCongThuc] WITH CHECK ADD CONSTRAINT [FK_ChiTietCongThuc_NguyenLieu] FOREIGN KEY([MaNguyenLieu]) REFERENCES [dbo].[NguyenLieu] ([MaNguyenLieu])
 
+ALTER TABLE [dbo].[CungUng] WITH CHECK ADD CONSTRAINT [FK_CungUng_NguyenLieu] FOREIGN KEY([MaNguyenLieu]) REFERENCES [dbo].[NguyenLieu] ([MaNguyenLieu])
+ALTER TABLE [dbo].[CungUng] WITH CHECK ADD CONSTRAINT [FK_CungUng_NhaCungCap] FOREIGN KEY([MaNhaCungCap]) REFERENCES [dbo].[NhaCungCap] ([MaNhaCungCap])
 
+ALTER TABLE [dbo].[NhanVien] WITH CHECK ADD CONSTRAINT [FK_NhanVien_VaiTro] FOREIGN KEY([MaVaiTro]) REFERENCES [dbo].[VaiTro] ([MaVaiTro])
+ALTER TABLE [dbo].[NhapHang] WITH CHECK ADD CONSTRAINT [FK_NhapHang_NhanVien] FOREIGN KEY([MaNhanVien]) REFERENCES [dbo].[NhanVien] ([MaNhanVien])
+ALTER TABLE [dbo].[ChiTietNhapHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietNhapHang_CungUng] FOREIGN KEY([MaCungUng]) REFERENCES [dbo].[CungUng] ([MaCungUng])
+ALTER TABLE [dbo].[ChiTietNhapHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietNhapHang_NhapHang] FOREIGN KEY([MaNhapHang]) REFERENCES [dbo].[NhapHang] ([MaNhapHang])
+ALTER TABLE [dbo].[HinhAnhMonAn] WITH CHECK ADD CONSTRAINT [FK_HinhAnhMonAn_MonAn] FOREIGN KEY([MaMonAn]) REFERENCES [dbo].[MonAn] ([MaMonAn])
+ALTER TABLE [dbo].[MonAn] WITH CHECK ADD CONSTRAINT [FK_MonAn_DanhMuc] FOREIGN KEY([MaDanhMuc]) REFERENCES [dbo].[DanhMucMonAn] ([MaDanhMuc])
+GO
 
 -- ============================================================
 -- CHÈN DỮ LIỆU (Đã bổ sung trạng thái CHO_THANH_TOAN)
@@ -818,7 +636,7 @@ INSERT INTO [dbo].[DonHang] ([MaDonHang], [MaNhanVien], [MaKhachHang], [MaTrangT
 ('DH038', 'NV008', 'KH038', 'DA_HOAN_THANH', '2025-11-21 12:00:00', 5, '2025-11-21 12:05:00', '2025-11-21 13:00:00', 3, 0, N'Đã thanh toán (Tháng 11)', 1),
 ('DH039', 'NV013', 'KH039', 'DA_HOAN_THANH', '2025-11-22 18:00:00', 10, '2025-11-22 18:10:00', '2025-11-22 20:00:00', 4, 0, N'Đã thanh toán (Tháng 11)', 1),
 ('DH040', 'NV018', 'KH040', 'DA_HOAN_THANH', '2025-11-23 19:00:00', 10, '2025-11-23 19:10:00', '2025-11-23 21:00:00', 5, 0, N'Đã thanh toán (Tháng 11)', 1);
-
+GO
 
 
 
@@ -949,9 +767,64 @@ INSERT INTO [dbo].[ChiTietCongThuc] ([MaCongThuc], [MaNguyenLieu], [SoLuongCanDu
 ('CT039', 'NL039', 1), ('CT039', 'NL020', 1),
 ('CT040', 'NL040', 4), ('CT040', 'NL035', 1);
 
--- chèn dữ liệu cho: ChiTietDonHang (đã thêm MaCongThuc)
--- Mapping: PB001->CT001, PB002->CT002, ..., PB040->CT040
-INSERT INTO [dbo].[ChiTietDonHang] ([MaDonHang], [MaPhienBan], [MaCongThuc], [SoLuong]) VALUES
+
+INSERT INTO [dbo].[BanAnDonHang] ([MaBanAnDonHang], [MaDonHang], [MaBan]) VALUES
+('BDH001', 'DH001', 'B003'),
+('BDH002', 'DH002', 'B008'),
+('BDH003', 'DH003', 'B001'),
+('BDH004', 'DH004', 'B002'),
+('BDH005', 'DH005', 'B004'),
+('BDH006', 'DH006', 'B007'),
+('BDH007', 'DH007', 'B009'),
+('BDH008', 'DH008', 'B010'),
+('BDH009', 'DH009', 'B006'),
+('BDH010', 'DH010', 'B011'),
+('BDH011', 'DH011', 'B012'),
+('BDH012', 'DH012', 'B013'),
+('BDH013', 'DH013', 'B014'),
+('BDH014', 'DH014', 'B017'),
+('BDH015', 'DH015', 'B018'),
+('BDH016', 'DH016', 'B020'),
+('BDH017', 'DH017', 'B015'),
+('BDH018', 'DH018', 'B021'),
+('BDH019', 'DH019', 'B022'),
+('BDH020', 'DH020', 'B023'),
+('BDH021', 'DH021', 'B024'),
+('BDH022', 'DH022', 'B025'),
+('BDH023', 'DH023', 'B026'),
+('BDH024', 'DH024', 'B005'), -- Bàn chính đơn 24
+('BDH025', 'DH025', 'B019'), -- Bàn chính đơn 25
+('BDH026', 'DH026', 'B027'),
+('BDH027', 'DH027', 'B028'),
+('BDH028', 'DH028', 'B029'),
+('BDH029', 'DH029', 'B030'),
+('BDH030', 'DH030', 'B031'),
+('BDH031', 'DH031', 'B032'),
+('BDH032', 'DH032', 'B033'), -- Bàn chính đơn 32
+('BDH033', 'DH033', 'B034'),
+('BDH034', 'DH034', 'B035'),
+('BDH035', 'DH035', 'B036'),
+('BDH036', 'DH036', 'B039'),
+('BDH037', 'DH037', 'B040'),
+('BDH038', 'DH038', 'B001'),
+('BDH039', 'DH039', 'B002'),
+('BDH040', 'DH040', 'B003'),
+-- Các bàn ghép (Phụ)
+('BDH024_2', 'DH024', 'B006'), -- Đơn 24 ghép Bàn 6
+('BDH025_2', 'DH025', 'B020'), -- Đơn 25 ghép Bàn 20
+('BDH032_2', 'DH032', 'B035'); -- Đơn 32 ghép Bàn 35
+GO
+
+
+DECLARE @TempChiTiet TABLE (
+    MaDonHang varchar(25),
+    MaPhienBan varchar(25),
+    MaCongThuc varchar(25),
+    SoLuong int
+);
+
+-- Bước 3.2: Đổ dữ liệu vào bảng tạm
+INSERT INTO @TempChiTiet (MaDonHang, MaPhienBan, MaCongThuc, SoLuong) VALUES
 ('DH001', 'PB006', 'CT006', 1), ('DH001', 'PB003', 'CT003', 2), ('DH001', 'PB019', 'CT019', 5),
 ('DH002', 'PB008', 'CT008', 2), ('DH002', 'PB021', 'CT021', 1), ('DH002', 'PB001', 'CT001', 1),
 ('DH003', 'PB031', 'CT031', 4), ('DH003', 'PB020', 'CT020', 4),
@@ -992,71 +865,20 @@ INSERT INTO [dbo].[ChiTietDonHang] ([MaDonHang], [MaPhienBan], [MaCongThuc], [So
 ('DH038', 'PB034', 'CT034', 3), ('DH038', 'PB016', 'CT016', 3),
 ('DH039', 'PB035', 'CT035', 2), ('DH039', 'PB039', 'CT039', 1), ('DH039', 'PB020', 'CT020', 4),
 ('DH040', 'PB006', 'CT006', 1), ('DH040', 'PB022', 'CT022', 2), ('DH040', 'PB019', 'CT019', 5);
+-- ĐÃ XÓA CHỮ 'GO' Ở ĐÂY
 
--- Cập nhật tổng tiền
-PRINT N'--- Đang cập nhật TONGTIEN cho các phiếu NhapHang ---'
-GO
-UPDATE NhapHang
-SET TongTien = ISNULL(T.Tong, 0)
-FROM NhapHang P
-LEFT JOIN (
-    SELECT MaNhapHang, SUM(SoLuong * GiaNhap) AS Tong
-    FROM ChiTietNhapHang
-    GROUP BY MaNhapHang
-) AS T ON P.MaNhapHang = T.MaNhapHang;
-GO
-
-
-INSERT INTO [dbo].[BanAnDonHang] ([MaDonHang], [MaBan]) VALUES
-('DH001', 'B003'),
-('DH002', 'B008'),
-('DH003', 'B001'),
-('DH004', 'B002'),
-('DH005', 'B004'),
-('DH006', 'B007'),
-('DH007', 'B009'),
-('DH008', 'B010'),
-('DH009', 'B006'),
-('DH010', 'B011'),
-('DH011', 'B012'),
-('DH012', 'B013'),
-('DH013', 'B014'),
-('DH014', 'B017'),
-('DH015', 'B018'),
-('DH016', 'B020'),
-('DH017', 'B015'),
-('DH018', 'B021'),
-('DH019', 'B022'),
-('DH020', 'B023'),
-('DH021', 'B024'),
-('DH022', 'B025'),
-('DH023', 'B026'),
-('DH024', 'B005'), -- Đơn hàng 024 (Bàn chính)
-('DH025', 'B019'), -- Đơn hàng 025 (Bàn chính)
-('DH026', 'B027'),
-('DH027', 'B028'),
-('DH028', 'B029'),
-('DH029', 'B030'),
-('DH030', 'B031'),
-('DH031', 'B032'),
-('DH032', 'B033'), -- Đơn hàng 032 (Bàn chính)
-('DH033', 'B034'),
-('DH034', 'B035'),
-('DH035', 'B036'),
-('DH036', 'B039'),
-('DH037', 'B040'),
-('DH038', 'B001'),
-('DH039', 'B002'),
-('DH040', 'B003'),
--- Bổ sung dữ liệu GHÉP BÀN (Minh họa mối quan hệ N:M)
-('DH024', 'B006'), -- Ghép thêm Bàn 6 cho Đơn hàng 024
-('DH025', 'B020'), -- Ghép thêm Bàn 20 cho Đơn hàng 025
-('DH032', 'B035'); -- Ghép thêm Bàn 35 cho Đơn hàng 032
-GO
-
--- Kích hoạt lại khóa ngoại
-PRINT N'--- KÍCH HOẠT LẠI TẤT CẢ KHÓA NGOẠI ---'
-EXEC sp_MSforeachtable 'ALTER TABLE ? WITH CHECK CHECK CONSTRAINT ALL'
+-- Bước 3.3: Insert vào bảng thật
+INSERT INTO [dbo].[ChiTietDonHang] (MaDonHang, MaPhienBan, MaCongThuc, SoLuong, MaBanAnDonHang)
+SELECT 
+    t.MaDonHang, 
+    t.MaPhienBan, 
+    t.MaCongThuc, 
+    t.SoLuong,
+    (SELECT TOP 1 b.MaBanAnDonHang 
+     FROM BanAnDonHang b 
+     WHERE b.MaDonHang = t.MaDonHang
+     ORDER BY b.MaBanAnDonHang) 
+FROM @TempChiTiet t;
 GO
 
 -- =============================================
@@ -1089,53 +911,53 @@ END;
 GO
 
 
-CREATE PROCEDURE [dbo].[LayHoaDon]
+CREATE OR ALTER PROCEDURE [dbo].[LayHoaDon]
     @MaDonHang VARCHAR(50)
 AS
 BEGIN
+    SET NOCOUNT ON;
+
     SELECT
         dh.MaDonHang,
         nv.HoTen AS 'TenNhanVien',
-        -- THAY THẾ ba.TenBan BẰNG DANH SÁCH CÁC BÀN GHÉP
-        STRING_AGG(ba.TenBan, ', ') WITHIN GROUP (ORDER BY ba.TenBan) AS 'DanhSachBan',
         kh.HoTen AS 'TenKhachHang',
         dh.TGNhanBan,
         ttdh.TenTrangThai AS 'TrangThaiDonHang',
         dh.TienDatCoc,
+        
+        -- LẤY DANH SÁCH BÀN (Đã xử lý gom nhóm để không bị lặp dòng món ăn)
+        (
+            SELECT STRING_AGG(b.TenBan, ', ') WITHIN GROUP (ORDER BY b.TenBan)
+            FROM BanAnDonHang badh
+            JOIN BanAn b ON badh.MaBan = b.MaBan
+            WHERE badh.MaDonHang = dh.MaDonHang
+        ) AS 'DanhSachBan',
+
+        -- Thông tin món ăn
         ctdh.SoLuong,
         ma.TenMonAn,
         ctma.TenCT AS 'TenChiTietMonAn',
         pb.TenPhienBan,
         cta.Gia,
         (ctdh.SoLuong * cta.Gia) AS 'ThanhTien'
+
     FROM DonHang dh
-    
-    -- THÊM BẢNG TRUNG GIAN ĐỂ LẤY THÔNG TIN BÀN
-    LEFT JOIN BanAnDonHang badh ON dh.MaDonHang = badh.MaDonHang
-    LEFT JOIN BanAn ba ON badh.MaBan = ba.MaBan
-    
-    -- Giữ nguyên các JOIN khác
     JOIN ChiTietDonHang ctdh ON ctdh.MaDonHang = dh.MaDonHang
     JOIN CongThucNauAn cta ON ctdh.MaCongThuc = cta.MaCongThuc
     JOIN ChiTietMonAn ctma ON cta.MaCT = ctma.MaCT
     JOIN MonAn ma ON ctma.MaMonAn = ma.MaMonAn
     JOIN PhienBanMonAn pb ON ctdh.MaPhienBan = pb.MaPhienBan
-    JOIN KhachHang kh ON kh.MaKhachHang = DH.MaKhachHang
-    JOIN NhanVien nv ON nv.MaNhanVien = dh.MaNhanVien
+    JOIN KhachHang kh ON kh.MaKhachHang = dh.MaKhachHang
+    LEFT JOIN NhanVien nv ON nv.MaNhanVien = dh.MaNhanVien
     LEFT JOIN TrangThaiDonHang ttdh ON dh.MaTrangThaiDonHang = ttdh.MaTrangThai
     
-    WHERE dh.MaDonHang = @MaDonHang
-    
-    -- CẦN GROUP BY TẤT CẢ CÁC CỘT KHÔNG DÙNG HÀM TỔNG HỢP (STRING_AGG)
-    GROUP BY
-        dh.MaDonHang, nv.HoTen, kh.HoTen, dh.TGNhanBan, ttdh.TenTrangThai, dh.TienDatCoc, 
-        ctdh.SoLuong, ma.TenMonAn, ctma.TenCT, pb.TenPhienBan, cta.Gia, (ctdh.SoLuong * cta.Gia);
+    WHERE dh.MaDonHang = @MaDonHang;
 END;
 GO
 
-ALTER TABLE DonHang ADD TenNguoiNhan nvarchar(100) NULL;
-ALTER TABLE DonHang ADD SDTNguoiNhan varchar(20) NULL;
-ALTER TABLE DonHang ADD EmailNguoiNhan nvarchar(100) NULL;
+--ALTER TABLE DonHang ADD TenNguoiNhan nvarchar(100) NULL;
+--ALTER TABLE DonHang ADD SDTNguoiNhan varchar(20) NULL;
+--ALTER TABLE DonHang ADD EmailNguoiNhan nvarchar(100) NULL;
 
 --USE [master];
 --GO
@@ -1147,29 +969,29 @@ ALTER TABLE DonHang ADD EmailNguoiNhan nvarchar(100) NULL;
 --END
 --GO
 
-CREATE TABLE [dbo].[Tang](
-    [MaTang] [varchar](25) NOT NULL,
-    [TenTang] [nvarchar](50) NOT NULL,
-CONSTRAINT [PK_Tang] PRIMARY KEY CLUSTERED ([MaTang] ASC)
-);
-GO
+--CREATE TABLE [dbo].[Tang](
+--    [MaTang] [varchar](25) NOT NULL,
+--    [TenTang] [nvarchar](50) NOT NULL,
+--CONSTRAINT [PK_Tang] PRIMARY KEY CLUSTERED ([MaTang] ASC)
+--);
+--GO
 
 
-ALTER TABLE [dbo].[BanAn]
-ADD [MaTang] [varchar](25) NULL,
-[IsShow] [bit] NOT NULL DEFAULT(1);
-GO
+--ALTER TABLE [dbo].[BanAn]
+--ADD [MaTang] [varchar](25) NULL,
+--[IsShow] [bit] NOT NULL DEFAULT(1);
+--GO
 
 
-ALTER TABLE [dbo].[BanAn]
-ADD CONSTRAINT [FK_BanAn_Tang]
-FOREIGN KEY ([MaTang]) REFERENCES [dbo].[Tang]([MaTang]);
-GO
+--ALTER TABLE [dbo].[BanAn]
+--ADD CONSTRAINT [FK_BanAn_Tang]
+--FOREIGN KEY ([MaTang]) REFERENCES [dbo].[Tang]([MaTang]);
+--GO
 
 
-ALTER TABLE [dbo].[MonAn]
-ADD [IsShow] [bit] NOT NULL DEFAULT(1);
-GO
+--ALTER TABLE [dbo].[MonAn]
+--ADD [IsShow] [bit] NOT NULL DEFAULT(1);
+--GO
 
 
 INSERT INTO [dbo].[Tang] ([MaTang], [TenTang]) VALUES

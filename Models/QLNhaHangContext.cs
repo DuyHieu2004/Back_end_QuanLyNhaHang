@@ -17,6 +17,9 @@ public partial class QLNhaHangContext : DbContext
 
     public virtual DbSet<BanAn> BanAns { get; set; }
 
+    // MỚI THÊM: Bảng trung gian giờ là thực thể chính thức
+    public virtual DbSet<BanAnDonHang> BanAnDonHangs { get; set; }
+
     public virtual DbSet<ChiTietCongThuc> ChiTietCongThucs { get; set; }
 
     public virtual DbSet<ChiTietDonHang> ChiTietDonHangs { get; set; }
@@ -100,6 +103,39 @@ public partial class QLNhaHangContext : DbContext
                 .HasConstraintName("FK_BanAn_TrangThaiBanAn");
         });
 
+        // --- CẤU HÌNH MỚI CHO BAN AN DON HANG ---
+        // Thay thế hoàn toàn đoạn UsingEntity<Dictionary> cũ
+        modelBuilder.Entity<BanAnDonHang>(entity =>
+        {
+            entity.HasKey(e => e.MaBanAnDonHang);
+            entity.ToTable("BanAnDonHang");
+
+            entity.Property(e => e.MaBanAnDonHang)
+                .HasMaxLength(25)
+                .IsUnicode(false);
+
+            entity.Property(e => e.MaBan)
+                .HasMaxLength(25)
+                .IsUnicode(false);
+
+            entity.Property(e => e.MaDonHang)
+                .HasMaxLength(25)
+                .IsUnicode(false);
+
+            // Khóa ngoại trỏ về Bàn
+            entity.HasOne(d => d.MaBanNavigation).WithMany(p => p.BanAnDonHangs)
+                .HasForeignKey(d => d.MaBan)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_BanAnDonHang_BanAn");
+
+            // Khóa ngoại trỏ về Đơn Hàng
+            entity.HasOne(d => d.MaDonHangNavigation).WithMany(p => p.BanAnDonHangs)
+                .HasForeignKey(d => d.MaDonHang)
+                .OnDelete(DeleteBehavior.Cascade) // Cascade theo SQL
+                .HasConstraintName("FK_BanAnDonHang_DonHang");
+        });
+        // -----------------------------------------
+
         modelBuilder.Entity<ChiTietCongThuc>(entity =>
         {
             entity.HasKey(e => e.MaChiTietCongThuc).HasName("PK__ChiTietC__ADE808647FF12960");
@@ -140,6 +176,11 @@ public partial class QLNhaHangContext : DbContext
                 .HasMaxLength(25)
                 .IsUnicode(false);
 
+            // Thêm cấu hình cho cột mới
+            entity.Property(e => e.MaBanAnDonHang)
+                .HasMaxLength(25)
+                .IsUnicode(false);
+
             entity.HasOne(d => d.MaCongThucNavigation).WithMany(p => p.ChiTietDonHangs)
                 .HasForeignKey(d => d.MaCongThuc)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -154,6 +195,11 @@ public partial class QLNhaHangContext : DbContext
                 .HasForeignKey(d => d.MaPhienBan)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__ChiTietDo__MaPhi__693CA210");
+
+            // Thêm mối quan hệ 1-N với BanAnDonHang
+            entity.HasOne(d => d.MaBanAnDonHangNavigation).WithMany(p => p.ChiTietDonHangs)
+                .HasForeignKey(d => d.MaBanAnDonHang)
+                .HasConstraintName("FK_ChiTietDonHang_BanAnDonHang");
         });
 
         modelBuilder.Entity<ChiTietMenu>(entity =>
@@ -311,8 +357,6 @@ public partial class QLNhaHangContext : DbContext
 
             entity.ToTable("DonHang", tb => tb.HasTrigger("trg_OnDonHangUpdate_IncrementNoShow"));
 
-            
-
             entity.Property(e => e.MaDonHang)
                 .HasMaxLength(25)
                 .IsUnicode(false);
@@ -362,28 +406,7 @@ public partial class QLNhaHangContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_DonHang_TrangThaiDonHang");
 
-            entity.HasMany(d => d.MaBans).WithMany(p => p.MaDonHangs)
-                .UsingEntity<Dictionary<string, object>>(
-                    "BanAnDonHang",
-                    r => r.HasOne<BanAn>().WithMany()
-                        .HasForeignKey("MaBan")
-                        .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("FK_BanAnDonHang_BanAn"),
-                    l => l.HasOne<DonHang>().WithMany()
-                        .HasForeignKey("MaDonHang")
-                        .HasConstraintName("FK_BanAnDonHang_DonHang"),
-                    j =>
-                    {
-                        j.HasKey("MaDonHang", "MaBan").HasName("PK__BanAnDon__C1C78A7B4CC56DE7");
-                        j.ToTable("BanAnDonHang");
-                        j.HasIndex(new[] { "MaBan" }, "IX_BanAnDonHang_MaBan");
-                        j.IndexerProperty<string>("MaDonHang")
-                            .HasMaxLength(25)
-                            .IsUnicode(false);
-                        j.IndexerProperty<string>("MaBan")
-                            .HasMaxLength(25)
-                            .IsUnicode(false);
-                    });
+            // Đã xóa đoạn UsingEntity cũ ở đây
         });
 
         modelBuilder.Entity<HinhAnhMonAn>(entity =>

@@ -43,5 +43,5 @@ public partial class DonHang
 
     public virtual TrangThaiDonHang MaTrangThaiDonHangNavigation { get; set; } = null!;
 
-    public virtual ICollection<BanAn> MaBans { get; set; } = new List<BanAn>();
+    public virtual ICollection<BanAnDonHang> BanAnDonHangs { get; set; } = new List<BanAnDonHang>();
 }

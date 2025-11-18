@@ -32,9 +32,11 @@ namespace QuanLyNhaHang.Controllers
             var gioKetThuc = dateTime.AddMinutes(120); // Giả sử mỗi slot ăn là 2 tiếng
 
             // 3. Lấy danh sách các đơn hàng "chen chân" vào khung giờ này
-            // SỬA ĐỔI: Lấy luôn cả trạng thái đơn (CHO_THANH_TOAN) để phân biệt màu
+            // SỬA ĐỔI: Truy vấn qua bảng trung gian BanAnDonHangs
             var conflictingData = await _context.DonHangs
-                .Include(dh => dh.MaBans)
+                // Include bảng trung gian để lấy được thông tin bàn
+                .Include(dh => dh.BanAnDonHangs)
+                    .ThenInclude(badh => badh.MaBanNavigation)
                 .Where(dh =>
                     // Lấy cả 3 trạng thái quan trọng
                     (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
@@ -47,14 +49,15 @@ namespace QuanLyNhaHang.Controllers
                     (gioBatDau < dh.ThoiGianKetThuc) &&
                     (gioKetThuc > dh.ThoiGianDatHang)
                 )
-                .SelectMany(dh => dh.MaBans.Select(b => new
+                // FlatMap (Làm phẳng) danh sách bàn từ các đơn hàng tìm được
+                .SelectMany(dh => dh.BanAnDonHangs.Select(badh => new
                 {
-                    MaBan = b.MaBan,
+                    MaBan = badh.MaBan, // Lấy mã bàn từ bảng trung gian
                     TrangThaiDon = dh.MaTrangThaiDonHang
                 }))
                 .ToListAsync();
 
-            // 4. Map dữ liệu trả về
+            // 4. Map dữ liệu trả về (Logic này giữ nguyên)
             var result = allTables.Select(ban =>
             {
                 string statusToDisplay = "Đang trống"; // Mặc định
@@ -173,22 +176,23 @@ namespace QuanLyNhaHang.Controllers
             var gioBatDau = dateTime;
             var gioKetThuc = dateTime.AddMinutes(120);
 
-
+            // --- SỬA ĐỔI Ở ĐÂY ---
+            // Truy vấn danh sách mã bàn bị trùng qua bảng trung gian
             var conflictingBookingIds = await _context.DonHangs
-                .Include(dh => dh.MaBans)
+                .Include(dh => dh.BanAnDonHangs) // Include bảng trung gian
                 .Where(dh =>
-
-                    (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" || dh.MaTrangThaiDonHang == "DA_XAC_NHAN" || dh.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
-
+                    (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
+                     dh.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
+                     dh.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
                     dh.ThoiGianDatHang != null &&
                     (gioBatDau < dh.ThoiGianKetThuc) &&
                     (gioKetThuc > dh.ThoiGianDatHang)
                 )
-                .SelectMany(dh => dh.MaBans)
-                .Select(b=>b.MaBan)
+                // Flatten (làm phẳng) danh sách mã bàn
+                .SelectMany(dh => dh.BanAnDonHangs.Select(badh => badh.MaBan))
                 .Distinct()
                 .ToListAsync();
-
+            // ---------------------
 
             var allTables = await _context.BanAns
                 .Include(b => b.MaTrangThaiNavigation)
@@ -238,9 +242,9 @@ namespace QuanLyNhaHang.Controllers
 
         [HttpGet("GetAvailableBanAns")]
         public async Task<IActionResult> GetAvailableBanAns(
-            [FromQuery] DateTime dateTime,
-            [FromQuery] int soNguoi,
-            [FromQuery] string? maKhachHang)
+    [FromQuery] DateTime dateTime,
+    [FromQuery] int soNguoi,
+    [FromQuery] string? maKhachHang)
         {
             if (_context.BanAns == null || _context.DonHangs == null)
             {
@@ -250,8 +254,12 @@ namespace QuanLyNhaHang.Controllers
             var gioBatDauKhachChon = dateTime;
             var gioKetThucKhachChon = dateTime.AddMinutes(120);
 
+            // SỬA ĐỔI: Truy vấn từ bảng trung gian BanAnDonHangs kết hợp với DonHangs
             var conflictingOrders = await _context.DonHangs
+                // Include bảng trung gian để lấy thông tin bàn
+                .Include(dh => dh.BanAnDonHangs)
                 .Where(dh =>
+                    // Các trạng thái Đơn hàng cần kiểm tra trùng lặp
                     (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
                      dh.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
                      dh.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
@@ -259,19 +267,19 @@ namespace QuanLyNhaHang.Controllers
                     dh.ThoiGianDatHang != null &&
                     dh.ThoiGianKetThuc != null &&
 
+                    // Logic trùng giờ (Time Overlap)
                     (gioBatDauKhachChon < dh.ThoiGianKetThuc) &&
                     (gioKetThucKhachChon > dh.ThoiGianDatHang)
                 )
-                .SelectMany(
-                        dh => dh.MaBans,
-                        (dh, ban) => new 
-                        {
-                            MaBan = ban.MaBan,
-                            MaKhachHang = dh.MaKhachHang
-                        }
-                    )
+                // Flatten danh sách: Từ 1 Đơn -> Nhiều dòng (Mỗi dòng là 1 Bàn + Mã Khách Hàng)
+                .SelectMany(dh => dh.BanAnDonHangs.Select(badh => new
+                {
+                    MaBan = badh.MaBan,         // Lấy Mã bàn từ bảng trung gian
+                    MaKhachHang = dh.MaKhachHang // Lấy Mã khách từ bảng Đơn hàng
+                }))
                 .ToListAsync();
 
+            // Tách danh sách bàn trùng thành 2 loại
             var banNguoiKhacDatIds = conflictingOrders
                 .Where(o => o.MaKhachHang != maKhachHang)
                 .Select(o => o.MaBan).Distinct().ToList();
