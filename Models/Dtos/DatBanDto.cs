@@ -2,7 +2,7 @@
 
 namespace QuanLyNhaHang.Models.DTO
 {
-    public class DatBanDTO
+    public class DatBanDto
     {
         [Required]
         public List<string> DanhSachMaBan { get; set; } = new List<string>();

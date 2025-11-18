@@ -1,6 +1,6 @@
 ﻿namespace QuanLyNhaHang.Models.DTO
 {
-    public class BanAnDTO
+    public class BanAnDto
     {
         public string maBan { get; set; } = null!;
         public string tenBan { get; set; } = null!;

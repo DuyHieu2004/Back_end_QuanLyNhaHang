@@ -23,6 +23,39 @@ namespace QuanLyNhaHang.Controllers
             _context = context;
         }
 
+        [HttpGet("GetActiveBookings")]
+        public async Task<IActionResult> GetActiveBookings([FromQuery] DateTime? ngay)
+        {
+            // Mặc định là hôm nay nếu không truyền
+            DateTime filterDate = ngay?.Date ?? DateTime.Today;
+
+            var activeStatuses = new[] { "CHO_XAC_NHAN", "DA_XAC_NHAN", "CHO_THANH_TOAN" };
+            var bookings = await _context.DonHangs
+                .Include(dh => dh.MaBans) // Lấy thông tin các bàn
+                .Include(dh => dh.MaTrangThaiDonHangNavigation) // Lấy tên trạng thái
+                .Where(dh =>
+                    activeStatuses.Contains(dh.MaTrangThaiDonHang) &&
+                    // THÊM ĐIỀU KIỆN LỌC THEO NGÀY (dựa trên TgnhanBan)
+                    dh.TgnhanBan.HasValue &&
+                    dh.TgnhanBan.Value.Date == filterDate
+                )
+                .OrderBy(dh => dh.TgnhanBan)
+                .Select(dh => new
+                {
+                    maDonHang = dh.MaDonHang,
+                    tenNguoiNhan = dh.TenNguoiNhan ?? dh.MaKhachHangNavigation.HoTen,
+                    soNguoi = dh.SoLuongNguoiDk,
+                    thoiGianNhanBan = dh.TgnhanBan,
+                    trangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai,
+                    maTrangThai = dh.MaTrangThaiDonHang,
+                    // Trả về danh sách TÊN BÀN (List<string>)
+                    banAn = dh.MaBans.Select(b => b.TenBan).ToList()
+                })
+                .ToListAsync();
+
+            return Ok(bookings);
+        }
+
         [HttpGet("GetMyBookingDetail")]
         // [Authorize] 
         public async Task<IActionResult> GetMyBookingDetail(
@@ -80,7 +113,7 @@ namespace QuanLyNhaHang.Controllers
                 ? string.Join(", ", donHang.MaBans.Select(b => b.TenBan))
                 : "Chưa xếp bàn";
 
-            var result = new ChiTietDatBanDTO
+            var result = new ChiTietDatBanDto
             {
                 MaDonHang = donHang.MaDonHang,
                 ThoiGianDat = donHang.ThoiGianDatHang ?? DateTime.Now,
@@ -105,7 +138,7 @@ namespace QuanLyNhaHang.Controllers
                     var monAn = congThuc?.MaCtNavigation?.MaMonAnNavigation;
                     string hinhAnhUrl = monAn?.HinhAnhMonAns.FirstOrDefault()?.URLHinhAnh ?? ""; // Check lại URLHinhAnh/UrlhinhAnh
 
-                    return new MonAnDatDTO
+                    return new MonAnDatDto
                     {
                         TenMon = monAn?.TenMonAn ?? "Món không xác định",
                         TenPhienBan = phienBan?.TenPhienBan ?? "",

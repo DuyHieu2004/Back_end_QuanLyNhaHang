@@ -17,99 +17,87 @@ public class MonAnsAPIController : ControllerBase
    }
 
 
-   [HttpGet]
-   public async Task<ActionResult<IEnumerable<MonAnDetailDTO>>> GetMonAns([FromQuery] string? maDanhMuc, [FromQuery] string? searchString)
-   {
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<MonAnDetailDTO>>> GetMonAns(
+        [FromQuery] string? maDanhMuc,
+        [FromQuery] string? searchString)
+    {
+        // 1. Query cơ bản (Chưa Include vội để lọc cho nhanh)
+        var query = _context.MonAns.AsQueryable();
 
-       var query = _context.MonAns
-                          .Include(m => m.HinhAnhMonAns)
-                           .Include(m => m.MaDanhMucNavigation)
-                           .Include(m => m.ChiTietMonAns)
-                               .ThenInclude(ct => ct.CongThucNauAns)
-                                   .ThenInclude(cta => cta.MaPhienBanNavigation)
-                           .Include(m => m.ChiTietMonAns)
-                               .ThenInclude(ct => ct.CongThucNauAns)
-                                   .ThenInclude(cta => cta.ChiTietCongThucs)
-                                       .ThenInclude(ctct => ctct.MaNguyenLieuNavigation)
-                           .Where(m => m.IsShow == true)
-                           .AsSplitQuery()
-                           .AsQueryable();
+        // 2. Lọc theo Danh Mục (Nếu có)
+        if (!string.IsNullOrEmpty(maDanhMuc) && maDanhMuc != "All" && maDanhMuc != "Tất cả")
+        {
+            // Tìm theo Mã hoặc Tên danh mục (để FE gửi tên cũng được)
+            query = query.Where(m => m.MaDanhMuc == maDanhMuc || m.MaDanhMucNavigation.TenDanhMuc == maDanhMuc);
+        }
 
+        // 3. Tìm kiếm (Search)
+        if (!string.IsNullOrEmpty(searchString))
+        {
+            string searchLower = searchString.ToLower();
+            query = query.Where(m => m.TenMonAn.ToLower().Contains(searchLower));
+        }
 
-       if (!string.IsNullOrEmpty(maDanhMuc))
-       {
-           query = query.Where(m => m.MaDanhMuc == maDanhMuc);
-       }
+        // 4. Chỉ lấy món đang hiển thị
+        query = query.Where(m => m.IsShow == true);
 
+        // 5. Include dữ liệu liên quan (Sau khi đã lọc xong)
+        var monAns = await query
+             .Include(m => m.HinhAnhMonAns)
+             .Include(m => m.MaDanhMucNavigation)
+             .Include(m => m.ChiTietMonAns)
+                 .ThenInclude(ct => ct.CongThucNauAns)
+                     .ThenInclude(cta => cta.MaPhienBanNavigation) // Để lấy tên phiên bản (Size)
+             .AsSplitQuery() // Tăng tốc độ query
+             .ToListAsync();
 
-       if (!string.IsNullOrEmpty(searchString))
-       {
-           query = query.Where(m => m.TenMonAn.Contains(searchString));
-       }
+        // 6. Map sang DTO (Logic map của bạn tui giữ lại nhưng làm gọn hơn)
+        var dtos = monAns.Select(m => {
 
+            // Gom tất cả công thức (phiên bản) từ các chi tiết món ăn
+            var allCongThucs = m.ChiTietMonAns
+                .SelectMany(ct => ct.CongThucNauAns)
+                .Where(cta => cta.MaPhienBanNavigation != null) // Bỏ qua lỗi null
+                .ToList();
 
-       var monAns = await query.ToListAsync();
-        
-       // Map sang DTO để tránh circular reference
-       var dtos = monAns.Select(m => {
-           // Lấy tất cả phiên bản từ các công thức
-           var phienBanDict = new Dictionary<string, PhienBanMonAnDetailDTO>();
-           
-           foreach (var chiTiet in m.ChiTietMonAns)
-           {
-               foreach (var congThuc in chiTiet.CongThucNauAns)
-               {
-                   var phienBan = congThuc.MaPhienBanNavigation;
-                   if (phienBan == null) continue;
-                   
-                   if (!phienBanDict.ContainsKey(phienBan.MaPhienBan))
-                   {
-                       phienBanDict[phienBan.MaPhienBan] = new PhienBanMonAnDetailDTO
-                       {
-                           MaPhienBan = phienBan.MaPhienBan,
-                           TenPhienBan = phienBan.TenPhienBan,
-                           Gia = congThuc.Gia, // Lấy giá từ công thức đầu tiên
-                           ThuTu = phienBan.ThuTu,
-                           CongThucNauAns = new List<CongThucNauAnDetailDTO>()
-                       };
-                   }
-                   
-                   // Thêm nguyên liệu từ ChiTietCongThuc
-                   foreach (var chiTietCongThuc in congThuc.ChiTietCongThucs)
-                   {
-                       phienBanDict[phienBan.MaPhienBan].CongThucNauAns.Add(new CongThucNauAnDetailDTO
-                       {
-                           MaCongThuc = congThuc.MaCongThuc,
-                           MaNguyenLieu = chiTietCongThuc.MaNguyenLieu,
-                           TenNguyenLieu = chiTietCongThuc.MaNguyenLieuNavigation?.TenNguyenLieu ?? "",
-                           DonViTinh = chiTietCongThuc.MaNguyenLieuNavigation?.DonViTinh,
-                           SoLuongCanDung = chiTietCongThuc.SoLuongCanDung
-                       });
-                   }
-               }
-           }
-           
-           return new MonAnDetailDTO
-           {
-               MaMonAn = m.MaMonAn,
-               TenMonAn = m.TenMonAn,
-               MaDanhMuc = m.MaDanhMuc,
-               TenDanhMuc = m.MaDanhMucNavigation?.TenDanhMuc,
-               IsShow = m.IsShow,
-               HinhAnhMonAns = m.HinhAnhMonAns.Select(h => new HinhAnhDTO
-               {
-                   Id = h.Id,
-                   URLHinhAnh = h.URLHinhAnh
-               }).ToList(),
-               PhienBanMonAns = phienBanDict.Values.OrderBy(pb => pb.ThuTu ?? 0).ToList()
-           };
-       }).ToList();
-        
-       return Ok(dtos);
-   }
+            // Group by Phiên Bản để loại bỏ trùng lặp (nếu có)
+            var phienBanDTOs = allCongThucs
+                .GroupBy(cta => cta.MaPhienBan)
+                .Select(g => new PhienBanMonAnDetailDTO
+                {
+                    MaPhienBan = g.Key,
+                    TenPhienBan = g.First().MaPhienBanNavigation.TenPhienBan, // Tên size (Nhỏ, Lớn...)
+                    Gia = g.First().Gia, // Giá tiền
+                    ThuTu = g.First().MaPhienBanNavigation.ThuTu
+                })
+                .OrderBy(pb => pb.ThuTu) // Sắp xếp size (Nhỏ -> Lớn)
+                .ToList();
+
+            return new MonAnDetailDTO
+            {
+                MaMonAn = m.MaMonAn,
+                TenMonAn = m.TenMonAn,
+                MaDanhMuc = m.MaDanhMuc,
+                TenDanhMuc = m.MaDanhMucNavigation?.TenDanhMuc,
+                IsShow = m.IsShow,
+
+                // Lấy hình ảnh đầu tiên làm đại diện
+                HinhAnhMonAns = m.HinhAnhMonAns.Select(h => new HinhAnhDTO
+                {
+                    Id = h.Id,
+                    URLHinhAnh = h.URLHinhAnh
+                }).ToList(),
+
+                PhienBanMonAns = phienBanDTOs
+            };
+        }).ToList();
+
+        return Ok(dtos);
+    }
 
 
-   [HttpGet("{id}")]
+    [HttpGet("{id}")]
    public async Task<ActionResult<MonAnDetailDTO>> GetMonAn(string id)
    {
        var monAn = await _context.MonAns

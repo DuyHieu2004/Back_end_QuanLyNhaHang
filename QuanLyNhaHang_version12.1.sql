@@ -1466,3 +1466,79 @@ BEGIN
         ISNULL(d.MaTrangThaiDonHang, '') <> 'NO_SHOW';
 END
 GO
+
+CREATE OR ALTER PROCEDURE [dbo].[GetDashboardStats]
+    @TimeRange VARCHAR(20) -- Nhận vào: 'TODAY', 'WEEK', 'MONTH'
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @StartDate DATETIME;
+    DECLARE @EndDate DATETIME = GETDATE(); -- Lấy thời điểm hiện tại
+
+    -- 1. Xác định khoảng thời gian dựa trên tham số
+    IF @TimeRange = 'TODAY'
+    BEGIN
+        -- Từ 00:00 hôm nay
+        SET @StartDate = CAST(CAST(GETDATE() AS DATE) AS DATETIME);
+    END
+    ELSE IF @TimeRange = 'WEEK'
+    BEGIN
+        -- Đầu tuần (Thứ 2)
+        SET @StartDate = DATEADD(wk, DATEDIFF(wk, 0, GETDATE()), 0);
+    END
+    ELSE IF @TimeRange = 'MONTH'
+    BEGIN
+        -- Đầu tháng (Ngày 1)
+        SET @StartDate = DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1); 
+    END
+    ELSE
+    BEGIN
+        -- Mặc định là hôm nay nếu truyền sai
+        SET @StartDate = CAST(CAST(GETDATE() AS DATE) AS DATETIME);
+    END
+
+    -- 2. Biến lưu kết quả
+    DECLARE @TongDoanhThu DECIMAL(18, 2) = 0;
+    DECLARE @SoDonHoanThanh INT = 0;
+    DECLARE @SoBanDangPhucVu INT = 0;
+    DECLARE @TongKhachHang INT = 0;
+
+    -- 3. Tính Tổng Doanh Thu (Chỉ tính đơn ĐÃ HOÀN THÀNH)
+    SELECT @TongDoanhThu = ISNULL(SUM(CTDH.SoLuong * CTA.Gia), 0)
+    FROM DonHang DH
+    JOIN ChiTietDonHang CTDH ON DH.MaDonHang = CTDH.MaDonHang
+    JOIN CongThucNauAn CTA ON CTDH.MaCongThuc = CTA.MaCongThuc
+    WHERE DH.MaTrangThaiDonHang = 'DA_HOAN_THANH'
+      AND DH.ThoiGianKetThuc >= @StartDate 
+      AND DH.ThoiGianKetThuc <= @EndDate;
+
+    -- 4. Tính Số Đơn Đã Hoàn Thành
+    SELECT @SoDonHoanThanh = COUNT(*)
+    FROM DonHang
+    WHERE MaTrangThaiDonHang = 'DA_HOAN_THANH'
+      AND ThoiGianKetThuc >= @StartDate 
+      AND ThoiGianKetThuc <= @EndDate;
+
+    -- 5. Tính Tổng Số Khách Hàng (Dựa trên số lượng người đăng ký trong đơn hàng)
+    SELECT @TongKhachHang = ISNULL(SUM(SoLuongNguoiDK), 0)
+    FROM DonHang
+    WHERE MaTrangThaiDonHang = 'DA_HOAN_THANH' -- Hoặc tính cả đơn đang ăn tùy nghiệp vụ
+      AND (ThoiGianKetThuc >= @StartDate AND ThoiGianKetThuc <= @EndDate OR ThoiGianDatHang >= @StartDate);
+
+    -- 6. Tính Số Bàn Đang Phục Vụ 
+    -- (Lưu ý: Cái này thường là con số Realtime - Hiện tại, bất kể chọn Tuần hay Tháng)
+    -- Nếu logic của bạn là "Số bàn ĐÃ phục vụ trong khoảng thời gian đó" thì sửa query khác. 
+    -- Nhưng theo UI Dashboard, thường ô này hiển thị trạng thái hiện tại.
+    SELECT @SoBanDangPhucVu = COUNT(*)
+    FROM BanAn
+    WHERE MaTrangThai = 'TTBA002'; -- Trạng thái: Đang phục vụ
+
+    -- 7. Trả về kết quả
+    SELECT 
+        @TongDoanhThu AS TongDoanhThu,
+        @SoDonHoanThanh AS SoDonHoanThanh,
+        @SoBanDangPhucVu AS SoBanPhucVu,
+        @TongKhachHang AS TongKhachHang;
+END
+GO

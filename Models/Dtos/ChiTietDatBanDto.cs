@@ -1,6 +1,6 @@
 ﻿namespace QuanLyNhaHang.Models.DTO
 {
-    public class ChiTietDatBanDTO
+    public class ChiTietDatBanDto
     {
         public string MaDonHang { get; set; }
         public DateTime ThoiGianDat { get; set; }
@@ -14,6 +14,6 @@
         public string TenBan { get; set; }      // <--- THÊM
         public DateTime? ThoiGianNhanBan { get; set; }
         public DateTime? ThoiGianKetThuc { get; set; }
-        public List<MonAnDatDTO> MonAns { get; set; }
+        public List<MonAnDatDto> MonAns { get; set; }
     }
 }

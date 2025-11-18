@@ -24,7 +24,7 @@ namespace QuanLyNhaHang.Controllers
         }
 
         [HttpPost("TaoDatBan")]
-        public async Task<IActionResult> CreateDatBan([FromBody] DatBanDTO datBanDto)
+        public async Task<IActionResult> CreateDatBan([FromBody] DatBanDto datBanDto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -186,7 +186,8 @@ namespace QuanLyNhaHang.Controllers
                     canThanhToanOnline = true;
                 }
 
-                string trangThaiBanDau = canThanhToanOnline ? "CHO_THANH_TOAN" : "DA_XAC_NHAN";
+                //string trangThaiBanDau = canThanhToanOnline ? "CHO_THANH_TOAN" : "CHO_XAC_NHAN";
+                string trangThaiBanDau = "CHO_XAC_NHAN";
 
                 // =================================================================
                 // BƯỚC 5: TẠO ĐƠN HÀNG & GHÉP BÀN (Sửa theo Model DonHang.cs)
@@ -394,12 +395,48 @@ namespace QuanLyNhaHang.Controllers
         }
 
 
+        //[HttpPut("CapNhatTrangThai/{maDonHang}")]
+        //public async Task<IActionResult> CapNhatTrangThai(string maDonHang, [FromBody] string maTrangThai)
+        //{
+        //    if (string.IsNullOrWhiteSpace(maTrangThai)) return BadRequest(new { message = "Mã trạng thái không hợp lệ." });
+
+        //    var donHang = await _context.DonHangs.FindAsync(maDonHang);
+        //    if (donHang == null) return NotFound(new { message = "Không tìm thấy đơn hàng." });
+
+        //    var exists = await _context.TrangThaiDonHangs.AnyAsync(t => t.MaTrangThai == maTrangThai);
+        //    if (!exists) return BadRequest(new { message = "Trạng thái không tồn tại." });
+
+        //    donHang.MaTrangThaiDonHang = maTrangThai;
+
+        //    // SỬA LỖI CÚ PHÁP & LOGIC THỜI GIAN
+        //    if (maTrangThai == "DA_HOAN_THANH")
+        //    {
+        //        // Nếu TgnhanBan chưa có (null) thì lấy thời gian đặt
+        //        donHang.TgnhanBan ??= donHang.ThoiGianDatHang;
+
+        //        // Set thời gian kết thúc
+        //        donHang.ThoiGianKetThuc ??= (donHang.TgnhanBan ?? DateTime.Now).AddMinutes(120);
+
+        //        donHang.ThanhToan = true; // Đã hoàn thành thì coi như đã thanh toán
+        //    }
+
+        //    _context.DonHangs.Update(donHang);
+        //    await _context.SaveChangesAsync();
+        //    return Ok(new { message = "Cập nhật trạng thái thành công.", maDonHang, maTrangThai });
+        //}
+
+
+        // Sửa lại hàm này trong file DatBanAPIController.cs
+
         [HttpPut("CapNhatTrangThai/{maDonHang}")]
         public async Task<IActionResult> CapNhatTrangThai(string maDonHang, [FromBody] string maTrangThai)
         {
             if (string.IsNullOrWhiteSpace(maTrangThai)) return BadRequest(new { message = "Mã trạng thái không hợp lệ." });
 
-            var donHang = await _context.DonHangs.FindAsync(maDonHang);
+            var donHang = await _context.DonHangs
+                                    .Include(dh => dh.MaBans) // Lấy các bàn liên quan
+                                    .FirstOrDefaultAsync(dh => dh.MaDonHang == maDonHang);
+
             if (donHang == null) return NotFound(new { message = "Không tìm thấy đơn hàng." });
 
             var exists = await _context.TrangThaiDonHangs.AnyAsync(t => t.MaTrangThai == maTrangThai);
@@ -407,17 +444,37 @@ namespace QuanLyNhaHang.Controllers
 
             donHang.MaTrangThaiDonHang = maTrangThai;
 
-            // SỬA LỖI CÚ PHÁP & LOGIC THỜI GIAN
-            if (maTrangThai == "DA_HOAN_THANH")
+            string maTrangThaiBanMoi = null;
+
+            switch (maTrangThai)
             {
-                // Nếu TgnhanBan chưa có (null) thì lấy thời gian đặt
-                donHang.TgnhanBan ??= donHang.ThoiGianDatHang;
+                case "CHO_THANH_TOAN": // Khách check-in, bắt đầu ăn
+                    maTrangThaiBanMoi = "TTBA002"; // "Đang phục vụ"
+                    donHang.TgnhanBan ??= DateTime.Now; // Ghi nhận giờ check-in nếu chưa có
+                    break;
 
-                // Set thời gian kết thúc
-                donHang.ThoiGianKetThuc ??= (donHang.TgnhanBan ?? DateTime.Now).AddMinutes(120);
+                case "DA_HOAN_THANH":
+                    maTrangThaiBanMoi = "TTBA001"; 
+                    donHang.ThoiGianKetThuc ??= DateTime.Now;
+                    donHang.ThanhToan = true;
+                    break;
 
-                donHang.ThanhToan = true; // Đã hoàn thành thì coi như đã thanh toán
+                case "DA_HUY":
+                case "NO_SHOW":
+                    maTrangThaiBanMoi = "TTBA001"; // "Trống"
+                    break;
             }
+
+           
+            if (maTrangThaiBanMoi != null && donHang.MaBans != null && donHang.MaBans.Any())
+            {
+                foreach (var ban in donHang.MaBans)
+                {
+                    ban.MaTrangThai = maTrangThaiBanMoi;
+                    _context.BanAns.Update(ban);
+                }
+            }
+           
 
             _context.DonHangs.Update(donHang);
             await _context.SaveChangesAsync();

@@ -1,6 +1,6 @@
 ﻿namespace QuanLyNhaHang.Models.DTO
 {
-    public class MonAnDatDTO
+    public class MonAnDatDto
     {
         public string TenMon { get; set; }
         public string TenPhienBan { get; set; } // Thêm trường này để hiện Size/Kích thước
