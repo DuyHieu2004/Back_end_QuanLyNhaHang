@@ -8,7 +8,10 @@
         public decimal DonGia { get; set; }
         public string HinhAnh { get; set; }
 
-        // Tính thành tiền (Optional - Có thể tính ở Flutter cũng được)
         public decimal ThanhTien => SoLuong * DonGia;
+
+        public string TenBan { get; set; }
+        public string MaBan { get; set; }   // Để Front-end lọc món theo bàn
+        public string GhiChu { get; set; }
     }
 }
