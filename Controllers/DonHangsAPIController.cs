@@ -64,7 +64,7 @@ namespace QuanLyNhaHang.Controllers
 
                 var chiTietMoi = new ChiTietDonHang
                 {
-                    MaDonHang = request.MaDonHang,
+                    //MaDonHang = request.MaDonHang,
                     MaPhienBan = item.MaPhienBan,
                     MaCongThuc = congThuc.MaCongThuc,
                     SoLuong = item.SoLuong,
@@ -122,37 +122,38 @@ namespace QuanLyNhaHang.Controllers
 
         [HttpGet("GetMyBookingDetail")]
         public async Task<IActionResult> GetMyBookingDetail(
-    [FromQuery] string? maDonHang,
-    [FromQuery] string? maBan,
-    [FromQuery] DateTime? dateTime)
+            [FromQuery] string? maDonHang,
+            [FromQuery] string? maBan,
+            [FromQuery] DateTime? dateTime)
         {
-            // 1. Xây dựng câu truy vấn với đầy đủ các bảng liên quan
-            var query = _context.DonHangs
-                // Lấy danh sách các bàn thuộc đơn hàng (Qua bảng trung gian mới)
-                .Include(dh => dh.BanAnDonHangs)
-                    .ThenInclude(badh => badh.MaBanNavigation)
+            // 1. Xây dựng câu truy vấn (LOGIC MỚI)
+            // Vì cấu trúc DB thay đổi, ta không thể Include trực tiếp ChiTietDonHangs từ DonHang được nữa
+            // Ta phải đi xuyên qua bảng trung gian BanAnDonHangs
 
-                // Lấy thông tin khách hàng và trạng thái đơn
+            var query = _context.DonHangs
+                // Lấy thông tin Khách và Trạng thái (Giữ nguyên)
                 .Include(dh => dh.MaKhachHangNavigation)
                 .Include(dh => dh.MaTrangThaiDonHangNavigation)
 
-                // Lấy thông tin chi tiết món ăn - Phần 1: Phiên bản (Size)
-                .Include(dh => dh.ChiTietDonHangs)
-                    .ThenInclude(ct => ct.MaPhienBanNavigation)
+                // Lấy danh sách Bàn và Món ăn nằm trong bàn đó (QUAN TRỌNG)
+                .Include(dh => dh.BanAnDonHangs)
+                    .ThenInclude(badh => badh.MaBanNavigation) // Lấy tên bàn
 
-                // Lấy thông tin chi tiết món ăn - Phần 2: Công thức -> Món ăn -> Hình ảnh
-                .Include(dh => dh.ChiTietDonHangs)
-                    .ThenInclude(ct => ct.MaCongThucNavigation)
-                        .ThenInclude(ctnau => ctnau.MaCtNavigation)
-                            .ThenInclude(ctma => ctma.MaMonAnNavigation)
-                                .ThenInclude(m => m.HinhAnhMonAns)
+                // Lấy Món ăn -> Phiên bản
+                .Include(dh => dh.BanAnDonHangs)
+                    .ThenInclude(badh => badh.ChiTietDonHangs)
+                        .ThenInclude(ct => ct.MaPhienBanNavigation)
 
-                // Lấy thông tin chi tiết món ăn - Phần 3: Món này thuộc Bàn nào? (QUAN TRỌNG)
-                .Include(dh => dh.ChiTietDonHangs)
-                    .ThenInclude(ct => ct.MaBanAnDonHangNavigation) // Link tới bảng trung gian
-                        .ThenInclude(badh => badh.MaBanNavigation)  // Link tới bảng Bàn
+                // Lấy Món ăn -> Công thức -> Tên món -> Hình ảnh
+                .Include(dh => dh.BanAnDonHangs)
+                    .ThenInclude(badh => badh.ChiTietDonHangs)
+                        .ThenInclude(ct => ct.MaCongThucNavigation)
+                            .ThenInclude(ctnau => ctnau.MaCtNavigation)
+                                .ThenInclude(ctma => ctma.MaMonAnNavigation)
+                                    .ThenInclude(m => m.HinhAnhMonAns)
 
-                .AsSplitQuery() // Tối ưu hiệu năng truy vấn
+                // Tối ưu hiệu suất vì query quá nhiều bảng lồng nhau
+                .AsSplitQuery()
                 .AsQueryable();
 
             DonHang? donHang = null;
@@ -160,34 +161,30 @@ namespace QuanLyNhaHang.Controllers
             // 2. Logic tìm kiếm đơn hàng
             if (!string.IsNullOrEmpty(maDonHang))
             {
-                // Trường hợp 1: Tìm theo Mã Đơn Hàng
                 donHang = await query.FirstOrDefaultAsync(dh => dh.MaDonHang == maDonHang);
             }
             else if (!string.IsNullOrEmpty(maBan) && dateTime != null)
             {
-                // Trường hợp 2: Tìm theo Mã Bàn và Thời gian
                 var gioBatDau = dateTime.Value;
 
                 donHang = await query.FirstOrDefaultAsync(dh =>
-                    // Kiểm tra xem đơn hàng có chứa bàn này không (qua bảng trung gian BanAnDonHangs)
+                    // Logic tìm bàn: Phải chui vào bảng trung gian để tìm
                     dh.BanAnDonHangs.Any(b => b.MaBan == maBan) &&
 
-                    // Chỉ lấy các đơn hàng đang hoạt động
                     (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
                      dh.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
                      dh.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
 
-                    // Kiểm tra trùng khung giờ (Logic Active Time)
                     (gioBatDau < dh.TgnhanBan.Value.AddMinutes(120)) &&
                     (gioBatDau.AddMinutes(120) > dh.TgnhanBan.Value)
                 );
             }
             else
             {
-                return BadRequest(new { message = "Thiếu thông tin tìm kiếm (cần Mã Đơn Hàng hoặc Mã Bàn + Thời gian)." });
+                return BadRequest(new { message = "Thiếu thông tin tìm kiếm." });
             }
 
-            // 3. Kiểm tra kết quả tìm kiếm
+            // 3. Kiểm tra kết quả
             if (donHang == null)
             {
                 return NotFound(new { message = "Không tìm thấy thông tin đặt bàn." });
@@ -195,11 +192,14 @@ namespace QuanLyNhaHang.Controllers
 
             // 4. Xử lý dữ liệu trả về (Mapping DTO)
 
-            // Tạo chuỗi danh sách tên bàn (Ví dụ: "Bàn 1, Bàn 2")
-            // SỬA: Dùng BanAnDonHangs thay vì MaBans cũ
+            // Lấy tên các bàn
             string tenCacBan = donHang.BanAnDonHangs != null && donHang.BanAnDonHangs.Any()
                 ? string.Join(", ", donHang.BanAnDonHangs.Select(b => b.MaBanNavigation.TenBan))
                 : "Chưa xếp bàn";
+
+            // --- [QUAN TRỌNG] ---
+            // Vì món ăn giờ nằm rải rác trong từng bàn (BanAnDonHangs), ta phải gom tất cả lại thành 1 danh sách chung
+            var tatCaMonAn = donHang.BanAnDonHangs.SelectMany(b => b.ChiTietDonHangs).ToList();
 
             var result = new ChiTietDatBanDto
             {
@@ -215,20 +215,18 @@ namespace QuanLyNhaHang.Controllers
                 TenNguoiDat = donHang.TenNguoiNhan ?? donHang.MaKhachHangNavigation.HoTen,
                 SDTNguoiDat = donHang.SDTNguoiNhan ?? donHang.MaKhachHangNavigation.SoDienThoai,
 
-                // Map danh sách món ăn chi tiết
-                MonAns = donHang.ChiTietDonHangs
+                // Map danh sách món ăn từ list đã gom
+                MonAns = tatCaMonAn
                     .Select(ct =>
                     {
                         var congThuc = ct.MaCongThucNavigation;
                         var phienBan = ct.MaPhienBanNavigation;
                         var monAn = congThuc?.MaCtNavigation?.MaMonAnNavigation;
-
-                        // Lấy hình ảnh đầu tiên (nếu có)
                         string hinhAnhUrl = monAn?.HinhAnhMonAns.FirstOrDefault()?.URLHinhAnh ?? "";
 
-                        // Xác định mã bàn và tên bàn cụ thể cho món ăn này (QUAN TRỌNG ĐỂ FRONTEND LỌC)
-                        string maBanCuThe = ct.MaBanAnDonHangNavigation?.MaBan ?? "";
-                        string tenBanCuThe = ct.MaBanAnDonHangNavigation?.MaBanNavigation?.TenBan ?? "Chung";
+                        // Lấy thông tin bàn chứa món này (truy ngược lại parent của nó)
+                        // Lưu ý: ct.MaBanAnDonHang là khóa ngoại mới
+                        var banChuaMonNay = donHang.BanAnDonHangs.FirstOrDefault(b => b.MaBanAnDonHang == ct.MaBanAnDonHang);
 
                         return new MonAnDatDto
                         {
@@ -238,14 +236,15 @@ namespace QuanLyNhaHang.Controllers
                             DonGia = congThuc?.Gia ?? 0,
                             HinhAnh = hinhAnhUrl,
 
-                            // Trả về thông tin bàn để Frontend biết món này của bàn nào
-                            MaBan = maBanCuThe,
-                            TenBan = tenBanCuThe,
+                            // Map bàn cụ thể
+                            MaBan = banChuaMonNay?.MaBan ?? "",
+                            TenBan = banChuaMonNay?.MaBanNavigation?.TenBan ?? "Chung",
 
-                            GhiChu = "" // (Nếu DB có cột GhiChu trong ChiTietDonHang thì map vào đây)
+                            // GhiChu = ct.GhiChu ?? ""
+                            GhiChu = ""
                         };
                     })
-                    .OrderBy(m => m.TenBan) // Sắp xếp danh sách món theo tên bàn cho dễ nhìn
+                    .OrderBy(m => m.TenBan) // Gom món theo bàn cho đẹp
                     .ToList()
             };
 

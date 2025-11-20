@@ -80,7 +80,7 @@ public class MonAnsAPIController : ControllerBase
                 TenMonAn = m.TenMonAn,
                 MaDanhMuc = m.MaDanhMuc,
                 TenDanhMuc = m.MaDanhMucNavigation?.TenDanhMuc,
-                IsShow = m.IsShow,
+                IsShow = m.IsShow?? true,
 
                 // Lấy hình ảnh đầu tiên làm đại diện
                 HinhAnhMonAns = m.HinhAnhMonAns.Select(h => new HinhAnhDTO
@@ -166,7 +166,7 @@ public class MonAnsAPIController : ControllerBase
            TenMonAn = monAn.TenMonAn,
            MaDanhMuc = monAn.MaDanhMuc,
            TenDanhMuc = monAn.MaDanhMucNavigation?.TenDanhMuc,
-           IsShow = monAn.IsShow,
+           IsShow = monAn.IsShow?? true,
            HinhAnhMonAns = monAn.HinhAnhMonAns.Select(h => new HinhAnhDTO
            {
                Id = h.Id,
