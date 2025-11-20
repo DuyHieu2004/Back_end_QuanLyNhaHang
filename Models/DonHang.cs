@@ -35,13 +35,11 @@ public partial class DonHang
 
     public string? EmailNguoiNhan { get; set; }
 
-    public virtual ICollection<ChiTietDonHang> ChiTietDonHangs { get; set; } = new List<ChiTietDonHang>();
+    public virtual ICollection<BanAnDonHang> BanAnDonHangs { get; set; } = new List<BanAnDonHang>();
 
     public virtual KhachHang MaKhachHangNavigation { get; set; } = null!;
 
     public virtual NhanVien? MaNhanVienNavigation { get; set; }
 
     public virtual TrangThaiDonHang MaTrangThaiDonHangNavigation { get; set; } = null!;
-
-    public virtual ICollection<BanAnDonHang> BanAnDonHangs { get; set; } = new List<BanAnDonHang>();
 }

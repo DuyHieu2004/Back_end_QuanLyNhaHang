@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace QuanLyNhaHang.Models;
 
-public partial class NguyenLieu
+public partial class VNguyenLieuCanNhapThem
 {
     public string MaNguyenLieu { get; set; } = null!;
 
@@ -13,9 +13,7 @@ public partial class NguyenLieu
 
     public int SoLuongTonKho { get; set; }
 
-    public decimal GiaBan { get; set; }
+    public int MucTonKhoToiThieu { get; set; }
 
-    public virtual ICollection<ChiTietCongThuc> ChiTietCongThucs { get; set; } = new List<ChiTietCongThuc>();
-
-    public virtual ICollection<CungUng> CungUngs { get; set; } = new List<CungUng>();
+    public int? SoLuongDeXuatNhapThem { get; set; }
 }

@@ -11,15 +11,15 @@ public partial class BanAn
 
     public string MaTrangThai { get; set; } = null!;
 
-    public int SucChua { get; set; }
-
     public string? MaTang { get; set; }
 
-    public bool IsShow { get; set; }
+    public int SucChua { get; set; }
+
+    public bool? IsShow { get; set; }
+
+    public virtual ICollection<BanAnDonHang> BanAnDonHangs { get; set; } = new List<BanAnDonHang>();
 
     public virtual Tang? MaTangNavigation { get; set; }
 
     public virtual TrangThaiBanAn MaTrangThaiNavigation { get; set; } = null!;
-
-    public virtual ICollection<BanAnDonHang> BanAnDonHangs { get; set; } = new List<BanAnDonHang>();
 }

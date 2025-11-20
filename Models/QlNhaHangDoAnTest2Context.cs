@@ -4,13 +4,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace QuanLyNhaHang.Models;
 
-public partial class QLNhaHangContext : DbContext
+public partial class QlNhaHangDoAnTest2Context : DbContext
 {
-    public QLNhaHangContext()
+    public QlNhaHangDoAnTest2Context()
     {
     }
 
-    public QLNhaHangContext(DbContextOptions<QLNhaHangContext> options)
+    public QlNhaHangDoAnTest2Context(DbContextOptions<QlNhaHangDoAnTest2Context> options)
         : base(options)
     {
     }

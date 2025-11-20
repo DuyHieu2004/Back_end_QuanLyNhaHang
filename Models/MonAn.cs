@@ -11,7 +11,7 @@ public partial class MonAn
 
     public string? MaDanhMuc { get; set; }
 
-    public bool IsShow { get; set; }
+    public bool? IsShow { get; set; }
 
     public virtual ICollection<ChiTietMonAn> ChiTietMonAns { get; set; } = new List<ChiTietMonAn>();
 

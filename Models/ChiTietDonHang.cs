@@ -1,28 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace QuanLyNhaHang.Models
+namespace QuanLyNhaHang.Models;
+
+public partial class ChiTietDonHang
 {
-    public partial class ChiTietDonHang
-    {
-        // Giữ nguyên khóa chính
-        public int MaChiTietDonHang { get; set; }
+    public long MaChiTietDonHang { get; set; }
 
-        // --- [ĐÃ XÓA] public string MaDonHang { get; set; } ---
+    public string MaPhienBan { get; set; } = null!;
 
-        // Đây là khóa ngoại quan trọng nhất bây giờ (Nối với bảng trung gian)
-        public string MaBanAnDonHang { get; set; }
+    public string MaCongThuc { get; set; } = null!;
 
-        public string MaCongThuc { get; set; } = null!;
-        public string MaPhienBan { get; set; } = null!;
-        public int SoLuong { get; set; }
-        public string? GhiChu { get; set; }
+    public int SoLuong { get; set; }
 
-        // --- [ĐÃ XÓA] public virtual DonHang MaDonHangNavigation { get; set; } = null!; ---
+    public string? MaBanAnDonHang { get; set; }
 
-        // Giữ lại các mối liên kết khác
-        public virtual BanAnDonHang MaBanAnDonHangNavigation { get; set; } = null!;
-        public virtual CongThucNauAn MaCongThucNavigation { get; set; } = null!;
-        public virtual PhienBanMonAn MaPhienBanNavigation { get; set; } = null!;
-    }
+    public virtual BanAnDonHang? MaBanAnDonHangNavigation { get; set; }
+
+    public virtual CongThucNauAn MaCongThucNavigation { get; set; } = null!;
+
+    public virtual PhienBanMonAn MaPhienBanNavigation { get; set; } = null!;
 }
