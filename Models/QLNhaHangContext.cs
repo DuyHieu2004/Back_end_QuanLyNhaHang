@@ -169,9 +169,9 @@ public partial class QLNhaHangContext : DbContext
             entity.Property(e => e.MaCongThuc)
                 .HasMaxLength(25)
                 .IsUnicode(false);
-            entity.Property(e => e.MaDonHang)
-                .HasMaxLength(25)
-                .IsUnicode(false);
+            //entity.Property(e => e.MaDonHang)
+            //    .HasMaxLength(25)
+            //    .IsUnicode(false);
             entity.Property(e => e.MaPhienBan)
                 .HasMaxLength(25)
                 .IsUnicode(false);
@@ -186,10 +186,10 @@ public partial class QLNhaHangContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__ChiTietDo__MaCon__6A30C649");
 
-            entity.HasOne(d => d.MaDonHangNavigation).WithMany(p => p.ChiTietDonHangs)
-                .HasForeignKey(d => d.MaDonHang)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__ChiTietDo__MaDon__68487DD7");
+            //entity.HasOne(d => d.MaDonHangNavigation).WithMany(p => p.ChiTietDonHangs)
+            //    .HasForeignKey(d => d.MaDonHang)
+            //    .OnDelete(DeleteBehavior.ClientSetNull)
+            //    .HasConstraintName("FK__ChiTietDo__MaDon__68487DD7");
 
             entity.HasOne(d => d.MaPhienBanNavigation).WithMany(p => p.ChiTietDonHangs)
                 .HasForeignKey(d => d.MaPhienBan)

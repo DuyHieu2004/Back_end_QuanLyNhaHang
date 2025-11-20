@@ -1,33 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace QuanLyNhaHang.Models;
-
-public partial class ChiTietDonHang
+namespace QuanLyNhaHang.Models
 {
-    public long MaChiTietDonHang { get; set; }
+    public partial class ChiTietDonHang
+    {
+        // Giữ nguyên khóa chính
+        public int MaChiTietDonHang { get; set; }
 
-    // Vẫn giữ MaDonHang để query nhanh (theo DB cũ vẫn còn cột này)
-    public string MaDonHang { get; set; } = null!;
+        // --- [ĐÃ XÓA] public string MaDonHang { get; set; } ---
 
-    public string MaPhienBan { get; set; } = null!;
+        // Đây là khóa ngoại quan trọng nhất bây giờ (Nối với bảng trung gian)
+        public string MaBanAnDonHang { get; set; }
 
-    public string MaCongThuc { get; set; } = null!;
+        public string MaCongThuc { get; set; } = null!;
+        public string MaPhienBan { get; set; } = null!;
+        public int SoLuong { get; set; }
+        public string? GhiChu { get; set; }
 
-    public int SoLuong { get; set; }
+        // --- [ĐÃ XÓA] public virtual DonHang MaDonHangNavigation { get; set; } = null!; ---
 
-    // 1. THÊM CỘT KHÓA NGOẠI MỚI (Cho phép null vì dữ liệu cũ có thể null)
-    public string? MaBanAnDonHang { get; set; }
-
-    // --- CÁC MỐI QUAN HỆ (NAVIGATION) ---
-
-    public virtual CongThucNauAn MaCongThucNavigation { get; set; } = null!;
-
-    public virtual PhienBanMonAn MaPhienBanNavigation { get; set; } = null!;
-
-    // Vẫn giữ liên kết trực tiếp với Đơn hàng (để code cũ không bị gãy ngay lập tức)
-    public virtual DonHang MaDonHangNavigation { get; set; } = null!;
-
-    // 2. THÊM LIÊN KẾT MỚI VỚI BÀN-ĐƠN-HÀNG
-    public virtual BanAnDonHang? MaBanAnDonHangNavigation { get; set; }
+        // Giữ lại các mối liên kết khác
+        public virtual BanAnDonHang MaBanAnDonHangNavigation { get; set; } = null!;
+        public virtual CongThucNauAn MaCongThucNavigation { get; set; } = null!;
+        public virtual PhienBanMonAn MaPhienBanNavigation { get; set; } = null!;
+    }
 }
