@@ -18,6 +18,8 @@ namespace QuanLyNhaHang.Models.DTO
 
     public class PhienBanMonAnDTO
     {
+        public string? MaPhienBan { get; set; }
+
         [Required]
         public string TenPhienBan { get; set; } = null!;
 

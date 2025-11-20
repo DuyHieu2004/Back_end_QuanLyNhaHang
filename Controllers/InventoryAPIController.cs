@@ -28,7 +28,8 @@ namespace QuanLyNhaHang.Controllers
                     n.TenNguyenLieu,
                     n.DonViTinh,
                     Stock = n.SoLuongTonKho,
-                    MinStock = 0
+                    MinStock = 0,
+                    n.GiaBan
                 })
                 .ToListAsync();
 
