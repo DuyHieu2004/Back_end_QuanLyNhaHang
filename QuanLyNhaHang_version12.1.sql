@@ -1364,3 +1364,191 @@ BEGIN
         @TongKhachHang AS TongKhachHang;
 END
 GO
+
+
+-- ***************************************************************
+-- 1. TẠO BẢNG TRẠNG THÁI NHẬP HÀNG
+-- ***************************************************************
+CREATE TABLE [dbo].[TrangThaiNhapHang](
+    [MaTrangThai] [varchar](25) NOT NULL PRIMARY KEY, 
+    [TenTrangThai] [nvarchar](50) NOT NULL
+)
+GO
+
+INSERT INTO [dbo].[TrangThaiNhapHang] ([MaTrangThai], [TenTrangThai]) VALUES
+('MOI_TAO', N'Mới tạo/Bản nháp'), 
+('DA_GUI_NCC', N'Đã gửi Nhà Cung Cấp'), 
+('DA_HOAN_TAT', N'Đã nhập kho/Hoàn tất');
+GO
+
+-- ***************************************************************
+-- 2. CẬP NHẬT BẢNG NHAPHANG (Thêm Ngày lập & Trạng thái)
+-- ***************************************************************
+
+-- Xóa cột TrangThai cũ (INT) nếu tồn tại
+IF EXISTS (SELECT * FROM sys.columns WHERE Name = N'TrangThai' AND Object_ID = Object_ID(N'NhapHang'))
+BEGIN
+    ALTER TABLE [dbo].[NhapHang] DROP COLUMN [TrangThai];
+END
+
+-- (Loại bỏ cột MaNhaCungCap nếu đã thêm trước đó, theo quyết định tối ưu)
+IF EXISTS (SELECT * FROM sys.columns WHERE Name = N'MaNhaCungCap' AND Object_ID = Object_ID(N'NhapHang'))
+BEGIN
+    ALTER TABLE [dbo].[NhapHang] DROP COLUMN [MaNhaCungCap];
+END
+GO
+
+-- Thêm cột NgayLapPhieu (Mới)
+ALTER TABLE [dbo].[NhapHang]
+ADD [NgayLapPhieu] [datetime] NULL; 
+GO
+
+-- Thêm cột MaTrangThai (Mới)
+ALTER TABLE [dbo].[NhapHang]
+ADD [MaTrangThai] [varchar](25) NOT NULL DEFAULT 'MOI_TAO';
+GO
+
+-- Thiết lập Khóa Ngoại liên kết với bảng TrangThaiNhapHang
+ALTER TABLE [dbo].[NhapHang] WITH CHECK ADD CONSTRAINT [FK_NhapHang_TrangThai] 
+FOREIGN KEY([MaTrangThai]) REFERENCES [dbo].[TrangThaiNhapHang] ([MaTrangThai]);
+GO
+
+-- ***************************************************************
+-- 3. CẬP NHẬT BẢNG NGUYENLIEU (Thêm Giá Bán)
+-- ***************************************************************
+ALTER TABLE [dbo].[NguyenLieu]
+ADD [GiaBan] [decimal](10, 2) NOT NULL DEFAULT 0 CHECK ([GiaBan] >= 0);
+GO
+
+-- ***************************************************************
+-- 4. CẬP NHẬT BẢNG CHITIETDONHANG (Xóa cột dư thừa MaDonHang)
+-- ***************************************************************
+
+-- Xóa Khóa Ngoại FK_ChiTietDonHang_DonHang
+ALTER TABLE [dbo].[ChiTietDonHang] DROP CONSTRAINT [FK_ChiTietDonHang_DonHang];
+GO
+
+-- Xóa cột MaDonHang dư thừa
+ALTER TABLE [dbo].[ChiTietDonHang] DROP COLUMN [MaDonHang];
+GO
+
+-- ***************************************************************
+-- 5. TRIGGER KIỂM TRA TÍNH NHẤT QUÁN CỦA NCC (Đã sửa lỗi)
+-- ***************************************************************
+CREATE OR ALTER TRIGGER [dbo].[trg_NhapHang_UniqueNCC]
+ON [dbo].[ChiTietNhapHang]
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Kiểm tra phiếu nhập (MaNhapHang) bị ảnh hưởng có sử dụng hơn 1 NCC không
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        JOIN [dbo].[CungUng] cu ON i.MaCungUng = cu.MaCungUng
+        GROUP BY i.MaNhapHang
+        HAVING COUNT(DISTINCT cu.MaNhaCungCap) > 1 
+    )
+    BEGIN
+        RAISERROR (N'Lỗi: Một phiếu nhập hàng chỉ được phép chứa các nguyên liệu từ MỘT Nhà Cung Cấp duy nhất.', 16, 1);
+        ROLLBACK TRANSACTION;
+        RETURN;
+    END
+END
+GO
+
+-- ***************************************************************
+-- 6. CẬP NHẬT DỮ LIỆU MẪU (CHO CỘT MỚI)
+-- ***************************************************************
+
+-- 6.1 Cập nhật NgayLapPhieu và MaTrangThai cho NhapHang
+UPDATE NH
+SET 
+    -- NgayLapPhieu là 1 ngày trước NgayNhapHang
+    NH.[NgayLapPhieu] = DATEADD(day, -1, NH.[NgayNhapHang]),
+    -- Đặt tất cả đơn hàng cũ là 'Đã hoàn tất'
+    NH.MaTrangThai = 'DA_HOAN_TAT'
+FROM [dbo].[NhapHang] NH;
+GO
+
+-- 6.2 Cập nhật GiaBan cho NguyenLieu
+WITH MinGiaNhap AS (
+    SELECT 
+        CU.MaNguyenLieu,
+        MIN(CTNH.GiaNhap) AS MinPrice
+    FROM [dbo].[ChiTietNhapHang] CTNH
+    JOIN [dbo].[CungUng] CU ON CTNH.MaCungUng = CU.MaCungUng
+    GROUP BY CU.MaNguyenLieu
+)
+UPDATE NL
+SET NL.GiaBan = MGS.MinPrice * 2
+FROM [dbo].[NguyenLieu] NL
+JOIN MinGiaNhap MGS ON NL.MaNguyenLieu = MGS.MaNguyenLieu
+WHERE MGS.MinPrice IS NOT NULL AND MGS.MinPrice > 0;
+GO
+
+-- Đảm bảo tất cả Nguyên Liệu đều có GiaBan
+UPDATE [dbo].[NguyenLieu]
+SET [GiaBan] = 10000 
+WHERE [GiaBan] IS NULL OR [GiaBan] = 0;
+GO
+
+-- 6.3 Set NOT NULL cho NgayLapPhieu
+ALTER TABLE [dbo].[NhapHang] ALTER COLUMN [NgayLapPhieu] [datetime] NOT NULL;
+GO
+
+
+CREATE OR ALTER TRIGGER [dbo].[trg_NguyenLieu_GiaBanLonHonGiaNhap]
+ON [dbo].[NguyenLieu]
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Kiểm tra cho các nguyên liệu bị UPDATE
+    IF UPDATE(GiaBan)
+    BEGIN
+        IF EXISTS (
+            SELECT 1
+            FROM inserted i
+            JOIN [dbo].[CungUng] cu ON i.MaNguyenLieu = cu.MaNguyenLieu
+            JOIN [dbo].[ChiTietNhapHang] ctnh ON cu.MaCungUng = ctnh.MaCungUng
+            WHERE i.GiaBan <= ctnh.GiaNhap -- Nếu Giá Bán mới nhỏ hơn hoặc bằng Giá Nhập đã có
+        )
+        BEGIN
+            -- Nếu vi phạm, báo lỗi và ROLLBACK
+            RAISERROR (N'Lỗi: Giá Bán phải lớn hơn Giá Nhập cao nhất đã có trong Chi Tiết Nhập Hàng.', 16, 1);
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+    END
+END
+GO
+
+CREATE OR ALTER TRIGGER [dbo].[trg_NhapHang_CapNhatTonKho]
+ON [dbo].[NhapHang]
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Chỉ thực hiện khi cột MaTrangThai bị UPDATE
+    -- và chuyển từ trạng thái khác sang 'DA_HOAN_TAT'
+    IF UPDATE(MaTrangThai)
+    BEGIN
+        -- Bảng i (inserted) là dữ liệu mới, Bảng d (deleted) là dữ liệu cũ
+        
+        -- Cập nhật Tăng Tồn Kho
+        UPDATE NL
+        SET SoLuongTonKho = ISNULL(NL.SoLuongTonKho, 0) + CTNH.SoLuong
+        FROM [dbo].[NguyenLieu] NL
+        JOIN [dbo].[CungUng] CU ON NL.MaNguyenLieu = CU.MaNguyenLieu
+        JOIN [dbo].[ChiTietNhapHang] CTNH ON CU.MaCungUng = CTNH.MaCungUng
+        JOIN inserted i ON CTNH.MaNhapHang = i.MaNhapHang
+        JOIN deleted d ON i.MaNhapHang = d.MaNhapHang
+        WHERE i.MaTrangThai = 'DA_HOAN_TAT' -- Trạng thái MỚI là Hoàn tất
+          AND d.MaTrangThai <> 'DA_HOAN_TAT'; -- Trạng thái CŨ KHÔNG phải Hoàn tất (tránh cộng dồn)
+    END
+END
+GO
