@@ -1498,6 +1498,38 @@ GO
 ALTER TABLE [dbo].[NhapHang] ALTER COLUMN [NgayLapPhieu] [datetime] NOT NULL;
 GO
 
+-- 1. (Nếu chưa chạy được bước này thì chạy lại) Thêm cột MaNhaCungCap
+IF NOT EXISTS(SELECT * FROM sys.columns WHERE Name = N'MaNhaCungCap' AND Object_ID = Object_ID(N'NhapHang'))
+BEGIN
+    ALTER TABLE [dbo].[NhapHang] ADD [MaNhaCungCap] varchar(25) NULL;
+END
+GO
+
+-- 2. (Nếu chưa chạy được bước này thì chạy lại) Tạo khóa ngoại
+IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE object_id = OBJECT_ID(N'[dbo].[FK_NhapHang_NhaCungCap]'))
+BEGIN
+    ALTER TABLE [dbo].[NhapHang] WITH CHECK ADD CONSTRAINT [FK_NhapHang_NhaCungCap] 
+    FOREIGN KEY([MaNhaCungCap]) REFERENCES [dbo].[NhaCungCap] ([MaNhaCungCap]);
+END
+GO
+
+-- 3. CẬP NHẬT DỮ LIỆU CŨ (ĐÃ SỬA LỖI)
+UPDATE nh
+SET nh.MaNhaCungCap = t.MaNhaCungCap -- <--- ĐÃ SỬA: Dùng 't' thay vì 'cu'
+FROM NhapHang nh
+JOIN (
+    -- Lấy ra Mã Nhập Hàng và Mã NCC tương ứng của dòng chi tiết đầu tiên
+    SELECT ct.MaNhapHang, cu.MaNhaCungCap
+    FROM ChiTietNhapHang ct
+    JOIN CungUng cu ON ct.MaCungUng = cu.MaCungUng
+    -- Chỉ lấy 1 dòng đầu tiên của mỗi phiếu nhập để tránh trùng lặp
+    WHERE ct.MaChiTietNhapHang IN (
+        SELECT MIN(MaChiTietNhapHang) 
+        FROM ChiTietNhapHang 
+        GROUP BY MaNhapHang
+    )
+) t ON nh.MaNhapHang = t.MaNhapHang
+GO
 
 CREATE OR ALTER TRIGGER [dbo].[trg_NguyenLieu_GiaBanLonHonGiaNhap]
 ON [dbo].[NguyenLieu]
@@ -1552,3 +1584,5 @@ BEGIN
     END
 END
 GO
+
+ALTER TABLE NhapHang ADD TrangThai int DEFAULT 0

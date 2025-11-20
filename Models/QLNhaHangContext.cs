@@ -573,6 +573,10 @@ public partial class QLNhaHangContext : DbContext
                 .HasMaxLength(25)
                 .IsUnicode(false)
                 .HasDefaultValue("MOI_TAO");
+            entity.HasOne(d => d.MaNhaCungCapNavigation)
+                .WithMany(p => p.NhapHangs)
+                .HasForeignKey(d => d.MaNhaCungCap)
+                .HasConstraintName("FK_NhapHang_NhaCungCap");
             entity.Property(e => e.NgayLapPhieu).HasColumnType("datetime");
             entity.Property(e => e.NgayNhapHang).HasColumnType("datetime");
             entity.Property(e => e.TongTien).HasColumnType("decimal(10, 2)");
