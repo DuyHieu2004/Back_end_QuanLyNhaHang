@@ -270,19 +270,36 @@ public class MonAnsAPIController : ControllerBase
 
            // Thêm các phiên bản món ăn
            int pbIndex = 0;
-           foreach (var pbDto in dto.PhienBanMonAns)
-           {
-               pbIndex++;
-               var maPhienBan = "PB" + DateTime.Now.ToString("yyMMddHHmmss") + "_" + pbIndex.ToString("D3");
-               var phienBan = new PhienBanMonAn
-               {
-                   MaPhienBan = maPhienBan,
-                   TenPhienBan = pbDto.TenPhienBan,
-                   MaTrangThai = pbDto.MaTrangThai,
-                   ThuTu = pbDto.ThuTu
-               };
+          foreach (var pbDto in dto.PhienBanMonAns)
+          {
+              pbIndex++;
+              string maPhienBan;
+              PhienBanMonAn? phienBan = null;
 
-               _context.PhienBanMonAns.Add(phienBan);
+              if (!string.IsNullOrWhiteSpace(pbDto.MaPhienBan))
+              {
+                  maPhienBan = pbDto.MaPhienBan;
+                  phienBan = await _context.PhienBanMonAns
+                      .FirstOrDefaultAsync(p => p.MaPhienBan == maPhienBan);
+
+                  if (phienBan == null)
+                  {
+                      return BadRequest(new { message = $"Không tìm thấy phiên bản món ăn với mã {maPhienBan}." });
+                  }
+              }
+              else
+              {
+                  maPhienBan = "PB" + DateTime.Now.ToString("yyMMddHHmmss") + "_" + pbIndex.ToString("D3");
+                  phienBan = new PhienBanMonAn
+                  {
+                      MaPhienBan = maPhienBan,
+                      TenPhienBan = pbDto.TenPhienBan,
+                      MaTrangThai = pbDto.MaTrangThai,
+                      ThuTu = pbDto.ThuTu
+                  };
+
+                  _context.PhienBanMonAns.Add(phienBan);
+              }
 
                // Thêm công thức nấu ăn cho mỗi phiên bản
                int ctIndex = 0;
