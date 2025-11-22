@@ -9,3 +9,5 @@
 
 # Rider specific
 .idea/
+
+/appSettings.json
