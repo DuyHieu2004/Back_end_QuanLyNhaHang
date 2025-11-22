@@ -79,7 +79,7 @@ namespace QuanLyNhaHang.Controllers
                         {
                             TenMonAn = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.TenMonAn,
                             HinhAnh = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.HinhAnhMonAns
-                                .Select(h => h.URLHinhAnh)
+                                .Select(h => h.UrlhinhAnh)
                                 .FirstOrDefault(),
                             Gia = ct.MaCongThucNavigation?.Gia
                         }
@@ -181,7 +181,7 @@ namespace QuanLyNhaHang.Controllers
                         {
                             TenMonAn = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.TenMonAn,
                             HinhAnh = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.HinhAnhMonAns
-                                .Select(h => h.URLHinhAnh)
+                                .Select(h => h.UrlhinhAnh)
                                 .FirstOrDefault(),
                             Gia = ct.MaCongThucNavigation?.Gia
                         }
@@ -258,7 +258,7 @@ namespace QuanLyNhaHang.Controllers
                         {
                             TenMonAn = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.TenMonAn,
                             HinhAnh = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.HinhAnhMonAns
-                                .Select(h => h.URLHinhAnh)
+                                .Select(h => h.UrlhinhAnh)
                                 .FirstOrDefault(),
                             Gia = ct.MaCongThucNavigation?.Gia
                         }
@@ -329,7 +329,7 @@ namespace QuanLyNhaHang.Controllers
                             MaMonAn = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.MaMonAn,
                             TenMonAn = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.TenMonAn,
                             HinhAnh = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.HinhAnhMonAns
-                                .Select(h => new { URL = h.URLHinhAnh })
+                                .Select(h => new { URL = h.UrlhinhAnh })
                                 .ToList(),
                             Gia = ct.MaCongThucNavigation?.Gia,
                             PhienBan = ct.MaCongThucNavigation?.MaPhienBanNavigation?.TenPhienBan
@@ -396,7 +396,7 @@ namespace QuanLyNhaHang.Controllers
                         MaDanhMuc = m.MaDanhMuc,
                         TenDanhMuc = m.MaDanhMucNavigation?.TenDanhMuc,
                         MoTa = "", // Có thể thêm trường mô tả sau
-                        HinhAnhs = m.HinhAnhMonAns.Select(h => h.URLHinhAnh).ToList(),
+                        HinhAnhs = m.HinhAnhMonAns.Select(h => h.UrlhinhAnh).ToList(),
                         PhienBans = phienBans.Select(pb => new
                         {
                             pb.MaPhienBan,
@@ -510,7 +510,7 @@ namespace QuanLyNhaHang.Controllers
                         {
                             TenMonAn = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.TenMonAn,
                             HinhAnh = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.HinhAnhMonAns
-                                .Select(h => h.URLHinhAnh)
+                                .Select(h => h.UrlhinhAnh)
                                 .FirstOrDefault(),
                             Gia = ct.MaCongThucNavigation?.Gia
                         }

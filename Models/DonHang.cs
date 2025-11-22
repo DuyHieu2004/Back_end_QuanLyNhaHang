@@ -31,13 +31,19 @@ public partial class DonHang
 
     public string? TenNguoiNhan { get; set; }
 
-    public string? SDTNguoiNhan { get; set; }
+    public string? SdtnguoiNhan { get; set; }
 
     public string? EmailNguoiNhan { get; set; }
+
+    public string? MaKhuyenMai { get; set; }
+
+    public decimal? TienGiamGia { get; set; }
 
     public virtual ICollection<BanAnDonHang> BanAnDonHangs { get; set; } = new List<BanAnDonHang>();
 
     public virtual KhachHang MaKhachHangNavigation { get; set; } = null!;
+
+    public virtual KhuyenMai? MaKhuyenMaiNavigation { get; set; }
 
     public virtual NhanVien? MaNhanVienNavigation { get; set; }
 

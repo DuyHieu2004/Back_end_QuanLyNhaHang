@@ -142,7 +142,7 @@ public class BookingHistoryController : ControllerBase
         foreach (var dh in donHangs)
         {
             var email = dh.MaKhachHangNavigation.Email;
-            var sdt = dh.SDTNguoiNhan ?? dh.MaKhachHangNavigation.SoDienThoai;
+            var sdt = dh.SdtnguoiNhan ?? dh.MaKhachHangNavigation.SoDienThoai;
             var ten = dh.TenNguoiNhan ?? dh.MaKhachHangNavigation.HoTen;
 
             if (!string.IsNullOrEmpty(email))

@@ -255,7 +255,7 @@ namespace QuanLyNhaHang.Controllers
                     var chiTiet = new ChiTietNhapHang
                     {
                         MaNhapHang = maNhapHang,
-                        MaCungUng = item.MaCungUng,
+                        MaNguyenLieu = cungUng.MaNguyenLieu,
                         SoLuong = item.SoLuong,
                         GiaNhap = item.GiaNhap,
                       //  GhiChu = ""

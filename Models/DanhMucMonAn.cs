@@ -9,5 +9,7 @@ public partial class DanhMucMonAn
 
     public string TenDanhMuc { get; set; } = null!;
 
+    public virtual ICollection<KhuyenMaiApDungSanPham> KhuyenMaiApDungSanPhams { get; set; } = new List<KhuyenMaiApDungSanPham>();
+
     public virtual ICollection<MonAn> MonAns { get; set; } = new List<MonAn>();
 }

@@ -201,7 +201,7 @@ namespace QuanLyNhaHang.Controllers
 
                     MaKhachHang = maKhachHangCuoiCung,
                     TenNguoiNhan = datBanDto.HoTenKhach,
-                    SDTNguoiNhan = datBanDto.SoDienThoaiKhach,
+                    SdtnguoiNhan = datBanDto.SoDienThoaiKhach,
                     EmailNguoiNhan = datBanDto.Email,
                     MaNhanVien = datBanDto.MaNhanVien,
 

@@ -11,8 +11,6 @@ public partial class CungUng
 
     public string? MaNhaCungCap { get; set; }
 
-    public virtual ICollection<ChiTietNhapHang> ChiTietNhapHangs { get; set; } = new List<ChiTietNhapHang>();
-
     public virtual NguyenLieu? MaNguyenLieuNavigation { get; set; }
 
     public virtual NhaCungCap? MaNhaCungCapNavigation { get; set; }
