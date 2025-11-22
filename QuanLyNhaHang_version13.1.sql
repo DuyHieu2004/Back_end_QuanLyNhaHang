@@ -2,16 +2,16 @@
 GO
 
 ---- Xóa DB cũ nếu tồn tại
-IF DB_ID('QL_NhaHang_DoAn_Test2') IS NOT NULL
+IF DB_ID('QL_NhaHang_DoAn_Test5') IS NOT NULL
 BEGIN
-    ALTER DATABASE [QL_NhaHang_DoAn_Test2] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE [QL_NhaHang_DoAn_Test2];
+    ALTER DATABASE [QL_NhaHang_DoAn_Test5] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE [QL_NhaHang_DoAn_Test5];
 END
 GO
 
-CREATE DATABASE [QL_NhaHang_DoAn_Test2]
+CREATE DATABASE [QL_NhaHang_DoAn_Test5]
 GO
-USE [QL_NhaHang_DoAn_Test2]
+USE [QL_NhaHang_DoAn_Test5]
 GO
 
 -- =============================================
@@ -97,6 +97,7 @@ CREATE TABLE [dbo].[KhachHang](
     [NoShowCount] [int] DEFAULT 0
 )
 GO
+
 CREATE UNIQUE NONCLUSTERED INDEX [IX_KhachHang_Email_Unique] ON [dbo].[KhachHang]([Email]) WHERE [Email] IS NOT NULL;
 GO
 
@@ -142,6 +143,8 @@ CREATE TABLE [dbo].[DonHang](
     [EmailNguoiNhan] [nvarchar](100) NULL
 )
 GO
+
+
 
 -- =============================================
 -- 3. TẠO CÁC BẢNG TRUNG GIAN & CHI TIẾT (QUAN TRỌNG)
@@ -206,7 +209,7 @@ GO
 CREATE TABLE [dbo].[ChiTietNhapHang](
     [MaChiTietNhapHang] [bigint] IDENTITY(1,1) NOT NULL PRIMARY KEY,
     [MaNhapHang] [varchar](25) NOT NULL,
-    [MaCungUng] [varchar](25) NOT NULL,
+    [MaNguyenLieu] [varchar](25) NOT NULL, -- << Bổ sung cột này
     [SoLuong] [int] NOT NULL,
     [GiaNhap] [decimal](10, 2) NOT NULL
 )
@@ -218,6 +221,36 @@ CREATE TABLE [dbo].[HinhAnhMonAn](
     [URLHinhAnh] [nvarchar](max) NOT NULL
 )
 GO
+
+
+CREATE TABLE [dbo].[KhuyenMai](
+    [MaKhuyenMai] [varchar](25) NOT NULL PRIMARY KEY,
+    [TenKhuyenMai] [nvarchar](255) NOT NULL,
+    [MoTa] [nvarchar](max) NULL,
+    [LoaiKhuyenMai] [varchar](25) NOT NULL, -- Ví dụ: 'PHAN_TRAM', 'GIA_TIEN', 'MUA_X_TANG_Y'
+    [GiaTri] [decimal](10, 2) NOT NULL, -- Giá trị giảm (10% hoặc 50000 VND)
+    [ApDungToiThieu] [decimal](10, 2) NULL, -- Giá trị đơn hàng tối thiểu để áp dụng
+    [NgayBatDau] [datetime] NOT NULL,
+    [NgayKetThuc] [datetime] NOT NULL,
+    [TrangThai] [varchar](25) NOT NULL DEFAULT 'DANG_HOAT_DONG' -- Đang hoạt động/Hết hạn/Tạm dừng
+)
+GO
+
+
+CREATE TABLE [dbo].[KhuyenMaiApDungSanPham](
+    [Id] [bigint] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [MaKhuyenMai] [varchar](25) NOT NULL,
+    [MaCongThuc] [varchar](25) NULL, -- Áp dụng cho CT cụ thể
+    [MaDanhMuc] [varchar](25) NULL, -- Áp dụng cho toàn bộ Danh mục (nếu cần)
+    -- Thêm các ràng buộc khác nếu cần (ví dụ: ngày trong tuần áp dụng)
+)
+GO
+
+ALTER TABLE [dbo].[DonHang]
+ADD [MaKhuyenMai] [varchar](25) NULL,
+    [TienGiamGia] [decimal](10, 2) NULL DEFAULT 0;
+GO
+
 
 -- =====================================================
 -- 4. THÊM KHÓA NGOẠI (FOREIGN KEYS) - PHẦN QUAN TRỌNG NHẤT
@@ -256,11 +289,40 @@ ALTER TABLE [dbo].[CungUng] WITH CHECK ADD CONSTRAINT [FK_CungUng_NhaCungCap] FO
 
 ALTER TABLE [dbo].[NhanVien] WITH CHECK ADD CONSTRAINT [FK_NhanVien_VaiTro] FOREIGN KEY([MaVaiTro]) REFERENCES [dbo].[VaiTro] ([MaVaiTro])
 ALTER TABLE [dbo].[NhapHang] WITH CHECK ADD CONSTRAINT [FK_NhapHang_NhanVien] FOREIGN KEY([MaNhanVien]) REFERENCES [dbo].[NhanVien] ([MaNhanVien])
-ALTER TABLE [dbo].[ChiTietNhapHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietNhapHang_CungUng] FOREIGN KEY([MaCungUng]) REFERENCES [dbo].[CungUng] ([MaCungUng])
+ALTER TABLE [dbo].[ChiTietNhapHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietNhapHang_NguyenLieu] FOREIGN KEY([MaNguyenLieu]) REFERENCES [dbo].[NguyenLieu] ([MaNguyenLieu])
 ALTER TABLE [dbo].[ChiTietNhapHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietNhapHang_NhapHang] FOREIGN KEY([MaNhapHang]) REFERENCES [dbo].[NhapHang] ([MaNhapHang])
 ALTER TABLE [dbo].[HinhAnhMonAn] WITH CHECK ADD CONSTRAINT [FK_HinhAnhMonAn_MonAn] FOREIGN KEY([MaMonAn]) REFERENCES [dbo].[MonAn] ([MaMonAn])
 ALTER TABLE [dbo].[MonAn] WITH CHECK ADD CONSTRAINT [FK_MonAn_DanhMuc] FOREIGN KEY([MaDanhMuc]) REFERENCES [dbo].[DanhMucMonAn] ([MaDanhMuc])
 GO
+
+
+-- Khóa ngoại nối KhuyenMaiApDungSanPham với KhuyenMai
+ALTER TABLE [dbo].[KhuyenMaiApDungSanPham] WITH CHECK ADD CONSTRAINT [FK_KMAP_KhuyenMai] 
+FOREIGN KEY([MaKhuyenMai]) REFERENCES [dbo].[KhuyenMai] ([MaKhuyenMai])
+GO
+
+-- Khóa ngoại nối KhuyenMaiApDungSanPham với CongThucNauAn
+ALTER TABLE [dbo].[KhuyenMaiApDungSanPham] WITH CHECK ADD CONSTRAINT [FK_KMAP_CongThucNauAn] 
+FOREIGN KEY([MaCongThuc]) REFERENCES [dbo].[CongThucNauAn] ([MaCongThuc])
+GO
+
+-- Khóa ngoại nối KhuyenMaiApDungSanPham với DanhMucMonAn
+ALTER TABLE [dbo].[KhuyenMaiApDungSanPham] WITH CHECK ADD CONSTRAINT [FK_KMAP_DanhMucMonAn] 
+FOREIGN KEY([MaDanhMuc]) REFERENCES [dbo].[DanhMucMonAn] ([MaDanhMuc])
+GO
+
+-- Khóa ngoại nối DonHang với KhuyenMai (Cột MaKhuyenMai đã thêm vào DonHang)
+ALTER TABLE [dbo].[DonHang] WITH CHECK ADD CONSTRAINT [FK_DonHang_KhuyenMai] 
+FOREIGN KEY([MaKhuyenMai]) REFERENCES [dbo].[KhuyenMai] ([MaKhuyenMai])
+GO
+
+ALTER TABLE [dbo].[KhuyenMaiApDungSanPham]
+ADD CONSTRAINT CK_KMAP_OnlyOneTarget CHECK (
+    ([MaCongThuc] IS NULL AND [MaDanhMuc] IS NOT NULL) OR 
+    ([MaCongThuc] IS NOT NULL AND [MaDanhMuc] IS NULL)
+);
+
+
 
 -- ============================================================
 -- CHÈN DỮ LIỆU (Đã bổ sung trạng thái CHO_THANH_TOAN)
@@ -639,72 +701,48 @@ INSERT INTO [dbo].[DonHang] ([MaDonHang], [MaNhanVien], [MaKhachHang], [MaTrangT
 GO
 
 
-
----- chèn dữ liệu cho: CheBienMonAn
---INSERT INTO [dbo].[CheBienMonAn] ([MaCheBien], [NgayNau], [MaPhienBan], [SoLuong]) VALUES
---('CB001', '2025-10-08 17:00:00', 'PB006', 5), ('CB002', '2025-10-08 17:05:00', 'PB008', 3),
---('CB003', '2025-10-08 17:10:00', 'PB003', 10), ('CB004', '2025-10-08 17:15:00', 'PB021', 4),
---('CB005', '2025-10-09 10:00:00', 'PB031', 20), ('CB006', '2025-10-09 10:05:00', 'PB034', 15),
---('CB007', '2025-10-10 17:00:00', 'PB036', 2), ('CB008', '2025-10-11 18:00:00', 'PB007', 8),
---('CB009', '2025-10-12 19:00:00', 'PB023', 6), ('CB010', '2025-10-13 16:00:00', 'PB027', 10),
---('CB011', '2025-11-01 17:00:00', 'PB040', 10), ('CB012', '2025-11-01 17:05:00', 'PB039', 5),
---('CB013', '2025-11-02 17:10:00', 'PB037', 5), ('CB014', '2025-11-03 11:00:00', 'PB035', 20),
---('CB015', '2025-11-03 11:05:00', 'PB032', 10), ('CB016', '2025-11-05 18:00:00', 'PB024', 3),
---('CB017', '2025-11-06 17:00:00', 'PB022', 10), ('CB018', '2025-11-07 10:05:00', 'PB031', 5),
---('CB019', '2025-11-08 18:00:00', 'PB006', 2), ('CB020', '2025-11-08 18:05:00', 'PB008', 5),
---('CB021', '2025-11-09 11:00:00', 'PB028', 10), ('CB022', '2025-11-09 11:05:00', 'PB029', 5),
---('CB023', '2025-11-10 18:00:00', 'PB030', 5), ('CB024', '2025-11-11 18:00:00', 'PB001', 10),
---('CB025', '2025-11-12 10:00:00', 'PB002', 10), ('CB026', '2025-11-13 18:00:00', 'PB004', 5),
---('CB027', '2025-11-14 18:00:00', 'PB005', 8), ('CB028', '2025-11-15 19:00:00', 'PB011', 10),
---('CB029', '2025-11-16 17:00:00', 'PB012', 10), ('CB030', '2025-11-17 10:00:00', 'PB013', 15),
---('CB031', '2025-11-18 10:00:00', 'PB014', 10), ('CB032', '2025-11-19 18:00:00', 'PB015', 10),
---('CB033', '2025-11-20 18:00:00', 'PB017', 20), ('CB034', '2025-11-21 11:00:00', 'PB025', 5),
---('CB035', '2025-11-22 17:00:00', 'PB026', 10), ('CB036', '2025-11-23 18:00:00', 'PB033', 5),
---('CB037', '2025-11-23 18:05:00', 'PB038', 4), ('CB038', '2025-11-23 18:10:00', 'PB039', 3),
---('CB039', '2025-11-23 18:15:00', 'PB040', 2), ('CB040', '2025-11-23 18:20:00', 'PB036', 1);
-
--- chèn dữ liệu cho: ChiTietNhapHang
-INSERT INTO [dbo].[ChiTietNhapHang] ([MaNhapHang], [MaCungUng], [SoLuong], [GiaNhap]) VALUES
-('NH001', 'CU001', 50, 180000.00), ('NH001', 'CU002', 30, 250000.00),
-('NH002', 'CU003', 40, 100000.00), ('NH002', 'CU005', 100, 10000.00),
-('NH003', 'CU010', 150, 5000.00), ('NH003', 'CU006', 80, 15000.00),
-('NH004', 'CU008', 50, 300000.00), ('NH004', 'CU032', 50, 150000.00),
-('NH005', 'CU009', 60, 120000.00), ('NH005', 'CU007', 200, 18000.00),
-('NH006', 'CU011', 50, 30000.00), ('NH006', 'CU012', 100, 15000.00),
-('NH007', 'CU013', 300, 3000.00), ('NH007', 'CU014', 50, 20000.00),
-('NH008', 'CU015', 30, 25000.00), ('NH008', 'CU017', 40, 150000.00),
-('NH009', 'CU018', 100, 40000.00), ('NH009', 'CU019', 200, 20000.00),
-('NH010', 'CU020', 80, 18000.00), ('NH010', 'CU016', 20, 200000.00),
-('NH011', 'CU021', 10, 25000.00), ('NH011', 'CU022', 15, 20000.00),
-('NH012', 'CU023', 50, 30000.00), ('NH012', 'CU024', 5, 80000.00),
-('NH013', 'CU025', 10, 60000.00), ('NH013', 'CU026', 30, 20000.00),
-('NH014', 'CU027', 20, 10000.00), ('NH014', 'CU028', 15, 30000.00),
-('NH015', 'CU029', 10, 50000.00), ('NH015', 'CU030', 20, 40000.00),
-('NH016', 'CU031', 30, 100000.00), ('NH016', 'CU033', 25, 120000.00),
-('NH017', 'CU034', 100, 15000.00), ('NH017', 'CU035', 10, 100000.00),
-('NH018', 'CU036', 10, 350000.00), ('NH018', 'CU037', 20, 200000.00),
-('NH019', 'CU038', 20, 180000.00), ('NH019', 'CU039', 30, 130000.00),
-('NH020', 'CU040', 15, 220000.00), ('NH020', 'CU001', 20, 180000.00),
-('NH021', 'CU002', 20, 250000.00), ('NH021', 'CU003', 20, 100000.00),
-('NH022', 'CU004', 10, 350000.00), ('NH022', 'CU005', 50, 10000.00),
-('NH023', 'CU006', 40, 15000.00), ('NH023', 'CU007', 100, 18000.00),
-('NH024', 'CU009', 30, 120000.00), ('NH024', 'CU010', 100, 5000.00),
-('NH025', 'CU011', 20, 30000.00), ('NH025', 'CU012', 30, 15000.00),
-('NH026', 'CU013', 200, 3000.00), ('NH026', 'CU014', 20, 20000.00),
-('NH027', 'CU021', 10, 25000.00), ('NH027', 'CU022', 10, 20000.00),
-('NH028', 'CU023', 50, 30000.00), ('NH028', 'CU024', 5, 80000.00),
-('NH029', 'CU025', 10, 60000.00), ('NH029', 'CU026', 20, 20000.00),
-('NH030', 'CU027', 20, 10000.00), ('NH030', 'CU028', 10, 30000.00),
-('NH031', 'CU029', 10, 50000.00), ('NH031', 'CU030', 15, 40000.00),
-('NH032', 'CU034', 100, 15000.00), ('NH032', 'CU035', 10, 100000.00),
-('NH033', 'CU036', 5, 350000.00), ('NH033', 'CU037', 10, 200000.00),
-('NH034', 'CU038', 10, 180000.00), ('NH034', 'CU039', 20, 130000.00),
-('NH035', 'CU040', 10, 220000.00), ('NH035', 'CU008', 20, 300000.00),
-('NH036', 'CU032', 20, 150000.00), ('NH036', 'CU031', 20, 100000.00),
-('NH037', 'CU016', 10, 200000.00), ('NH037', 'CU017', 20, 150000.00),
-('NH038', 'CU018', 50, 40000.00), ('NH038', 'CU019', 100, 20000.00),
-('NH039', 'CU020', 50, 18000.00), ('NH039', 'CU001', 30, 180000.00),
-('NH040', 'CU002', 15, 250000.00), ('NH040', 'CU003', 25, 100000.00);
+INSERT INTO [dbo].[ChiTietNhapHang] ([MaNhapHang], [MaNguyenLieu], [SoLuong], [GiaNhap]) VALUES
+('NH001', 'NL001', 50, 180000.00), ('NH001', 'NL002', 30, 250000.00),
+('NH002', 'NL003', 40, 100000.00), ('NH002', 'NL005', 100, 10000.00),
+('NH003', 'NL010', 150, 5000.00), ('NH003', 'NL006', 80, 15000.00),
+('NH004', 'NL008', 50, 300000.00), ('NH004', 'NL032', 50, 150000.00),
+('NH005', 'NL009', 60, 120000.00), ('NH005', 'NL007', 200, 18000.00),
+('NH006', 'NL011', 50, 30000.00), ('NH006', 'NL012', 100, 15000.00),
+('NH007', 'NL013', 300, 3000.00), ('NH007', 'NL014', 50, 20000.00),
+('NH008', 'NL015', 30, 25000.00), ('NH008', 'NL017', 40, 150000.00),
+('NH009', 'NL018', 100, 40000.00), ('NH009', 'NL019', 200, 20000.00),
+('NH010', 'NL020', 80, 18000.00), ('NH010', 'NL016', 20, 200000.00),
+('NH011', 'NL021', 10, 25000.00), ('NH011', 'NL022', 15, 20000.00),
+('NH012', 'NL023', 50, 30000.00), ('NH012', 'NL024', 5, 80000.00),
+('NH013', 'NL025', 10, 60000.00), ('NH013', 'NL026', 30, 20000.00),
+('NH014', 'NL027', 20, 10000.00), ('NH014', 'NL028', 15, 30000.00),
+('NH015', 'NL029', 10, 50000.00), ('NH015', 'NL030', 20, 40000.00),
+('NH016', 'NL031', 30, 100000.00), ('NH016', 'NL033', 25, 120000.00),
+('NH017', 'NL034', 100, 15000.00), ('NH017', 'NL035', 10, 100000.00),
+('NH018', 'NL036', 10, 350000.00), ('NH018', 'NL037', 20, 200000.00),
+('NH019', 'NL038', 20, 180000.00), ('NH019', 'NL039', 30, 130000.00),
+('NH020', 'NL040', 15, 220000.00), ('NH020', 'NL001', 20, 180000.00),
+('NH021', 'NL002', 20, 250000.00), ('NH021', 'NL003', 20, 100000.00),
+('NH022', 'NL004', 10, 350000.00), ('NH022', 'NL005', 50, 10000.00),
+('NH023', 'NL006', 40, 15000.00), ('NH023', 'NL007', 100, 18000.00),
+('NH024', 'NL009', 30, 120000.00), ('NH024', 'NL010', 100, 5000.00),
+('NH025', 'NL011', 20, 30000.00), ('NH025', 'NL012', 30, 15000.00),
+('NH026', 'NL013', 200, 3000.00), ('NH026', 'NL014', 20, 20000.00),
+('NH027', 'NL021', 10, 25000.00), ('NH027', 'NL022', 10, 20000.00),
+('NH028', 'NL023', 50, 30000.00), ('NH028', 'NL024', 5, 80000.00),
+('NH029', 'NL025', 10, 60000.00), ('NH029', 'NL026', 20, 20000.00),
+('NH030', 'NL027', 20, 10000.00), ('NH030', 'NL028', 10, 30000.00),
+('NH031', 'NL029', 10, 50000.00), ('NH031', 'NL030', 15, 40000.00),
+('NH032', 'NL034', 100, 15000.00), ('NH032', 'NL035', 10, 100000.00),
+('NH033', 'NL036', 5, 350000.00), ('NH033', 'NL037', 10, 200000.00),
+('NH034', 'NL038', 10, 180000.00), ('NH034', 'NL039', 20, 130000.00),
+('NH035', 'NL040', 10, 220000.00), ('NH035', 'NL008', 20, 300000.00),
+('NH036', 'NL032', 20, 150000.00), ('NH036', 'NL031', 20, 100000.00),
+('NH037', 'NL016', 10, 200000.00), ('NH037', 'NL017', 20, 150000.00),
+('NH038', 'NL018', 50, 40000.00), ('NH038', 'NL019', 100, 20000.00),
+('NH039', 'NL020', 50, 18000.00), ('NH039', 'NL001', 30, 180000.00),
+('NH040', 'NL002', 15, 250000.00), ('NH040', 'NL003', 25, 100000.00);
+GO
 
 -- chèn dữ liệu cho: CongThucNauAn (MaCongThuc, MaCT, MaPhienBan, Gia)
 -- Mỗi công thức liên kết một ChiTietMonAn với một PhienBanMonAn và có giá
@@ -865,7 +903,6 @@ INSERT INTO @TempChiTiet (MaDonHang, MaPhienBan, MaCongThuc, SoLuong) VALUES
 ('DH038', 'PB034', 'CT034', 3), ('DH038', 'PB016', 'CT016', 3),
 ('DH039', 'PB035', 'CT035', 2), ('DH039', 'PB039', 'CT039', 1), ('DH039', 'PB020', 'CT020', 4),
 ('DH040', 'PB006', 'CT006', 1), ('DH040', 'PB022', 'CT022', 2), ('DH040', 'PB019', 'CT019', 5);
--- ĐÃ XÓA CHỮ 'GO' Ở ĐÂY
 
 -- Bước 3.3: Insert vào bảng thật
 INSERT INTO [dbo].[ChiTietDonHang] (MaDonHang, MaPhienBan, MaCongThuc, SoLuong, MaBanAnDonHang)
@@ -955,43 +992,6 @@ BEGIN
 END;
 GO
 
---ALTER TABLE DonHang ADD TenNguoiNhan nvarchar(100) NULL;
---ALTER TABLE DonHang ADD SDTNguoiNhan varchar(20) NULL;
---ALTER TABLE DonHang ADD EmailNguoiNhan nvarchar(100) NULL;
-
---USE [master];
---GO
-
---IF DB_ID('QL_NhaHang_DoAn_Test2') IS NOT NULL
---BEGIN
---    ALTER DATABASE [QL_NhaHang_DoAn_Test2] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
---    DROP DATABASE [QL_NhaHang_DoAn_Test2];
---END
---GO
-
---CREATE TABLE [dbo].[Tang](
---    [MaTang] [varchar](25) NOT NULL,
---    [TenTang] [nvarchar](50) NOT NULL,
---CONSTRAINT [PK_Tang] PRIMARY KEY CLUSTERED ([MaTang] ASC)
---);
---GO
-
-
---ALTER TABLE [dbo].[BanAn]
---ADD [MaTang] [varchar](25) NULL,
---[IsShow] [bit] NOT NULL DEFAULT(1);
---GO
-
-
---ALTER TABLE [dbo].[BanAn]
---ADD CONSTRAINT [FK_BanAn_Tang]
---FOREIGN KEY ([MaTang]) REFERENCES [dbo].[Tang]([MaTang]);
---GO
-
-
---ALTER TABLE [dbo].[MonAn]
---ADD [IsShow] [bit] NOT NULL DEFAULT(1);
---GO
 
 
 INSERT INTO [dbo].[Tang] ([MaTang], [TenTang]) VALUES
@@ -1431,33 +1431,6 @@ GO
 -- Xóa cột MaDonHang dư thừa
 ALTER TABLE [dbo].[ChiTietDonHang] DROP COLUMN [MaDonHang];
 GO
-
--- ***************************************************************
--- 5. TRIGGER KIỂM TRA TÍNH NHẤT QUÁN CỦA NCC (Đã sửa lỗi)
--- ***************************************************************
-CREATE OR ALTER TRIGGER [dbo].[trg_NhapHang_UniqueNCC]
-ON [dbo].[ChiTietNhapHang]
-AFTER INSERT, UPDATE
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    -- Kiểm tra phiếu nhập (MaNhapHang) bị ảnh hưởng có sử dụng hơn 1 NCC không
-    IF EXISTS (
-        SELECT 1
-        FROM inserted i
-        JOIN [dbo].[CungUng] cu ON i.MaCungUng = cu.MaCungUng
-        GROUP BY i.MaNhapHang
-        HAVING COUNT(DISTINCT cu.MaNhaCungCap) > 1 
-    )
-    BEGIN
-        RAISERROR (N'Lỗi: Một phiếu nhập hàng chỉ được phép chứa các nguyên liệu từ MỘT Nhà Cung Cấp duy nhất.', 16, 1);
-        ROLLBACK TRANSACTION;
-        RETURN;
-    END
-END
-GO
-
 -- ***************************************************************
 -- 6. CẬP NHẬT DỮ LIỆU MẪU (CHO CỘT MỚI)
 -- ***************************************************************
@@ -1475,11 +1448,11 @@ GO
 -- 6.2 Cập nhật GiaBan cho NguyenLieu
 WITH MinGiaNhap AS (
     SELECT 
-        CU.MaNguyenLieu,
+        CTNH.MaNguyenLieu, -- << Đã thay từ CU.MaNguyenLieu sang CTNH.MaNguyenLieu
         MIN(CTNH.GiaNhap) AS MinPrice
     FROM [dbo].[ChiTietNhapHang] CTNH
-    JOIN [dbo].[CungUng] CU ON CTNH.MaCungUng = CU.MaCungUng
-    GROUP BY CU.MaNguyenLieu
+    -- JOIN [dbo].[CungUng] CU ON CTNH.MaCungUng = CU.MaCungUng  << Loại bỏ Join này
+    GROUP BY CTNH.MaNguyenLieu
 )
 UPDATE NL
 SET NL.GiaBan = MGS.MinPrice * 2
@@ -1498,6 +1471,46 @@ GO
 ALTER TABLE [dbo].[NhapHang] ALTER COLUMN [NgayLapPhieu] [datetime] NOT NULL;
 GO
 
+-- 1. (Nếu chưa chạy được bước này thì chạy lại) Thêm cột MaNhaCungCap
+IF NOT EXISTS(SELECT * FROM sys.columns WHERE Name = N'MaNhaCungCap' AND Object_ID = Object_ID(N'NhapHang'))
+BEGIN
+    ALTER TABLE [dbo].[NhapHang] ADD [MaNhaCungCap] varchar(25) NULL;
+END
+GO
+
+-- 2. (Nếu chưa chạy được bước này thì chạy lại) Tạo khóa ngoại
+IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE object_id = OBJECT_ID(N'[dbo].[FK_NhapHang_NhaCungCap]'))
+BEGIN
+    ALTER TABLE [dbo].[NhapHang] WITH CHECK ADD CONSTRAINT [FK_NhapHang_NhaCungCap] 
+    FOREIGN KEY([MaNhaCungCap]) REFERENCES [dbo].[NhaCungCap] ([MaNhaCungCap]);
+END
+GO
+
+-- 3. CẬP NHẬT DỮ LIỆU CŨ (ĐÃ SỬA LỖI VÀ CHUYỂN QUA MaNguyenLieu)
+-- Mục đích: Gán MaNhaCungCap cho bảng NhapHang dựa trên ChiTietNhapHang và CungUng.
+UPDATE nh
+SET nh.MaNhaCungCap = t.MaNhaCungCap
+FROM NhapHang nh
+JOIN (
+    -- Lấy ra Mã Nhập Hàng và Mã NCC tương ứng của dòng chi tiết đầu tiên
+    SELECT ct.MaNhapHang, cu.MaNhaCungCap
+    FROM ChiTietNhapHang ct
+    -- SỬA LỖI: Join ChiTietNhapHang với CungUng bằng MaNguyenLieu (cột mới)
+    JOIN CungUng cu ON ct.MaNguyenLieu = cu.MaNguyenLieu 
+    -- SỬA LỖI: Thêm điều kiện để đảm bảo chỉ lấy Mã NCC từ dòng cung ứng đầu tiên
+    WHERE cu.MaCungUng IN (
+        SELECT MIN(MaCungUng)
+        FROM CungUng
+        GROUP BY MaNguyenLieu
+    )
+    -- Giữ nguyên: Chỉ lấy 1 dòng chi tiết đầu tiên của mỗi phiếu nhập
+    AND ct.MaChiTietNhapHang IN (
+        SELECT MIN(MaChiTietNhapHang)
+        FROM ChiTietNhapHang
+        GROUP BY MaNhapHang
+    )
+) t ON nh.MaNhapHang = t.MaNhapHang
+GO
 
 CREATE OR ALTER TRIGGER [dbo].[trg_NguyenLieu_GiaBanLonHonGiaNhap]
 ON [dbo].[NguyenLieu]
@@ -1512,9 +1525,12 @@ BEGIN
         IF EXISTS (
             SELECT 1
             FROM inserted i
-            JOIN [dbo].[CungUng] cu ON i.MaNguyenLieu = cu.MaNguyenLieu
-            JOIN [dbo].[ChiTietNhapHang] ctnh ON cu.MaCungUng = ctnh.MaCungUng
-            WHERE i.GiaBan <= ctnh.GiaNhap -- Nếu Giá Bán mới nhỏ hơn hoặc bằng Giá Nhập đã có
+            JOIN (
+                SELECT MaNguyenLieu, MAX(GiaNhap) AS MaxGiaNhap
+                FROM [dbo].[ChiTietNhapHang]
+                GROUP BY MaNguyenLieu
+            ) MaxNhap ON i.MaNguyenLieu = MaxNhap.MaNguyenLieu
+            WHERE i.GiaBan <= MaxNhap.MaxGiaNhap -- Nếu Giá Bán mới nhỏ hơn hoặc bằng Giá Nhập cao nhất
         )
         BEGIN
             -- Nếu vi phạm, báo lỗi và ROLLBACK
@@ -1534,17 +1550,18 @@ BEGIN
     SET NOCOUNT ON;
 
     -- Chỉ thực hiện khi cột MaTrangThai bị UPDATE
-    -- và chuyển từ trạng thái khác sang 'DA_HOAN_TAT'
     IF UPDATE(MaTrangThai)
     BEGIN
-        -- Bảng i (inserted) là dữ liệu mới, Bảng d (deleted) là dữ liệu cũ
-        
         -- Cập nhật Tăng Tồn Kho
         UPDATE NL
         SET SoLuongTonKho = ISNULL(NL.SoLuongTonKho, 0) + CTNH.SoLuong
         FROM [dbo].[NguyenLieu] NL
-        JOIN [dbo].[CungUng] CU ON NL.MaNguyenLieu = CU.MaNguyenLieu
-        JOIN [dbo].[ChiTietNhapHang] CTNH ON CU.MaCungUng = CTNH.MaCungUng
+        -- BỎ: JOIN [dbo].[CungUng] CU ON NL.MaNguyenLieu = CU.MaNguyenLieu
+        -- JOIN [dbo].[ChiTietNhapHang] CTNH ON CU.MaCungUng = CTNH.MaCungUng
+        
+        -- SỬA: Join trực tiếp qua MaNguyenLieu
+        JOIN [dbo].[ChiTietNhapHang] CTNH ON NL.MaNguyenLieu = CTNH.MaNguyenLieu
+        
         JOIN inserted i ON CTNH.MaNhapHang = i.MaNhapHang
         JOIN deleted d ON i.MaNhapHang = d.MaNhapHang
         WHERE i.MaTrangThai = 'DA_HOAN_TAT' -- Trạng thái MỚI là Hoàn tất
@@ -1552,3 +1569,8 @@ BEGIN
     END
 END
 GO
+
+ALTER TABLE NhapHang ADD TrangThai int DEFAULT 0
+
+
+
