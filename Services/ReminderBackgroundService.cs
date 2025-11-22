@@ -68,7 +68,7 @@ namespace QuanLyNhaHang.Services
                             {
                                 // Lấy thông tin liên hệ (Ưu tiên người đi ăn thực tế nếu có)
                                 var email = dh.MaKhachHangNavigation.Email;
-                                var sdt = dh.SDTNguoiNhan ?? dh.MaKhachHangNavigation.SoDienThoai;
+                                var sdt = dh.SdtnguoiNhan ?? dh.MaKhachHangNavigation.SoDienThoai;
                                 var ten = dh.TenNguoiNhan ?? dh.MaKhachHangNavigation.HoTen;
 
                                 // 3. LẤY URL TỪ FILE CẤU HÌNH (Thay vì hardcode)

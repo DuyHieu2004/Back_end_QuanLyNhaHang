@@ -86,7 +86,7 @@ public class MonAnsAPIController : ControllerBase
                 HinhAnhMonAns = m.HinhAnhMonAns.Select(h => new HinhAnhDTO
                 {
                     Id = h.Id,
-                    URLHinhAnh = h.URLHinhAnh
+                    URLHinhAnh = h.UrlhinhAnh
                 }).ToList(),
 
                 PhienBanMonAns = phienBanDTOs
@@ -170,7 +170,7 @@ public class MonAnsAPIController : ControllerBase
            HinhAnhMonAns = monAn.HinhAnhMonAns.Select(h => new HinhAnhDTO
            {
                Id = h.Id,
-               URLHinhAnh = h.URLHinhAnh
+               URLHinhAnh = h.UrlhinhAnh
            }).ToList(),
            PhienBanMonAns = phienBanDict.Values.OrderBy(pb => pb.ThuTu ?? 0).ToList()
        };
@@ -251,7 +251,7 @@ public class MonAnsAPIController : ControllerBase
                    var hinhAnh = new HinhAnhMonAn
                    {
                        MaMonAn = maMonAn,
-                       URLHinhAnh = finalUrl
+                       UrlhinhAnh = finalUrl
                    };
                    _context.HinhAnhMonAns.Add(hinhAnh);
                    imageOrder++;

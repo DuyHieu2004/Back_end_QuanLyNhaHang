@@ -17,7 +17,13 @@ public partial class NhapHang
 
     public string MaTrangThai { get; set; } = null!;
 
+    public string? MaNhaCungCap { get; set; }
+
+    public int? TrangThai { get; set; }
+
     public virtual ICollection<ChiTietNhapHang> ChiTietNhapHangs { get; set; } = new List<ChiTietNhapHang>();
+
+    public virtual NhaCungCap? MaNhaCungCapNavigation { get; set; }
 
     public virtual NhanVien MaNhanVienNavigation { get; set; } = null!;
 

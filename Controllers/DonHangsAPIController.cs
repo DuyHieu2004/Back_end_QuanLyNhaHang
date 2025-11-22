@@ -208,7 +208,7 @@ namespace QuanLyNhaHang.Controllers
                 TienDatCoc = donHang.TienDatCoc,
                 TrangThai = donHang.MaTrangThaiDonHangNavigation.TenTrangThai,
                 TenNguoiDat = donHang.TenNguoiNhan ?? donHang.MaKhachHangNavigation.HoTen,
-                SDTNguoiDat = donHang.SDTNguoiNhan ?? donHang.MaKhachHangNavigation.SoDienThoai,
+                SDTNguoiDat = donHang.SdtnguoiNhan ?? donHang.MaKhachHangNavigation.SoDienThoai,
 
                 // Map danh sách món ăn từ list đã gom
                 MonAns = tatCaMonAn
@@ -217,7 +217,7 @@ namespace QuanLyNhaHang.Controllers
                         var congThuc = ct.MaCongThucNavigation;
                         var phienBan = ct.MaPhienBanNavigation;
                         var monAn = congThuc?.MaCtNavigation?.MaMonAnNavigation;
-                        string hinhAnhUrl = monAn?.HinhAnhMonAns.FirstOrDefault()?.URLHinhAnh ?? "";
+                        string hinhAnhUrl = monAn?.HinhAnhMonAns.FirstOrDefault()?.UrlhinhAnh ?? "";
 
                         // Lấy thông tin bàn chứa món này (truy ngược lại parent của nó)
                         // Lưu ý: ct.MaBanAnDonHang là khóa ngoại mới
@@ -266,7 +266,7 @@ namespace QuanLyNhaHang.Controllers
                 {
                     dh.MaDonHang,
                     TenKhach = dh.TenNguoiNhan ?? dh.MaKhachHangNavigation.HoTen,
-                    SDT = dh.SDTNguoiNhan ?? dh.MaKhachHangNavigation.SoDienThoai,
+                    SDT = dh.SdtnguoiNhan ?? dh.MaKhachHangNavigation.SoDienThoai,
                     GioHen = dh.TgnhanBan,
                     SoNguoi = dh.SoLuongNguoiDk, // Update tên biến
                     GhiChu = "Khách không có email, cần gọi nhắc."

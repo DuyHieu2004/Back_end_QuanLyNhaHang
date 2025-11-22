@@ -14,4 +14,6 @@ public partial class NhaCungCap
     public string? DiaChi { get; set; }
 
     public virtual ICollection<CungUng> CungUngs { get; set; } = new List<CungUng>();
+
+    public virtual ICollection<NhapHang> NhapHangs { get; set; } = new List<NhapHang>();
 }
