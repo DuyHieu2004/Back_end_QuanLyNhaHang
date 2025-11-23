@@ -156,6 +156,43 @@ namespace QuanLyNhaHang.Controllers
             });
         }
 
+        // Đăng nhập cho nhân viên (Admin)
+        [HttpPost("admin/login")]
+        public async Task<IActionResult> AdminLogin([FromBody] QuanlyNhaHang.Models.DTOs.AdminLoginRequest req)
+        {
+            if (string.IsNullOrWhiteSpace(req.TenDangNhap) || string.IsNullOrWhiteSpace(req.MatKhau))
+            {
+                return BadRequest(new { Message = "Tên đăng nhập và mật khẩu không được để trống." });
+            }
+
+            var nhanVien = await _context.NhanViens
+                .Include(n => n.MaVaiTroNavigation)
+                .FirstOrDefaultAsync(n => n.TenDangNhap == req.TenDangNhap);
+
+            if (nhanVien == null)
+            {
+                return Unauthorized(new { Message = "Tên đăng nhập hoặc mật khẩu không đúng." });
+            }
+
+            // Kiểm tra mật khẩu bằng BCrypt (mật khẩu đã được hash khi tạo)
+            bool isPasswordValid = BCrypt.Net.BCrypt.Verify(req.MatKhau, nhanVien.MatKhau);
+            if (!isPasswordValid)
+            {
+                return Unauthorized(new { Message = "Tên đăng nhập hoặc mật khẩu không đúng." });
+            }
+
+            var token = _jwtService.GenerateToken(nhanVien);
+
+            return Ok(new QuanlyNhaHang.Models.DTOs.AdminAuthResponse
+            {
+                Token = token,
+                HoTen = nhanVien.HoTen,
+                MaNhanVien = nhanVien.MaNhanVien,
+                MaVaiTro = nhanVien.MaVaiTro,
+                TenVaiTro = nhanVien.MaVaiTroNavigation?.TenVaiTro ?? ""
+            });
+        }
+
     }
 
 }
