@@ -28,6 +28,9 @@ namespace QuanLyNhaHang.Controllers
             _emailService = emailService;
         }
 
+        
+
+
         [HttpPost("check-user")]
         public async Task<IActionResult> CheckUser([FromBody] CheckUserRequest req)
         {

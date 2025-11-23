@@ -2,16 +2,16 @@
 GO
 
 ---- Xóa DB cũ nếu tồn tại
-IF DB_ID('QL_NhaHang_DoAn_Test5') IS NOT NULL
+IF DB_ID('QL_NhaHang_DoAn_Test2') IS NOT NULL
 BEGIN
-    ALTER DATABASE [QL_NhaHang_DoAn_Test5] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE [QL_NhaHang_DoAn_Test5];
+    ALTER DATABASE [QL_NhaHang_DoAn_Test2] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE [QL_NhaHang_DoAn_Test2];
 END
 GO
 
-CREATE DATABASE [QL_NhaHang_DoAn_Test5]
+CREATE DATABASE [QL_NhaHang_DoAn_Test2]
 GO
-USE [QL_NhaHang_DoAn_Test5]
+USE [QL_NhaHang_DoAn_Test2]
 GO
 
 -- =============================================
@@ -94,8 +94,14 @@ CREATE TABLE [dbo].[KhachHang](
     [SoDienThoai] [nvarchar](15) NOT NULL,
     [Email] [nvarchar](100) NULL,
     [HinhAnh] [nvarchar](max) NULL,
-    [NoShowCount] [int] DEFAULT 0
+    [NoShowCount] [int] DEFAULT 0,
+	SoLanAnTichLuy INT NOT NULL DEFAULT 0,
+	NgayTao DATETIME DEFAULT GETDATE()
+	
 )
+GO
+
+CREATE INDEX IX_KhachHang_SoDienThoai ON KhachHang(SoDienThoai);
 GO
 
 CREATE UNIQUE NONCLUSTERED INDEX [IX_KhachHang_Email_Unique] ON [dbo].[KhachHang]([Email]) WHERE [Email] IS NOT NULL;
@@ -127,17 +133,16 @@ GO
 CREATE TABLE [dbo].[DonHang](
     [MaDonHang] [varchar](25) NOT NULL PRIMARY KEY,
     [MaNhanVien] [varchar](25) NULL,
-    [MaKhachHang] [varchar](25) NOT NULL,
+    [MaKhachHang] [varchar](25) NOT NULL DEFAULT 'KH_VANG_LAI',
     [MaTrangThaiDonHang] [varchar](25) NOT NULL DEFAULT 'CHO_XAC_NHAN',
     [ThoiGianDatHang] [datetime] NULL,
-    [TGDatDuKien] [datetime] NULL, -- Mapping với C#
+    [TGDatDuKien] [datetime] NULL,
     [TGNhanBan] [datetime] NULL,
     [ThanhToan] [bit] NOT NULL DEFAULT 0,
     [ThoiGianKetThuc] [datetime] NULL,
     [SoLuongNguoiDK] [int] NOT NULL DEFAULT 1,
     [TienDatCoc] [decimal](10, 2) NULL DEFAULT 0,
     [GhiChu] [nvarchar](500) NULL,
-    -- Thông tin người nhận (cho trường hợp đặt hộ)
     [TenNguoiNhan] [nvarchar](100) NULL,
     [SDTNguoiNhan] [varchar](20) NULL,
     [EmailNguoiNhan] [nvarchar](100) NULL
@@ -242,7 +247,6 @@ CREATE TABLE [dbo].[KhuyenMaiApDungSanPham](
     [MaKhuyenMai] [varchar](25) NOT NULL,
     [MaCongThuc] [varchar](25) NULL, -- Áp dụng cho CT cụ thể
     [MaDanhMuc] [varchar](25) NULL, -- Áp dụng cho toàn bộ Danh mục (nếu cần)
-    -- Thêm các ràng buộc khác nếu cần (ví dụ: ngày trong tuần áp dụng)
 )
 GO
 
@@ -332,6 +336,9 @@ ADD CONSTRAINT CK_KMAP_OnlyOneTarget CHECK (
 EXEC sp_MSforeachtable 'ALTER TABLE ? NOCHECK CONSTRAINT ALL'
 GO
 
+INSERT INTO [dbo].[KhuyenMai] ([MaKhuyenMai], [TenKhuyenMai], [MoTa], [LoaiKhuyenMai], [GiaTri], [ApDungToiThieu], [NgayBatDau], [NgayKetThuc], [TrangThai]) 
+VALUES ('KM_TICHLUY_VIP', N'Tri ân khách hàng thân thiết', N'Tự động giảm giá cho khách đã ăn đủ 10 lần', 'PERCENT', 10, 0, GETDATE(), '2099-12-31', 'ACTIVE');
+
 -- 1. TrangThaiBanAn
 INSERT INTO [dbo].[TrangThaiBanAn] ([MaTrangThai], [TenTrangThai]) VALUES
 ('TTBA001', N'Trống'), ('TTBA002', N'Đang phục vụ'),
@@ -358,48 +365,54 @@ INSERT INTO [dbo].[DanhMucMonAn] ([MaDanhMuc], [TenDanhMuc]) VALUES
 ('DM004', N'Thức uống'), ('DM005', N'Món nướng'), ('DM006', N'Món chay'),
 ('DM007', N'Cơm'), ('DM008', N'Hải sản');
 
--- chèn dữ liệu cho: KhachHang
-INSERT INTO [dbo].[KhachHang] ([MaKhachHang], [HoTen], [SoDienThoai], [Email], [HinhAnh], [NoShowCount]) VALUES
-('KH001', N'Nguyễn Văn An', '0912345678', 'an.nguyen@gmail.com', 'an.jpg', 0),
-('KH002', N'Trần Thị Bình', '0912345679', 'binh.tran@gmail.com', 'binh.jpg', 0),
-('KH003', N'Lê Văn Cường', '0912345680', 'cuong.le@gmail.com', 'cuong.jpg', 0),
-('KH004', N'Phạm Thị Dung', '0912345681', 'dung.pham@gmail.com', 'dung.jpg', 0),
-('KH005', N'Hoàng Văn Giang', '0912345682', 'giang.hoang@gmail.com', 'giang.jpg', 0),
-('KH006', N'Vũ Thị Hương', '0912345683', 'huong.vu@gmail.com', 'huong.jpg', 0),
-('KH007', N'Đặng Văn Long', '0912345684', 'long.dang@gmail.com', 'long.jpg', 0),
-('KH008', N'Bùi Thị Mai', '0912345685', 'mai.bui@gmail.com', 'mai.jpg', 0),
-('KH009', N'Ngô Văn Nam', '0912345686', 'nam.ngo@gmail.com', 'nam.jpg', 0),
-('KH010', N'Dương Thị Oanh', '0912345687', 'oanh.duong@gmail.com', 'oanh.jpg', 0),
-('KH011', N'Trần Văn Phát', '0911111111', 'phat.tran@gmail.com', 'phat.jpg', 0),
-('KH012', N'Lê Thị Quyên', '0922222222', 'quyen.le@gmail.com', 'quyen.jpg', 0),
-('KH013', N'Đỗ Bá Rừng', '0933333333', 'rung.do@gmail.com', 'rung.jpg', 0),
-('KH014', N'Hồ Thị Sen', '0944444444', 'sen.ho@gmail.com', 'sen.jpg', 0),
-('KH015', N'Ngô Văn Tùng', '0955555555', 'tung.ngo@gmail.com', 'tung.jpg', 0),
-('KH016', N'Dương Văn Út', '0966666666', 'ut.duong@gmail.com', 'ut.jpg', 0),
-('KH017', N'Phan Thị Vân', '0977777777', 'van.phan@gmail.com', 'van.jpg', 0),
-('KH018', N'Lý Văn Xuân', '0988888888', 'xuan.ly@gmail.com', 'xuan.jpg', 0),
-('KH019', N'Võ Thị Yến', '0999999999', 'yen.vo@gmail.com', 'yen.jpg', 0),
-('KH020', N'Trịnh Hoài An', '0901234567', 'an.trinh@gmail.com', 'an_trinh.jpg', 0),
-('KH021', N'Nguyễn Hữu Ái', '0901112233', 'ai.nguyen@gmail.com', 'ai.jpg', 0),
-('KH022', N'Võ Tấn Bằng', '0901112244', 'bang.vo@gmail.com', 'bang.jpg', 0),
-('KH023', N'Huỳnh Ngọc Châu', '0901112255', 'chau.huynh@gmail.com', 'chau.jpg', 0),
-('KH024', N'Trương Minh Đức', '0901112266', 'duc.truong@gmail.com', 'duc.jpg', 0),
-('KH025', N'Hà Thị Giang', '0901112277', 'giang.ha@gmail.com', 'giang_ha.jpg', 0),
-('KH026', N'Đinh Quốc Huy', '0901112288', 'huy.dinh@gmail.com', 'huy.jpg', 0),
-('KH027', N'Lương Yến Khanh', '0901112299', 'khanh.luong@gmail.com', 'khanh.jpg', 0),
-('KH028', N'Mai Đức Lợi', '0901113300', 'loi.mai@gmail.com', 'loi.jpg', 0),
-('KH029', N'Đoàn Văn Mẫn', '0901113311', 'man.doan@gmail.com', 'man.jpg', 0),
-('KH030', N'Hoàng Thị Ngân', '0901113322', 'ngan.hoang@gmail.com', 'ngan.jpg', 1),
-('KH031', N'Phạm Gia Phú', '0901113333', 'phu.pham@gmail.com', 'phu.jpg', 0),
-('KH032', N'Tô Hoài Sang', '0901113344', 'sang.to@gmail.com', 'sang.jpg', 0),
-('KH033', N'Lê Minh Thông', '0901113355', 'thong.le@gmail.com', 'thong.jpg', 0),
-('KH034', N'VươngGia Uy', '0901113366', 'uy.vuong@gmail.com', 'uy.jpg', 0),
-('KH035', N'Nguyễn Thanh Vi', '0901113377', 'vi.nguyen@gmail.com', 'vi.jpg', 0),
-('KH036', N'Đặng Minh Vũ', '0901113388', 'vu.dang@gmail.com', 'vu.jpg', 0),
-('KH037', N'Tống Phước Lộc', '0901113399', 'loc.tong@gmail.com', 'loc.jpg', 0),
-('KH038', N'Triệu Thị Mỹ', '0901114400', 'my.trieu@gmail.com', 'my.jpg', 0),
-('KH039', N'Uông Văn Tài', '0901114411', 'tai.uong@gmail.com', 'tai.jpg', 0),
-('KH040', N'Cù Minh Tâm', '0901114422', 'tam.cu@gmail.com', 'tam.jpg', 0);
+INSERT INTO [dbo].[KhachHang] 
+([MaKhachHang], [HoTen], [SoDienThoai], [Email], [HinhAnh], [NoShowCount], [SoLanAnTichLuy], [NgayTao]) 
+VALUES
+-- 1. KHÁCH VÃNG LAI (Mặc định quan trọng nhất)
+('KH_VANG_LAI', N'Khách Vãng Lai', '0000000000', NULL, NULL, 0, 0, GETDATE()),
+
+-- 2. Dữ liệu mẫu (Đã thêm cột tích lũy và ngày tạo)
+('KH001', N'Nguyễn Văn An', '0912345678', 'an.nguyen@gmail.com', 'an.jpg', 0, 9, GETDATE()), -- Ông này tui cho 9 điểm để bạn test đơn sau là được giảm giá nha
+('KH002', N'Trần Thị Bình', '0912345679', 'binh.tran@gmail.com', 'binh.jpg', 0, 5, GETDATE()),
+('KH003', N'Lê Văn Cường', '0912345680', 'cuong.le@gmail.com', 'cuong.jpg', 0, 0, GETDATE()),
+('KH004', N'Phạm Thị Dung', '0912345681', 'dung.pham@gmail.com', 'dung.jpg', 0, 2, GETDATE()),
+('KH005', N'Hoàng Văn Giang', '0912345682', 'giang.hoang@gmail.com', 'giang.jpg', 0, 0, GETDATE()),
+('KH006', N'Vũ Thị Hương', '0912345683', 'huong.vu@gmail.com', 'huong.jpg', 0, 0, GETDATE()),
+('KH007', N'Đặng Văn Long', '0912345684', 'long.dang@gmail.com', 'long.jpg', 0, 0, GETDATE()),
+('KH008', N'Bùi Thị Mai', '0912345685', 'mai.bui@gmail.com', 'mai.jpg', 0, 0, GETDATE()),
+('KH009', N'Ngô Văn Nam', '0912345686', 'nam.ngo@gmail.com', 'nam.jpg', 0, 0, GETDATE()),
+('KH010', N'Dương Thị Oanh', '0912345687', 'oanh.duong@gmail.com', 'oanh.jpg', 0, 0, GETDATE()),
+('KH011', N'Trần Văn Phát', '0911111111', 'phat.tran@gmail.com', 'phat.jpg', 0, 0, GETDATE()),
+('KH012', N'Lê Thị Quyên', '0922222222', 'quyen.le@gmail.com', 'quyen.jpg', 0, 0, GETDATE()),
+('KH013', N'Đỗ Bá Rừng', '0933333333', 'rung.do@gmail.com', 'rung.jpg', 0, 0, GETDATE()),
+('KH014', N'Hồ Thị Sen', '0944444444', 'sen.ho@gmail.com', 'sen.jpg', 0, 0, GETDATE()),
+('KH015', N'Ngô Văn Tùng', '0955555555', 'tung.ngo@gmail.com', 'tung.jpg', 0, 0, GETDATE()),
+('KH016', N'Dương Văn Út', '0966666666', 'ut.duong@gmail.com', 'ut.jpg', 0, 0, GETDATE()),
+('KH017', N'Phan Thị Vân', '0977777777', 'van.phan@gmail.com', 'van.jpg', 0, 0, GETDATE()),
+('KH018', N'Lý Văn Xuân', '0988888888', 'xuan.ly@gmail.com', 'xuan.jpg', 0, 0, GETDATE()),
+('KH019', N'Võ Thị Yến', '0999999999', 'yen.vo@gmail.com', 'yen.jpg', 0, 0, GETDATE()),
+('KH020', N'Trịnh Hoài An', '0901234567', 'an.trinh@gmail.com', 'an_trinh.jpg', 0, 0, GETDATE()),
+('KH021', N'Nguyễn Hữu Ái', '0901112233', 'ai.nguyen@gmail.com', 'ai.jpg', 0, 0, GETDATE()),
+('KH022', N'Võ Tấn Bằng', '0901112244', 'bang.vo@gmail.com', 'bang.jpg', 0, 0, GETDATE()),
+('KH023', N'Huỳnh Ngọc Châu', '0901112255', 'chau.huynh@gmail.com', 'chau.jpg', 0, 0, GETDATE()),
+('KH024', N'Trương Minh Đức', '0901112266', 'duc.truong@gmail.com', 'duc.jpg', 0, 0, GETDATE()),
+('KH025', N'Hà Thị Giang', '0901112277', 'giang.ha@gmail.com', 'giang_ha.jpg', 0, 0, GETDATE()),
+('KH026', N'Đinh Quốc Huy', '0901112288', 'huy.dinh@gmail.com', 'huy.jpg', 0, 0, GETDATE()),
+('KH027', N'Lương Yến Khanh', '0901112299', 'khanh.luong@gmail.com', 'khanh.jpg', 0, 0, GETDATE()),
+('KH028', N'Mai Đức Lợi', '0901113300', 'loi.mai@gmail.com', 'loi.jpg', 0, 0, GETDATE()),
+('KH029', N'Đoàn Văn Mẫn', '0901113311', 'man.doan@gmail.com', 'man.jpg', 0, 0, GETDATE()),
+('KH030', N'Hoàng Thị Ngân', '0901113322', 'ngan.hoang@gmail.com', 'ngan.jpg', 1, 0, GETDATE()), -- Lưu ý: Dòng này trong code cũ của bạn NoShowCount là 1
+('KH031', N'Phạm Gia Phú', '0901113333', 'phu.pham@gmail.com', 'phu.jpg', 0, 0, GETDATE()),
+('KH032', N'Tô Hoài Sang', '0901113344', 'sang.to@gmail.com', 'sang.jpg', 0, 0, GETDATE()),
+('KH033', N'Lê Minh Thông', '0901113355', 'thong.le@gmail.com', 'thong.jpg', 0, 0, GETDATE()),
+('KH034', N'VươngGia Uy', '0901113366', 'uy.vuong@gmail.com', 'uy.jpg', 0, 0, GETDATE()),
+('KH035', N'Nguyễn Thanh Vi', '0901113377', 'vi.nguyen@gmail.com', 'vi.jpg', 0, 0, GETDATE()),
+('KH036', N'Đặng Minh Vũ', '0901113388', 'vu.dang@gmail.com', 'vu.jpg', 0, 0, GETDATE()),
+('KH037', N'Tống Phước Lộc', '0901113399', 'loc.tong@gmail.com', 'loc.jpg', 0, 0, GETDATE()),
+('KH038', N'Triệu Thị Mỹ', '0901114400', 'my.trieu@gmail.com', 'my.jpg', 0, 0, GETDATE()),
+('KH039', N'Uông Văn Tài', '0901114411', 'tai.uong@gmail.com', 'tai.jpg', 0, 0, GETDATE()),
+('KH040', N'Cù Minh Tâm', '0901114422', 'tam.cu@gmail.com', 'tam.jpg', 0, 0, GETDATE());
+GO
 
 INSERT INTO [dbo].[BanAn] ([MaBan], [TenBan], [MaTrangThai], [SucChua]) VALUES
 ('B001', N'Bàn 1', 'TTBA001', 4), ('B002', N'Bàn 2', 'TTBA001', 4),
@@ -1523,7 +1536,7 @@ BEGIN
     IF UPDATE(GiaBan)
     BEGIN
         IF EXISTS (
-            SELECT 1
+            SELECT 1 
             FROM inserted i
             JOIN (
                 SELECT MaNguyenLieu, MAX(GiaNhap) AS MaxGiaNhap

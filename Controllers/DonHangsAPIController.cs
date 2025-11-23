@@ -97,16 +97,16 @@ namespace QuanLyNhaHang.Controllers
                 .Include(dh => dh.MaTrangThaiDonHangNavigation)
                 .Where(dh =>
                     activeStatuses.Contains(dh.MaTrangThaiDonHang) &&
-                    dh.TgnhanBan.HasValue &&
-                    dh.TgnhanBan.Value.Date == filterDate
+                    dh.TGNhanBan.HasValue &&
+                    dh.TGNhanBan.Value.Date == filterDate
                 )
-                .OrderBy(dh => dh.TgnhanBan)
+                .OrderBy(dh => dh.TGNhanBan)
                 .Select(dh => new
                 {
                     maDonHang = dh.MaDonHang,
                     tenNguoiNhan = dh.TenNguoiNhan ?? dh.MaKhachHangNavigation.HoTen,
-                    soNguoi = dh.SoLuongNguoiDk,
-                    thoiGianNhanBan = dh.TgnhanBan,
+                    soNguoi = dh.SoLuongNguoiDK,
+                    thoiGianNhanBan = dh.TGNhanBan,
                     trangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai,
                     maTrangThai = dh.MaTrangThaiDonHang,
                     listMaBan = dh.BanAnDonHangs.Select(b => b.MaBan).ToList(),
@@ -170,8 +170,8 @@ namespace QuanLyNhaHang.Controllers
                      dh.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
                      dh.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
 
-                    (gioBatDau < dh.TgnhanBan.Value.AddMinutes(120)) &&
-                    (gioBatDau.AddMinutes(120) > dh.TgnhanBan.Value)
+                    (gioBatDau < dh.TGNhanBan.Value.AddMinutes(120)) &&
+                    (gioBatDau.AddMinutes(120) > dh.TGNhanBan.Value)
                 );
             }
             else
@@ -201,9 +201,9 @@ namespace QuanLyNhaHang.Controllers
                 MaDonHang = donHang.MaDonHang,
                 ThoiGianDat = donHang.ThoiGianDatHang ?? DateTime.Now,
                 TenBan = tenCacBan,
-                ThoiGianNhanBan = donHang.TgnhanBan,
+                ThoiGianNhanBan = donHang.TGNhanBan,
                 ThoiGianKetThuc = donHang.ThoiGianKetThuc,
-                SoNguoi = donHang.SoLuongNguoiDk,
+                SoNguoi = donHang.SoLuongNguoiDK,
                 GhiChu = donHang.GhiChu,
                 TienDatCoc = donHang.TienDatCoc,
                 TrangThai = donHang.MaTrangThaiDonHangNavigation.TenTrangThai,
@@ -257,9 +257,9 @@ namespace QuanLyNhaHang.Controllers
                 .Include(dh => dh.MaKhachHangNavigation)
                 .Where(dh =>
                     (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" || dh.MaTrangThaiDonHang == "DA_XAC_NHAN") &&
-                    dh.TgnhanBan != null && // Kiểm tra null
-                    dh.TgnhanBan > now &&   // Dùng TgnhanBan thay vì ThoiGianBatDau
-                    dh.TgnhanBan <= thoiGianQuetDen &&
+                    dh.TGNhanBan != null && // Kiểm tra null
+                    dh.TGNhanBan > now &&   // Dùng TGNhanBan thay vì ThoiGianBatDau
+                    dh.TGNhanBan <= thoiGianQuetDen &&
                     (dh.MaKhachHangNavigation.Email == null || dh.MaKhachHangNavigation.Email == "")
                 )
                 .Select(dh => new
@@ -267,8 +267,8 @@ namespace QuanLyNhaHang.Controllers
                     dh.MaDonHang,
                     TenKhach = dh.TenNguoiNhan ?? dh.MaKhachHangNavigation.HoTen,
                     SDT = dh.SdtnguoiNhan ?? dh.MaKhachHangNavigation.SoDienThoai,
-                    GioHen = dh.TgnhanBan,
-                    SoNguoi = dh.SoLuongNguoiDk, // Update tên biến
+                    GioHen = dh.TGNhanBan,
+                    SoNguoi = dh.SoLuongNguoiDK, // Update tên biến
                     GhiChu = "Khách không có email, cần gọi nhắc."
                 })
                 .OrderBy(dh => dh.GioHen)
