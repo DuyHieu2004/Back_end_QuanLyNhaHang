@@ -44,7 +44,7 @@ public class BookingHistoryController : ControllerBase
                 // SỬA: Lấy tên bàn từ bảng trung gian
                 TenBan = string.Join(", ", dh.BanAnDonHangs.Select(b => b.MaBanNavigation.TenBan)),
                 ThoiGianBatDau = dh.ThoiGianDatHang ?? DateTime.Now,
-                SoLuongNguoi = dh.SoLuongNguoiDk,
+                SoLuongNguoi = dh.SoLuongNguoiDK,
                 GhiChu = dh.GhiChu,
                 DaHuy = (dh.MaTrangThaiDonHang == "DA_HUY"),
                 MaTrangThai = dh.MaTrangThaiDonHang,

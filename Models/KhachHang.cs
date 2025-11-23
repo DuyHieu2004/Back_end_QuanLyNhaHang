@@ -17,5 +17,9 @@ public partial class KhachHang
 
     public int? NoShowCount { get; set; }
 
+    public int SoLanAnTichLuy { get; set; }
+
+    public DateTime? NgayTao { get; set; }
+
     public virtual ICollection<DonHang> DonHangs { get; set; } = new List<DonHang>();
 }
