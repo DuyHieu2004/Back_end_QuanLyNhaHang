@@ -17,5 +17,7 @@ public partial class NguyenLieu
 
     public virtual ICollection<ChiTietCongThuc> ChiTietCongThucs { get; set; } = new List<ChiTietCongThuc>();
 
+    public virtual ICollection<ChiTietNhapHang> ChiTietNhapHangs { get; set; } = new List<ChiTietNhapHang>();
+
     public virtual ICollection<CungUng> CungUngs { get; set; } = new List<CungUng>();
 }

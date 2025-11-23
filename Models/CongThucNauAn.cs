@@ -19,6 +19,8 @@ public partial class CongThucNauAn
 
     public virtual ICollection<ChiTietMenu> ChiTietMenus { get; set; } = new List<ChiTietMenu>();
 
+    public virtual ICollection<KhuyenMaiApDungSanPham> KhuyenMaiApDungSanPhams { get; set; } = new List<KhuyenMaiApDungSanPham>();
+
     public virtual ChiTietMonAn MaCtNavigation { get; set; } = null!;
 
     public virtual PhienBanMonAn MaPhienBanNavigation { get; set; } = null!;

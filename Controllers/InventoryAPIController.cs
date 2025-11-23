@@ -189,11 +189,20 @@ namespace QuanLyNhaHang.Controllers
                 .Include(n => n.MaNhaCungCapNavigation) // Lấy tên NCC
                 .Include(n => n.MaNhanVienNavigation)   // Lấy tên NV
                 .Include(n => n.ChiTietNhapHangs)
-                    .ThenInclude(ct => ct.MaCungUngNavigation)
-                        .ThenInclude(cu => cu.MaNguyenLieuNavigation) // Lấy tên NL, ĐVT
+                    .ThenInclude(ct => ct.MaNguyenLieuNavigation) // Lấy tên NL, ĐVT
                 .FirstOrDefaultAsync(n => n.MaNhapHang == maPhieu);
 
             if (phieu == null) return NotFound(new { message = "Không tìm thấy phiếu nhập" });
+
+            // Lấy danh sách CungUng để map MaCungUng
+            var cungUngs = await _context.CungUngs
+                .Where(cu => cu.MaNhaCungCap == phieu.MaNhaCungCap)
+                .ToListAsync();
+            
+            var cungUngDict = cungUngs
+                .Where(cu => !string.IsNullOrEmpty(cu.MaNguyenLieu))
+                .GroupBy(cu => cu.MaNguyenLieu!)
+                .ToDictionary(g => g.Key, g => g.First().MaCungUng);
 
             var result = new
             {
@@ -207,10 +216,11 @@ namespace QuanLyNhaHang.Controllers
                 phieu.TongTien,
                 ChiTiet = phieu.ChiTietNhapHangs.Select(ct => new
                 {
-                    ct.MaCungUng,
-                    MaNguyenLieu = ct.MaCungUngNavigation.MaNguyenLieu,
-                    TenNguyenLieu = ct.MaCungUngNavigation.MaNguyenLieuNavigation.TenNguyenLieu,
-                    DonViTinh = ct.MaCungUngNavigation.MaNguyenLieuNavigation.DonViTinh,
+                    // Tìm MaCungUng từ dictionary
+                    MaCungUng = cungUngDict.GetValueOrDefault(ct.MaNguyenLieu, ""),
+                    MaNguyenLieu = ct.MaNguyenLieu,
+                    TenNguyenLieu = ct.MaNguyenLieuNavigation?.TenNguyenLieu ?? "",
+                    DonViTinh = ct.MaNguyenLieuNavigation?.DonViTinh ?? "",
                     ct.SoLuong,
                     ct.GiaNhap,
                     ThanhTien = ct.SoLuong * ct.GiaNhap
@@ -235,27 +245,37 @@ namespace QuanLyNhaHang.Controllers
                 // Tính tổng tiền server-side cho chắc ăn
                 decimal tongTien = dto.ChiTiet.Sum(c => c.SoLuong * c.GiaNhap);
 
+                var ngayLapPhieu = DateTime.Now;
                 var phieuNhap = new NhapHang
                 {
                     MaNhapHang = maNhapHang,
                     MaNhanVien = dto.MaNhanVien,
                     MaNhaCungCap = dto.MaNhaCungCap,
-                    NgayLapPhieu = DateTime.Now,
+                    NgayLapPhieu = ngayLapPhieu,
                     MaTrangThai = dto.MaTrangThai, // 'MOI_TAO', 'DA_HOAN_TAT'
                     TongTien = tongTien,
 
-                    // Chỉ lưu ngày nhập nếu trạng thái là Hoàn Tất
-                    NgayNhapHang = (dto.MaTrangThai == "DA_HOAN_TAT") ? DateTime.Now : null
+                    // Ngày nhập hàng: nếu trạng thái là Hoàn Tất thì dùng ngày hiện tại, nếu không thì dùng ngày lập phiếu
+                    NgayNhapHang = (dto.MaTrangThai == "DA_HOAN_TAT") ? DateTime.Now : ngayLapPhieu
                 };
 
                 _context.NhapHangs.Add(phieuNhap);
 
                 foreach (var item in dto.ChiTiet)
                 {
+                    // Lấy MaNguyenLieu từ CungUng
+                    var cungUng = await _context.CungUngs
+                        .FirstOrDefaultAsync(cu => cu.MaCungUng == item.MaCungUng);
+                    
+                    if (cungUng == null || string.IsNullOrEmpty(cungUng.MaNguyenLieu))
+                    {
+                        return BadRequest(new { message = $"Không tìm thấy nguyên liệu cho mã cung ứng: {item.MaCungUng}" });
+                    }
+
                     var chiTiet = new ChiTietNhapHang
                     {
                         MaNhapHang = maNhapHang,
-                        MaCungUng = item.MaCungUng,
+                        MaNguyenLieu = cungUng.MaNguyenLieu,
                         SoLuong = item.SoLuong,
                         GiaNhap = item.GiaNhap,
                       //  GhiChu = ""
@@ -294,11 +314,12 @@ namespace QuanLyNhaHang.Controllers
                 phieu.MaNhanVien = dto.MaNhanVien;
                 phieu.MaTrangThai = dto.MaTrangThai;
 
-                // Nếu chuyển sang Hoàn tất -> Cập nhật ngày nhập (nếu chưa có)
-                if (dto.MaTrangThai == "DA_HOAN_TAT" && phieu.NgayNhapHang == null)
+                // Nếu chuyển sang Hoàn tất -> Cập nhật ngày nhập
+                if (dto.MaTrangThai == "DA_HOAN_TAT")
                 {
                     phieu.NgayNhapHang = DateTime.Now;
                 }
+                // Nếu không phải Hoàn tất, giữ nguyên ngày nhập hiện tại (không reset về null)
 
                 // 2. Update Chi tiết (Xóa hết cũ -> Thêm mới)
                 _context.ChiTietNhapHangs.RemoveRange(phieu.ChiTietNhapHangs);
@@ -306,10 +327,19 @@ namespace QuanLyNhaHang.Controllers
                 decimal tongTien = 0;
                 foreach (var item in dto.ChiTiet)
                 {
+                    // Lấy MaNguyenLieu từ CungUng
+                    var cungUng = await _context.CungUngs
+                        .FirstOrDefaultAsync(cu => cu.MaCungUng == item.MaCungUng);
+                    
+                    if (cungUng == null || string.IsNullOrEmpty(cungUng.MaNguyenLieu))
+                    {
+                        return BadRequest(new { message = $"Không tìm thấy nguyên liệu cho mã cung ứng: {item.MaCungUng}" });
+                    }
+
                     var chiTietMoi = new ChiTietNhapHang
                     {
                         MaNhapHang = maPhieu,
-                        MaCungUng = item.MaCungUng,
+                        MaNguyenLieu = cungUng.MaNguyenLieu,
                         SoLuong = item.SoLuong,
                         GiaNhap = item.GiaNhap,
                         //GhiChu = ""
