@@ -1,13 +1,16 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuanLyNhaHang.Models;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Security.Claims;
 
 namespace QuanLyNhaHang.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize] // Yêu cầu đăng nhập cho tất cả các endpoint
     public class EmployeesAPIController : ControllerBase
     {
         private readonly QLNhaHangContext _context;
@@ -15,6 +18,20 @@ namespace QuanLyNhaHang.Controllers
         public EmployeesAPIController(QLNhaHangContext context)
         {
             _context = context;
+        }
+
+        // Helper method để kiểm tra quyền quản lý
+        private bool IsManager()
+        {
+            var maVaiTroClaim = HttpContext.User?.FindFirst("MaVaiTro")?.Value;
+            return maVaiTroClaim == "VT001"; // VT001 là mã vai trò Quản lý
+        }
+
+        // Helper method để lấy mã nhân viên từ token
+        private string? GetCurrentEmployeeId()
+        {
+            return HttpContext.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                ?? HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         }
 
         [HttpGet]
@@ -69,6 +86,12 @@ namespace QuanLyNhaHang.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeDTO dto)
         {
+            // Kiểm tra quyền quản lý
+            if (!IsManager())
+            {
+                return StatusCode(403, new { message = "Chỉ quản lý mới có quyền tạo tài khoản nhân viên." });
+            }
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -127,6 +150,12 @@ namespace QuanLyNhaHang.Controllers
         [HttpPut("{maNhanVien}")]
         public async Task<IActionResult> UpdateEmployee(string maNhanVien, [FromBody] UpdateEmployeeDTO dto)
         {
+            // Kiểm tra quyền quản lý
+            if (!IsManager())
+            {
+                return StatusCode(403, new { message = "Chỉ quản lý mới có quyền cập nhật thông tin nhân viên." });
+            }
+
             var nhanVien = await _context.NhanViens.FindAsync(maNhanVien);
             if (nhanVien == null)
             {
@@ -172,6 +201,12 @@ namespace QuanLyNhaHang.Controllers
         [HttpDelete("{maNhanVien}")]
         public async Task<IActionResult> DeleteEmployee(string maNhanVien)
         {
+            // Kiểm tra quyền quản lý
+            if (!IsManager())
+            {
+                return StatusCode(403, new { message = "Chỉ quản lý mới có quyền xóa nhân viên." });
+            }
+
             var nhanVien = await _context.NhanViens.FindAsync(maNhanVien);
             if (nhanVien == null)
             {
