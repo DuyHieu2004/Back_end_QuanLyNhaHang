@@ -2,8 +2,8 @@
 {
     public class DangNhap
     {
-        public string Username { get; set; } // Sẽ ánh xạ với TenDangNhap
-        public string Password { get; set; } // Mật khẩu
+        public string Username { get; set; } //TenDangNhap
+        public string Password { get; set; } //MatKhau
 
     }
 }
