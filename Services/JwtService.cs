@@ -36,4 +36,35 @@ public class JwtService
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    /// <summary>
+    /// Tạo một JWT mới dựa trên danh sách Claims (sử dụng cho NhanVien).
+    /// </summary>
+    /// <param name="claims">Danh sách các Claims cần nhúng vào Token.</param>
+    public string GenerateToken(IEnumerable<Claim> claims)
+    {
+        // 1. Lấy khóa bí mật và tạo Signing Credentials
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
+        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+        // 2. Định nghĩa Mô tả Token (Subject, Thời hạn, Issuer, Audience)
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(claims), // Sử dụng Claims đã tạo
+
+            // Đặt thời hạn cho Token (Ví dụ: 3 giờ)
+            Expires = DateTime.Now.AddHours(3),
+
+            Issuer = _config["Jwt:Issuer"],
+            Audience = _config["Jwt:Audience"], // Giả định bạn có Audience trong appsettings
+
+            SigningCredentials = credentials
+        };
+
+        // 3. Tạo Token và trả về chuỗi
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var securityToken = tokenHandler.CreateToken(tokenDescriptor);
+
+        return tokenHandler.WriteToken(securityToken);
+    }
 }
