@@ -17,13 +17,13 @@ public partial class DonHang
 
     public DateTime? TgdatDuKien { get; set; }
 
-    public DateTime? TgnhanBan { get; set; }
+    public DateTime? TGNhanBan { get; set; }
 
     public bool ThanhToan { get; set; }
 
     public DateTime? ThoiGianKetThuc { get; set; }
 
-    public int SoLuongNguoiDk { get; set; }
+    public int SoLuongNguoiDK { get; set; }
 
     public decimal? TienDatCoc { get; set; }
 

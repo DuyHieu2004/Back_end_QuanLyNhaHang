@@ -65,7 +65,7 @@ namespace QuanLyNhaHang.Controllers
         //            MaTrangThaiDonHang = "DANG_PHUC_VU",
         //            ThoiGianDatHang = DateTime.Now,
         //            ThoiGianKetThuc = DateTime.Now,
-        //            SoLuongNguoiDk = banAn.SucChua,
+        //            SoLuongNguoiDK = banAn.SucChua,
         //            GhiChu = dto.GhiChu
         //        };
 

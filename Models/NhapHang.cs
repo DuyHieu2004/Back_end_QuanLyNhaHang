@@ -9,7 +9,7 @@ public partial class NhapHang
 
     public string MaNhanVien { get; set; } = null!;
 
-    public DateTime? NgayNhapHang { get; set; }
+    public DateTime NgayNhapHang { get; set; }
 
     public decimal TongTien { get; set; }
 
