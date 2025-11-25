@@ -1358,3 +1358,29 @@ INSERT INTO [dbo].[ChiTietMenu] ([MaMenu], [MaCongThuc], [SoLuong], [GhiChu], [T
 ('MENU005', 'CT028', 1, N'Canh chua chay', 4),
 ('MENU005', 'CT016', 4, N'Nước lọc (4 chai)', 5);
 GO
+
+-- Gán bàn vào các tầng
+UPDATE [dbo].[BanAn]
+SET [MaTang] = 'T001'
+WHERE [MaBan] BETWEEN 'B001' AND 'B014';
+GO
+
+
+UPDATE [dbo].[BanAn]
+SET [MaTang] = 'T002'
+WHERE [MaBan] BETWEEN 'B015' AND 'B027';
+GO
+
+
+UPDATE [dbo].[BanAn]
+SET [MaTang] = 'T003'
+WHERE [MaBan] BETWEEN 'B028' AND 'B040';
+GO
+
+CREATE TABLE RefreshTokens (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Token NVARCHAR(MAX) NOT NULL,
+    UserId NVARCHAR(450) NOT NULL,
+    Expires DATETIME2 NOT NULL,
+    IsRevoked BIT NOT NULL DEFAULT 0
+);
