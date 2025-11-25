@@ -651,7 +651,7 @@ public partial class QLNhaHangContext : DbContext
             entity.Property(e => e.NgayLapPhieu).HasColumnType("datetime");
             entity.Property(e => e.NgayNhapHang).HasColumnType("datetime");
             entity.Property(e => e.TongTien).HasColumnType("decimal(10, 2)");
-            entity.Property(e => e.TrangThai).HasDefaultValue(0);
+           // entity.Property(e => e.TrangThai).HasDefaultValue(0);
 
             entity.HasOne(d => d.MaNhaCungCapNavigation).WithMany(p => p.NhapHangs)
                 .HasForeignKey(d => d.MaNhaCungCap)
