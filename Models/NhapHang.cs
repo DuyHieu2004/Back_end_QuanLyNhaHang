@@ -19,7 +19,7 @@ public partial class NhapHang
 
     public string? MaNhaCungCap { get; set; }
 
-    public int? TrangThai { get; set; }
+  //  public int? TrangThai { get; set; }
 
     public virtual ICollection<ChiTietNhapHang> ChiTietNhapHangs { get; set; } = new List<ChiTietNhapHang>();
 
