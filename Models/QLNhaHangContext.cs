@@ -70,6 +70,7 @@ public partial class QLNhaHangContext : DbContext
     public virtual DbSet<TrangThaiMenu> TrangThaiMenus { get; set; }
 
     public virtual DbSet<TrangThaiNhapHang> TrangThaiNhapHangs { get; set; }
+    public virtual DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
 
     public virtual DbSet<VaiTro> VaiTros { get; set; }
 
@@ -756,6 +757,17 @@ public partial class QLNhaHangContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.TenVaiTro).HasMaxLength(50);
         });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.ToTable("RefreshTokens"); // Tên bảng trong SQL
+            entity.HasKey(e => e.Id);        // Khai báo Id là Khóa Chính
+
+            entity.Property(e => e.Id).UseIdentityColumn(); // Tự động tăng (Identity)
+            entity.Property(e => e.Token).IsRequired();
+            entity.Property(e => e.UserId).IsRequired();
+        });
+
 
         OnModelCreatingPartial(modelBuilder);
     }
