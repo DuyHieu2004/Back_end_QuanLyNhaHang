@@ -84,6 +84,185 @@ namespace QuanLyNhaHang.Controllers
             return Ok(new { message = "Thêm món thành công" });
         }
 
+        private IQueryable<object> ProjectOrderToDTO(IQueryable<DonHang> query)
+        {
+            return query.Select(dh => new
+            {
+                maDonHang = dh.MaDonHang,
+                maNhanVien = dh.MaNhanVien,
+                maKhachHang = dh.MaKhachHang,
+                maTrangThaiDonHang = dh.MaTrangThaiDonHang,
+                tenTrangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai,
+                thoiGianDatHang = dh.ThoiGianDatHang,
+                tgDatDuKien = dh.TgdatDuKien,
+                tgNhanBan = dh.TGNhanBan,
+                thanhToan = dh.ThanhToan,
+                thoiGianKetThuc = dh.ThoiGianKetThuc,
+                soLuongNguoiDK = dh.SoLuongNguoiDK,
+                tienDatCoc = dh.TienDatCoc,
+                ghiChu = dh.GhiChu,
+                tenNguoiNhan = dh.TenNguoiNhan,
+                sdtNguoiNhan = dh.SdtnguoiNhan,
+                emailNguoiNhan = dh.EmailNguoiNhan,
+                hoTenKhachHang = dh.MaKhachHangNavigation.HoTen,
+                soDienThoaiKhach = dh.MaKhachHangNavigation.SoDienThoai,
+                emailKhachHang = dh.MaKhachHangNavigation.Email,
+                tenNhanVien = dh.MaNhanVienNavigation.HoTen,
+                danhSachBan = dh.BanAnDonHangs.Any()
+                    ? string.Join(", ", dh.BanAnDonHangs.Select(badh => badh.MaBanNavigation.TenBan))
+                    : null,
+                tongTien = dh.ChiTietDonHangs.Sum(ct => ct.SoLuong * ct.MaCongThucNavigation.Gia)
+            });
+        }
+
+        // 1. API: Lấy tất cả đơn hàng (cho tab 'all')
+        // Route: GET /api/DonHangsAPI
+        [HttpGet]
+        public async Task<IActionResult> GetOrders()
+        {
+            try
+            {
+                var sixMonthsAgo = DateTime.Now.AddMonths(-6);
+
+                var orders = await _context.DonHangs
+                    .Include(dh => dh.MaTrangThaiDonHangNavigation)
+                    .Include(dh => dh.MaKhachHangNavigation)
+                    .Include(dh => dh.MaNhanVienNavigation)
+                    .Include(dh => dh.BanAnDonHangs)
+                        .ThenInclude(b => b.MaBanNavigation)
+                    .Where(dh => dh.ThoiGianKetThuc >= sixMonthsAgo ||
+                                 dh.ThoiGianKetThuc == null || // Bao gồm cả đơn chưa kết thúc
+                                 dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
+                                 dh.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
+                                 dh.MaTrangThaiDonHang == "CHO_THANH_TOAN" ||
+                                 dh.MaTrangThaiDonHang == "DA_HOAN_THANH" ||
+                                 dh.MaTrangThaiDonHang == "DA_HUY")
+                    .OrderByDescending(dh => dh.ThoiGianDatHang)
+                    .Select(dh => new
+                    {
+                        maDonHang = dh.MaDonHang,
+                        maNhanVien = dh.MaNhanVien,
+                        maKhachHang = dh.MaKhachHang,
+                        maTrangThaiDonHang = dh.MaTrangThaiDonHang,
+                        tenTrangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai,
+                        thoiGianDatHang = dh.ThoiGianDatHang,
+                        tgDatDuKien = dh.TgdatDuKien,
+                        tgNhanBan = dh.TGNhanBan,
+                        thanhToan = dh.ThanhToan,
+                        thoiGianKetThuc = dh.ThoiGianKetThuc,
+                        soLuongNguoiDK = dh.SoLuongNguoiDK,
+                        tienDatCoc = dh.TienDatCoc ?? 0,
+                        ghiChu = dh.GhiChu,
+                        tenNguoiNhan = dh.TenNguoiNhan,
+                        sdtNguoiNhan = dh.SdtnguoiNhan,
+                        emailNguoiNhan = dh.EmailNguoiNhan,
+                        hoTenKhachHang = dh.MaKhachHangNavigation.HoTen,
+                        soDienThoaiKhach = dh.MaKhachHangNavigation.SoDienThoai,
+                        emailKhachHang = dh.MaKhachHangNavigation.Email,
+                        tenNhanVien = dh.MaNhanVienNavigation.HoTen,
+                        danhSachBan = dh.BanAnDonHangs.Any()
+                            ? string.Join(", ", dh.BanAnDonHangs.Select(b => b.MaBanNavigation.TenBan))
+                            : null,
+                        tongTien = dh.TienDatCoc ?? 0 // Tạm thời dùng tiền cọc
+                    })
+                    .ToListAsync();
+
+                return Ok(orders);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi GetOrders: {ex.Message}");
+                return StatusCode(500, new { message = "Lỗi server khi lấy danh sách đơn hàng", error = ex.Message });
+            }
+        }
+
+        // 2. API: Lấy đơn hàng theo trạng thái cụ thể (cho tab 'completed'/'cancelled')
+        // Route: GET /api/DonHangsAPI/status/{maTrangThai}
+        [HttpGet("status/{maTrangThai}")]
+        public async Task<IActionResult> GetOrdersByStatus([FromRoute] string maTrangThai)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(maTrangThai))
+                {
+                    return BadRequest(new { message = "Cần cung cấp mã trạng thái đơn hàng." });
+                }
+
+                var statusUpper = maTrangThai.ToUpper();
+
+                // Kiểm tra trạng thái có tồn tại không
+                var statusExists = await _context.TrangThaiDonHangs
+                    .AnyAsync(s => s.MaTrangThai == statusUpper);
+
+                if (!statusExists)
+                {
+                    return BadRequest(new { message = $"Trạng thái '{maTrangThai}' không tồn tại" });
+                }
+
+                var ordersQuery = _context.DonHangs
+                    .Include(dh => dh.MaTrangThaiDonHangNavigation)
+                    .Include(dh => dh.MaKhachHangNavigation)
+                    .Include(dh => dh.MaNhanVienNavigation)
+                    .Include(dh => dh.BanAnDonHangs).ThenInclude(badh => badh.MaBanNavigation)
+                    .Include(dh => dh.ChiTietDonHangs).ThenInclude(ct => ct.MaCongThucNavigation)
+                    .Where(dh => dh.MaTrangThaiDonHang == statusUpper)
+                    .OrderByDescending(dh => dh.ThoiGianKetThuc ?? dh.ThoiGianDatHang);
+
+                var orders = await ProjectOrderToDTO(ordersQuery).ToListAsync();
+
+                return Ok(orders);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi GetOrdersByStatus: {ex.Message}");
+                return StatusCode(500, new { message = "Lỗi server khi lấy đơn hàng", error = ex.Message });
+            }
+        }
+
+
+        // 3. API: Lấy thống kê đơn hàng (cho phần stats của OrdersManagement)
+        // Route: GET /api/DonHangsAPI/stats
+        [HttpGet("stats")]
+        public async Task<IActionResult> GetOrderStats()
+        {
+            try
+            {
+                var today = DateTime.Today;
+
+                // Tính tổng doanh thu hôm nay - xử lý null an toàn
+                var totalRevenueToday = await _context.DonHangs
+                    .Where(dh => dh.MaTrangThaiDonHang == "DA_HOAN_THANH" &&
+                                 dh.ThoiGianKetThuc.HasValue &&
+                                 dh.ThoiGianKetThuc.Value.Date == today)
+                    .Include(dh => dh.ChiTietDonHangs)
+                        .ThenInclude(ct => ct.MaCongThucNavigation)
+                    .SelectMany(dh => dh.ChiTietDonHangs)
+                    .SumAsync(ct => ct.SoLuong * (ct.MaCongThucNavigation.Gia));
+
+                // Đếm số đơn theo trạng thái
+                var statusCounts = await _context.DonHangs
+                    .GroupBy(dh => dh.MaTrangThaiDonHang)
+                    .Select(g => new { Status = g.Key, Count = g.Count() })
+                    .ToListAsync();
+
+                var stats = new
+                {
+                    tongSoDon = statusCounts.Sum(s => s.Count),
+                    tongDoanhThu = totalRevenueToday,
+                    donHoanThanh = statusCounts.FirstOrDefault(s => s.Status == "DA_HOAN_THANH")?.Count ?? 0,
+                    donDaHuy = statusCounts.FirstOrDefault(s => s.Status == "DA_HUY")?.Count ?? 0,
+                    donChoXacNhan = statusCounts.FirstOrDefault(s => s.Status == "CHO_XAC_NHAN")?.Count ?? 0,
+                };
+
+                return Ok(stats);
+            }
+            catch (Exception ex)
+            {
+                // Log lỗi để debug
+                Console.WriteLine($"Lỗi GetOrderStats: {ex.Message}");
+                return StatusCode(500, new { message = "Lỗi server khi lấy thống kê", error = ex.Message });
+            }
+        }
 
         [HttpGet("GetActiveBookings")]
         public async Task<IActionResult> GetActiveBookings([FromQuery] DateTime? ngay)
