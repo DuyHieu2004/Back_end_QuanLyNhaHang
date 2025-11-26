@@ -57,24 +57,25 @@ namespace QuanLyNhaHang.Controllers
                 var congThuc = await _context.CongThucNauAns
                     .FirstOrDefaultAsync(ct => ct.MaPhienBan == item.MaPhienBan);
 
-                // --- SỬA ĐOẠN NÀY ---
                 if (congThuc == null)
                 {
-                    // Đừng continue nữa, báo lỗi luôn để biết đường sửa
                     return BadRequest(new
                     {
                         message = $"Không tìm thấy công thức nấu ăn cho phiên bản món ăn: {item.MaPhienBan}. Kiểm tra lại bảng CongThucNauAn."
                     });
                 }
-                // --------------------
 
                 var chiTietMoi = new ChiTietDonHang
                 {
                     MaPhienBan = item.MaPhienBan,
                     MaCongThuc = congThuc.MaCongThuc,
                     SoLuong = item.SoLuong,
-                   // GhiChu =  "", // Nhớ handle vụ null ghi chú
-                    MaBanAnDonHang = lienKetBanDon.MaBanAnDonHang
+                    // GhiChu =  item.GhiChu, // Nên gán ghi chú nếu có
+
+                    MaBanAnDonHang = lienKetBanDon.MaBanAnDonHang,
+
+                    // ✅ [QUAN TRỌNG] ĐÃ THÊM DÒNG NÀY ĐỂ SỬA LỖI 500
+                    //MaDonHang = request.MaDonHang
                 };
 
                 _context.ChiTietDonHangs.Add(chiTietMoi);

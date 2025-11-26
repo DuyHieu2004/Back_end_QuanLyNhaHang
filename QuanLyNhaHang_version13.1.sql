@@ -381,8 +381,9 @@ INSERT INTO [dbo].[TrangThaiNhapHang] ([MaTrangThai], [TenTrangThai]) VALUES
 ('DA_HOAN_TAT', N'Đã nhập kho/Hoàn tất');
 
 INSERT INTO [dbo].[VaiTro] ([MaVaiTro], [TenVaiTro]) VALUES
-('VT001', N'Quản lý'), ('VT002', N'Nhân viên phục vụ'),
-('VT003', N'Thu ngân');
+('VT001', N'Quản lý'), 
+('VT002', N'Nhân viên trực quầy');
+GO
 
 INSERT INTO [dbo].[DanhMucMonAn] ([MaDanhMuc], [TenDanhMuc]) VALUES
 ('DM001', N'Món khai vị'), ('DM002', N'Lẩu'), ('DM003', N'Tráng miệng'),
@@ -525,46 +526,50 @@ INSERT INTO [dbo].[NguyenLieu] ([MaNguyenLieu], [TenNguyenLieu], [DonViTinh], [S
 ('NL039', N'Mực ống', N'kg', 30, 0), ('NL040', N'Sò điệp', N'kg', 15, 0);
 GO
 
-INSERT INTO [dbo].[NhanVien] ([MaNhanVien], [HoTen], [TenDangNhap], [MatKhau], [MaVaiTro], [Email], [SoDienThoai], [HinhAnh]) VALUES
--- 1. NHÓM QUẢN LÝ (VT001) -> Mật khẩu Quản lý
-('NV001', N'Nguyễn Văn Quản Lý', 'manager1', '$2a$12$f7FdZEDa2PvelHNgH7nYbOT9u43cd8BFSSsvlSd3x8RfR4jXpm7GG', 'VT001', 'quanly@email.com', '0987654321', 'anh_a.jpg'),
-('NV011', N'Phan Thanh Quản Trị', 'admin2', '$2a$12$f7FdZEDa2PvelHNgH7nYbOT9u43cd8BFSSsvlSd3x8RfR4jXpm7GG', 'VT001', 'admin2@email.com', '0911111101', 'anh_nv11.jpg'),
-('NV030', N'Hồng Thất Công', 'manager2', '$2a$12$f7FdZEDa2PvelHNgH7nYbOT9u43cd8BFSSsvlSd3x8RfR4jXpm7GG', 'VT001', 'cong.hong@email.com', '0911111120', 'anh_nv30.jpg'),
+-- Mật khẩu cho Quản lý (VT001)
+DECLARE @PasswordQL VARCHAR(100) = '$2a$12$.DiUe2Yopuy/TrhqcMMUI.ne2heyeFpdQgBG2OBA3NUz0Hu4WCZjS';
+-- Mật khẩu cho Nhân viên trực quầy (VT002)
+DECLARE @PasswordNV VARCHAR(100) = '$2a$12$PtG6aCE5oyTOJ3Y05Z2VK.RdMXLX7hI5n9oVgwecuef5FRYEhbcU2';
+
+
 
 INSERT INTO [dbo].[NhanVien] ([MaNhanVien], [HoTen], [TenDangNhap], [MatKhau], [MaVaiTro], [Email], [SoDienThoai], [HinhAnh]) VALUES
--- 1. NHÓM QUẢN LÝ (VT001) -> Mật khẩu Quản lý
-('NV050', N'Nguyễn Văn Quản Lý', 'manager10', '123', 'VT001', 'quanly50@email.com', '0987654321', 'anh_a.jpg');
--- 2. NHÓM THU NGÂN (VT003) -> Mật khẩu Thu ngân
-('NV002', N'Trần Thị Thu Ngân', 'cashier1', '$2a$12$mobKxM6PYlMkdmh7wAgHXuYqTmXZ9/N9clEic7i81QgDjWcY1DbR2', 'VT003', 'thungan1@email.com', '0987654322', 'anh_b.jpg'),
-('NV009', N'Ngô Văn Thu Ngân', 'cashier2', '$2a$12$mobKxM6PYlMkdmh7wAgHXuYqTmXZ9/N9clEic7i81QgDjWcY1DbR2', 'VT003', 'thungan2@email.com', '0987654329', 'anh_i.jpg'),
-('NV016', N'Hà Thị Thu Ngân 3', 'cashier3', '$2a$12$mobKxM6PYlMkdmh7wAgHXuYqTmXZ9/N9clEic7i81QgDjWcY1DbR2', 'VT003', 'cashier3@email.com', '0911111106', 'anh_nv16.jpg'),
+-- 1. NHÓM QUẢN LÝ (VT001)
+('NV001', N'Nguyễn Văn Quản Lý', 'manager1', @PasswordQL, 'VT001', 'quanly@email.com', '0987654321', 'anh_a.jpg'),
+('NV011', N'Phan Thanh Quản Trị', 'admin2', @PasswordQL, 'VT001', 'admin2@email.com', '0911111101', 'anh_nv11.jpg'),
+('NV030', N'Hồng Thất Công', 'manager2', @PasswordQL, 'VT001', 'cong.hong@email.com', '0911111120', 'anh_nv30.jpg'),
 
--- 3. NHÓM PHỤC VỤ (VT002) -> Mật khẩu Phục vụ
-('NV003', N'Lê Văn Phục Vụ', 'staff1', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'phucvu1@email.com', '0987654323', 'anh_c.jpg'),
-('NV004', N'Phạm Thị Phục Vụ', 'staff2', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'phucvu2@email.com', '0987654324', 'anh_d.jpg'),
-('NV005', N'Hoàng Văn Bếp Trưởng', 'chef1', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'beptruong@email.com', '0987654325', 'anh_e.jpg'),
-('NV006', N'Vũ Thị Bếp Phó', 'chef2', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'beppho@email.com', '0987654326', 'anh_f.jpg'),
-('NV007', N'Đặng Văn Phục Vụ', 'staff3', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'phucvu3@email.com', '0987654327', 'anh_g.jpg'),
-('NV008', N'Bùi Thị Phục Vụ', 'staff4', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'phucvu4@email.com', '0987654328', 'anh_h.jpg'),
-('NV010', N'Dương Thị Nghỉ Việc', 'old_staff', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'nghiviec@email.com', '0987654330', 'anh_k.jpg'),
-('NV012', N'Lê Thị Bảo Vệ', 'security1', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'security1@email.com', '0911111102', 'anh_nv12.jpg'),
-('NV013', N'Trần Văn Phục Vụ Mới', 'staff5', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'staff5@email.com', '0911111103', 'anh_nv13.jpg'),
-('NV014', N'Ngô Thị Tạp Vụ', 'cleaner1', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'cleaner1@email.com', '0911111104', 'anh_nv14.jpg'),
-('NV015', N'Vũ Hữu Bếp Phụ', 'chef3', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'chef3@email.com', '0911111105', 'anh_nv15.jpg'),
-('NV017', N'Đặng Văn Thực Tập', 'intern1', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'intern1@email.com', '0911111107', 'anh_nv17.jpg'),
-('NV018', N'Nguyễn Thị Phục Vụ 6', 'staff6', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'staff6@email.com', '0911111108', 'anh_nv18.jpg'),
-('NV019', N'Lý Văn Phục Vụ 7', 'staff7', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'staff7@email.com', '0911111109', 'anh_nv19.jpg'),
-('NV020', N'Bùi Thanh Nghỉ Phép', 'staff8', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'staff8@email.com', '0911111110', 'anh_nv20.jpg'),
-('NV021', N'Trần Hữu Danh', 'staff9', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'danh.tran@email.com', '0911111111', 'anh_nv21.jpg'),
-('NV022', N'Lê Thị Kiều', 'staff10', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'kieu.le@email.com', '0911111112', 'anh_nv22.jpg'),
-('NV023', N'Phạm Văn Mách', 'security2', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'mach.pham@email.com', '0911111113', 'anh_nv23.jpg'),
-('NV024', N'Đỗ Thị Nở', 'cleaner2', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'no.do@email.com', '0911111114', 'anh_nv24.jpg'),
-('NV025', N'Quách Tĩnh', 'chef4', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'tinh.quach@email.com', '0911111115', 'anh_nv25.jpg'),
-('NV026', N'Hoàng Dung', 'chef5', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'dung.hoang@email.com', '0911111116', 'anh_nv26.jpg'),
-('NV027', N'Dương Khang', 'staff11', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'khang.duong@email.com', '0911111117', 'anh_nv27.jpg'),
-('NV028', N'Mục Niệm Từ', 'staff12', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'tu.muc@email.com', '0911111118', 'anh_nv28.jpg'),
-('NV029', N'Âu Dương Phong', 'chef_master', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'phong.au@email.com', '0911111119', 'anh_nv29.jpg'),
-('NV000', N'Nhân Viên Tạm Thời', 'manager000', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'tamthoi@email.com', '0911111120', 'anh_nv30.jpg');
+-- 2. NHÓM NHÂN VIÊN TRỰC QUẦY (VT002) - Bao gồm Thu ngân và Phục vụ cũ
+-- Thu ngân cũ
+('NV002', N'Trần Thị Thu Ngân', 'cashier1', @PasswordNV, 'VT002', 'thungan1@email.com', '0987654322', 'anh_b.jpg'),
+('NV009', N'Ngô Văn Thu Ngân', 'cashier2', @PasswordNV, 'VT002', 'thungan2@email.com', '0987654329', 'anh_i.jpg'),
+('NV016', N'Hà Thị Thu Ngân 3', 'cashier3', @PasswordNV, 'VT002', 'cashier3@email.com', '0911111106', 'anh_nv16.jpg'),
+-- Phục vụ cũ
+('NV003', N'Lê Văn Phục Vụ', 'staff1', @PasswordNV, 'VT002', 'phucvu1@email.com', '0987654323', 'anh_c.jpg'),
+('NV004', N'Phạm Thị Phục Vụ', 'staff2', @PasswordNV, 'VT002', 'phucvu2@email.com', '0987654324', 'anh_d.jpg'),
+('NV005', N'Hoàng Văn Bếp Trưởng', 'chef1', @PasswordNV, 'VT002', 'beptruong@email.com', '0987654325', 'anh_e.jpg'),
+('NV006', N'Vũ Thị Bếp Phó', 'chef2', @PasswordNV, 'VT002', 'beppho@email.com', '0987654326', 'anh_f.jpg'),
+('NV007', N'Đặng Văn Phục Vụ', 'staff3', @PasswordNV, 'VT002', 'phucvu3@email.com', '0987654327', 'anh_g.jpg'),
+('NV008', N'Bùi Thị Phục Vụ', 'staff4', @PasswordNV, 'VT002', 'phucvu4@email.com', '0987654328', 'anh_h.jpg'),
+('NV010', N'Dương Thị Nghỉ Việc', 'old_staff', @PasswordNV, 'VT002', 'nghiviec@email.com', '0987654330', 'anh_k.jpg'),
+('NV012', N'Lê Thị Bảo Vệ', 'security1', @PasswordNV, 'VT002', 'security1@email.com', '0911111102', 'anh_nv12.jpg'),
+('NV013', N'Trần Văn Phục Vụ Mới', 'staff5', @PasswordNV, 'VT002', 'staff5@email.com', '0911111103', 'anh_nv13.jpg'),
+('NV014', N'Ngô Thị Tạp Vụ', 'cleaner1', @PasswordNV, 'VT002', 'cleaner1@email.com', '0911111104', 'anh_nv14.jpg'),
+('NV015', N'Vũ Hữu Bếp Phụ', 'chef3', @PasswordNV, 'VT002', 'chef3@email.com', '0911111105', 'anh_nv15.jpg'),
+('NV017', N'Đặng Văn Thực Tập', 'intern1', @PasswordNV, 'VT002', 'intern1@email.com', '0911111107', 'anh_nv17.jpg'),
+('NV018', N'Nguyễn Thị Phục Vụ 6', 'staff6', @PasswordNV, 'VT002', 'staff6@email.com', '0911111108', 'anh_nv18.jpg'),
+('NV019', N'Lý Văn Phục Vụ 7', 'staff7', @PasswordNV, 'VT002', 'staff7@email.com', '0911111109', 'anh_nv19.jpg'),
+('NV020', N'Bùi Thanh Nghỉ Phép', 'staff8', @PasswordNV, 'VT002', 'staff8@email.com', '0911111110', 'anh_nv20.jpg'),
+('NV021', N'Trần Hữu Danh', 'staff9', @PasswordNV, 'VT002', 'danh.tran@email.com', '0911111111', 'anh_nv21.jpg'),
+('NV022', N'Lê Thị Kiều', 'staff10', @PasswordNV, 'VT002', 'kieu.le@email.com', '0911111112', 'anh_nv22.jpg'),
+('NV023', N'Phạm Văn Mách', 'security2', @PasswordNV, 'VT002', 'mach.pham@email.com', '0911111113', 'anh_nv23.jpg'),
+('NV024', N'Đỗ Thị Nở', 'cleaner2', @PasswordNV, 'VT002', 'no.do@email.com', '0911111114', 'anh_nv24.jpg'),
+('NV025', N'Quách Tĩnh', 'chef4', @PasswordNV, 'VT002', 'tinh.quach@email.com', '0911111115', 'anh_nv25.jpg'),
+('NV026', N'Hoàng Dung', 'chef5', @PasswordNV, 'VT002', 'dung.hoang@email.com', '0911111116', 'anh_nv26.jpg'),
+('NV027', N'Dương Khang', 'staff11', @PasswordNV, 'VT002', 'khang.duong@email.com', '0911111117', 'anh_nv27.jpg'),
+('NV028', N'Mục Niệm Từ', 'staff12', @PasswordNV, 'VT002', 'tu.muc@email.com', '0911111118', 'anh_nv28.jpg'),
+('NV029', N'Âu Dương Phong', 'chef_master', @PasswordNV, 'VT002', 'phong.au@email.com', '0911111119', 'anh_nv29.jpg'),
+('NV000', N'Nhân Viên Tạm Thời', 'manager000', @PasswordNV, 'VT002', 'tamthoi@email.com', '0911111120', 'anh_nv30.jpg');
 GO
 
 -- 3. CHÈN DỮ LIỆU MÓN ĂN
