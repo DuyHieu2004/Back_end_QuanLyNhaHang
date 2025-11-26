@@ -1480,3 +1480,17 @@ CREATE TABLE RefreshTokens (
     Expires DATETIME2 NOT NULL,
     IsRevoked BIT NOT NULL DEFAULT 0
 );
+
+SELECT name 
+FROM sys.foreign_keys 
+WHERE parent_object_id = OBJECT_ID('dbo.ChiTietDonHang')
+
+-- 1. Xóa khóa ngoại trước
+ALTER TABLE [dbo].[ChiTietDonHang] 
+DROP CONSTRAINT [FK_ChiTietDonHang_DonHang]; 
+GO
+
+
+ALTER TABLE [dbo].[ChiTietDonHang]
+DROP COLUMN [MaDonHang];
+GO

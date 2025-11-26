@@ -381,8 +381,9 @@ INSERT INTO [dbo].[TrangThaiNhapHang] ([MaTrangThai], [TenTrangThai]) VALUES
 ('DA_HOAN_TAT', N'Đã nhập kho/Hoàn tất');
 
 INSERT INTO [dbo].[VaiTro] ([MaVaiTro], [TenVaiTro]) VALUES
-('VT001', N'Quản lý'), ('VT002', N'Nhân viên phục vụ'),
-('VT003', N'Thu ngân');
+('VT001', N'Quản lý'), 
+('VT002', N'Nhân viên trực quầy');
+GO
 
 INSERT INTO [dbo].[DanhMucMonAn] ([MaDanhMuc], [TenDanhMuc]) VALUES
 ('DM001', N'Món khai vị'), ('DM002', N'Lẩu'), ('DM003', N'Tráng miệng'),
@@ -525,43 +526,50 @@ INSERT INTO [dbo].[NguyenLieu] ([MaNguyenLieu], [TenNguyenLieu], [DonViTinh], [S
 ('NL039', N'Mực ống', N'kg', 30, 0), ('NL040', N'Sò điệp', N'kg', 15, 0);
 GO
 
+-- Mật khẩu cho Quản lý (VT001)
+DECLARE @PasswordQL VARCHAR(100) = '$2a$12$.DiUe2Yopuy/TrhqcMMUI.ne2heyeFpdQgBG2OBA3NUz0Hu4WCZjS';
+-- Mật khẩu cho Nhân viên trực quầy (VT002)
+DECLARE @PasswordNV VARCHAR(100) = '$2a$12$PtG6aCE5oyTOJ3Y05Z2VK.RdMXLX7hI5n9oVgwecuef5FRYEhbcU2';
+
+
+
 INSERT INTO [dbo].[NhanVien] ([MaNhanVien], [HoTen], [TenDangNhap], [MatKhau], [MaVaiTro], [Email], [SoDienThoai], [HinhAnh]) VALUES
--- 1. NHÓM QUẢN LÝ (VT001) -> Mật khẩu Quản lý
-('NV001', N'Nguyễn Văn Quản Lý', 'manager1', '$2a$12$f7FdZEDa2PvelHNgH7nYbOT9u43cd8BFSSsvlSd3x8RfR4jXpm7GG', 'VT001', 'quanly@email.com', '0987654321', 'anh_a.jpg'),
-('NV011', N'Phan Thanh Quản Trị', 'admin2', '$2a$12$f7FdZEDa2PvelHNgH7nYbOT9u43cd8BFSSsvlSd3x8RfR4jXpm7GG', 'VT001', 'admin2@email.com', '0911111101', 'anh_nv11.jpg'),
-('NV030', N'Hồng Thất Công', 'manager2', '$2a$12$f7FdZEDa2PvelHNgH7nYbOT9u43cd8BFSSsvlSd3x8RfR4jXpm7GG', 'VT001', 'cong.hong@email.com', '0911111120', 'anh_nv30.jpg'),
+-- 1. NHÓM QUẢN LÝ (VT001)
+('NV001', N'Nguyễn Văn Quản Lý', 'manager1', @PasswordQL, 'VT001', 'quanly@email.com', '0987654321', 'anh_a.jpg'),
+('NV011', N'Phan Thanh Quản Trị', 'admin2', @PasswordQL, 'VT001', 'admin2@email.com', '0911111101', 'anh_nv11.jpg'),
+('NV030', N'Hồng Thất Công', 'manager2', @PasswordQL, 'VT001', 'cong.hong@email.com', '0911111120', 'anh_nv30.jpg'),
 
--- 2. NHÓM THU NGÂN (VT003) -> Mật khẩu Thu ngân
-('NV002', N'Trần Thị Thu Ngân', 'cashier1', '$2a$12$mobKxM6PYlMkdmh7wAgHXuYqTmXZ9/N9clEic7i81QgDjWcY1DbR2', 'VT003', 'thungan1@email.com', '0987654322', 'anh_b.jpg'),
-('NV009', N'Ngô Văn Thu Ngân', 'cashier2', '$2a$12$mobKxM6PYlMkdmh7wAgHXuYqTmXZ9/N9clEic7i81QgDjWcY1DbR2', 'VT003', 'thungan2@email.com', '0987654329', 'anh_i.jpg'),
-('NV016', N'Hà Thị Thu Ngân 3', 'cashier3', '$2a$12$mobKxM6PYlMkdmh7wAgHXuYqTmXZ9/N9clEic7i81QgDjWcY1DbR2', 'VT003', 'cashier3@email.com', '0911111106', 'anh_nv16.jpg'),
-
--- 3. NHÓM PHỤC VỤ (VT002) -> Mật khẩu Phục vụ
-('NV003', N'Lê Văn Phục Vụ', 'staff1', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'phucvu1@email.com', '0987654323', 'anh_c.jpg'),
-('NV004', N'Phạm Thị Phục Vụ', 'staff2', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'phucvu2@email.com', '0987654324', 'anh_d.jpg'),
-('NV005', N'Hoàng Văn Bếp Trưởng', 'chef1', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'beptruong@email.com', '0987654325', 'anh_e.jpg'),
-('NV006', N'Vũ Thị Bếp Phó', 'chef2', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'beppho@email.com', '0987654326', 'anh_f.jpg'),
-('NV007', N'Đặng Văn Phục Vụ', 'staff3', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'phucvu3@email.com', '0987654327', 'anh_g.jpg'),
-('NV008', N'Bùi Thị Phục Vụ', 'staff4', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'phucvu4@email.com', '0987654328', 'anh_h.jpg'),
-('NV010', N'Dương Thị Nghỉ Việc', 'old_staff', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'nghiviec@email.com', '0987654330', 'anh_k.jpg'),
-('NV012', N'Lê Thị Bảo Vệ', 'security1', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'security1@email.com', '0911111102', 'anh_nv12.jpg'),
-('NV013', N'Trần Văn Phục Vụ Mới', 'staff5', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'staff5@email.com', '0911111103', 'anh_nv13.jpg'),
-('NV014', N'Ngô Thị Tạp Vụ', 'cleaner1', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'cleaner1@email.com', '0911111104', 'anh_nv14.jpg'),
-('NV015', N'Vũ Hữu Bếp Phụ', 'chef3', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'chef3@email.com', '0911111105', 'anh_nv15.jpg'),
-('NV017', N'Đặng Văn Thực Tập', 'intern1', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'intern1@email.com', '0911111107', 'anh_nv17.jpg'),
-('NV018', N'Nguyễn Thị Phục Vụ 6', 'staff6', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'staff6@email.com', '0911111108', 'anh_nv18.jpg'),
-('NV019', N'Lý Văn Phục Vụ 7', 'staff7', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'staff7@email.com', '0911111109', 'anh_nv19.jpg'),
-('NV020', N'Bùi Thanh Nghỉ Phép', 'staff8', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'staff8@email.com', '0911111110', 'anh_nv20.jpg'),
-('NV021', N'Trần Hữu Danh', 'staff9', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'danh.tran@email.com', '0911111111', 'anh_nv21.jpg'),
-('NV022', N'Lê Thị Kiều', 'staff10', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'kieu.le@email.com', '0911111112', 'anh_nv22.jpg'),
-('NV023', N'Phạm Văn Mách', 'security2', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'mach.pham@email.com', '0911111113', 'anh_nv23.jpg'),
-('NV024', N'Đỗ Thị Nở', 'cleaner2', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'no.do@email.com', '0911111114', 'anh_nv24.jpg'),
-('NV025', N'Quách Tĩnh', 'chef4', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'tinh.quach@email.com', '0911111115', 'anh_nv25.jpg'),
-('NV026', N'Hoàng Dung', 'chef5', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'dung.hoang@email.com', '0911111116', 'anh_nv26.jpg'),
-('NV027', N'Dương Khang', 'staff11', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'khang.duong@email.com', '0911111117', 'anh_nv27.jpg'),
-('NV028', N'Mục Niệm Từ', 'staff12', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'tu.muc@email.com', '0911111118', 'anh_nv28.jpg'),
-('NV029', N'Âu Dương Phong', 'chef_master', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'phong.au@email.com', '0911111119', 'anh_nv29.jpg'),
-('NV000', N'Nhân Viên Tạm Thời', 'manager000', '$2a$12$q0BwC4ezPFAeu8jPVcUqCOS1HbzeHgPCnvcuDTXq/YBgjCgmysvTW', 'VT002', 'tamthoi@email.com', '0911111120', 'anh_nv30.jpg');
+-- 2. NHÓM NHÂN VIÊN TRỰC QUẦY (VT002) - Bao gồm Thu ngân và Phục vụ cũ
+-- Thu ngân cũ
+('NV002', N'Trần Thị Thu Ngân', 'cashier1', @PasswordNV, 'VT002', 'thungan1@email.com', '0987654322', 'anh_b.jpg'),
+('NV009', N'Ngô Văn Thu Ngân', 'cashier2', @PasswordNV, 'VT002', 'thungan2@email.com', '0987654329', 'anh_i.jpg'),
+('NV016', N'Hà Thị Thu Ngân 3', 'cashier3', @PasswordNV, 'VT002', 'cashier3@email.com', '0911111106', 'anh_nv16.jpg'),
+-- Phục vụ cũ
+('NV003', N'Lê Văn Phục Vụ', 'staff1', @PasswordNV, 'VT002', 'phucvu1@email.com', '0987654323', 'anh_c.jpg'),
+('NV004', N'Phạm Thị Phục Vụ', 'staff2', @PasswordNV, 'VT002', 'phucvu2@email.com', '0987654324', 'anh_d.jpg'),
+('NV005', N'Hoàng Văn Bếp Trưởng', 'chef1', @PasswordNV, 'VT002', 'beptruong@email.com', '0987654325', 'anh_e.jpg'),
+('NV006', N'Vũ Thị Bếp Phó', 'chef2', @PasswordNV, 'VT002', 'beppho@email.com', '0987654326', 'anh_f.jpg'),
+('NV007', N'Đặng Văn Phục Vụ', 'staff3', @PasswordNV, 'VT002', 'phucvu3@email.com', '0987654327', 'anh_g.jpg'),
+('NV008', N'Bùi Thị Phục Vụ', 'staff4', @PasswordNV, 'VT002', 'phucvu4@email.com', '0987654328', 'anh_h.jpg'),
+('NV010', N'Dương Thị Nghỉ Việc', 'old_staff', @PasswordNV, 'VT002', 'nghiviec@email.com', '0987654330', 'anh_k.jpg'),
+('NV012', N'Lê Thị Bảo Vệ', 'security1', @PasswordNV, 'VT002', 'security1@email.com', '0911111102', 'anh_nv12.jpg'),
+('NV013', N'Trần Văn Phục Vụ Mới', 'staff5', @PasswordNV, 'VT002', 'staff5@email.com', '0911111103', 'anh_nv13.jpg'),
+('NV014', N'Ngô Thị Tạp Vụ', 'cleaner1', @PasswordNV, 'VT002', 'cleaner1@email.com', '0911111104', 'anh_nv14.jpg'),
+('NV015', N'Vũ Hữu Bếp Phụ', 'chef3', @PasswordNV, 'VT002', 'chef3@email.com', '0911111105', 'anh_nv15.jpg'),
+('NV017', N'Đặng Văn Thực Tập', 'intern1', @PasswordNV, 'VT002', 'intern1@email.com', '0911111107', 'anh_nv17.jpg'),
+('NV018', N'Nguyễn Thị Phục Vụ 6', 'staff6', @PasswordNV, 'VT002', 'staff6@email.com', '0911111108', 'anh_nv18.jpg'),
+('NV019', N'Lý Văn Phục Vụ 7', 'staff7', @PasswordNV, 'VT002', 'staff7@email.com', '0911111109', 'anh_nv19.jpg'),
+('NV020', N'Bùi Thanh Nghỉ Phép', 'staff8', @PasswordNV, 'VT002', 'staff8@email.com', '0911111110', 'anh_nv20.jpg'),
+('NV021', N'Trần Hữu Danh', 'staff9', @PasswordNV, 'VT002', 'danh.tran@email.com', '0911111111', 'anh_nv21.jpg'),
+('NV022', N'Lê Thị Kiều', 'staff10', @PasswordNV, 'VT002', 'kieu.le@email.com', '0911111112', 'anh_nv22.jpg'),
+('NV023', N'Phạm Văn Mách', 'security2', @PasswordNV, 'VT002', 'mach.pham@email.com', '0911111113', 'anh_nv23.jpg'),
+('NV024', N'Đỗ Thị Nở', 'cleaner2', @PasswordNV, 'VT002', 'no.do@email.com', '0911111114', 'anh_nv24.jpg'),
+('NV025', N'Quách Tĩnh', 'chef4', @PasswordNV, 'VT002', 'tinh.quach@email.com', '0911111115', 'anh_nv25.jpg'),
+('NV026', N'Hoàng Dung', 'chef5', @PasswordNV, 'VT002', 'dung.hoang@email.com', '0911111116', 'anh_nv26.jpg'),
+('NV027', N'Dương Khang', 'staff11', @PasswordNV, 'VT002', 'khang.duong@email.com', '0911111117', 'anh_nv27.jpg'),
+('NV028', N'Mục Niệm Từ', 'staff12', @PasswordNV, 'VT002', 'tu.muc@email.com', '0911111118', 'anh_nv28.jpg'),
+('NV029', N'Âu Dương Phong', 'chef_master', @PasswordNV, 'VT002', 'phong.au@email.com', '0911111119', 'anh_nv29.jpg'),
+('NV000', N'Nhân Viên Tạm Thời', 'manager000', @PasswordNV, 'VT002', 'tamthoi@email.com', '0911111120', 'anh_nv30.jpg');
 GO
 
 -- 3. CHÈN DỮ LIỆU MÓN ĂN
@@ -618,7 +626,7 @@ VALUES
 ('PB001', N'Size S', 'CON_HANG', 1),
 ('PB002', N'Size M', 'CON_HANG', 2),
 ('PB003', N'Size L', 'CON_HANG', 3)
----- Thêm các phiên bản mặc định cho các món không có size (để map dữ liệu cũ)
+-- Thêm các phiên bản mặc định cho các món không có size (để map dữ liệu cũ)
 --('PB004', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB005', N'Tiêu chuẩn', 'CON_HANG', 1),
 --('PB006', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB007', N'Tiêu chuẩn', 'CON_HANG', 1),
 --('PB008', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB009', N'Tiêu chuẩn', 'CON_HANG', 1),
@@ -684,7 +692,8 @@ INSERT INTO HinhAnhMonAn (MaMonAn, URLHinhAnh) VALUES
 ('MA015', 'images/monans/suongsaohate/suongsao2.jpg'), ('MA021', 'images/monans/suonnuong/suon1.jpg'),
 ('MA021', 'images/monans/suonnuong/suon2.jpg'), ('MA036', 'images/monans/tomhumnuongbo/tomhum1.jpg'),
 ('MA036', 'images/monans/tomhumnuongbo/tomhum2.jpg'), ('MA036', 'images/monans/tomhumnuongbo/tomhum3.jpg'),
-('MA023', 'images/monans/tomnuong/tomnuong1.jpg'), ('MA023', 'images/monans/tomnuong/tomnuong2.jpg');
+('MA023', 'images/monans/tomnuong/tomnuong1.jpg'), ('MA023', 'images/monans/tomnuong/tomnuong2.jpg'),
+('MA007', 'images/monans/laugalagiang/lauga.jpg');
 GO
 
 -- 7. CHÈN DỮ LIỆU CUNG ỨNG
@@ -808,6 +817,98 @@ UPDATE [dbo].[NguyenLieu]
 SET [GiaBan] = 10000 
 WHERE [GiaBan] IS NULL OR [GiaBan] = 0;
 GO
+
+-----------------------------------------------------------------
+-- SỬA LẠI DỮ LIỆU CHO BẢNG CÔNG THỨC NẤU ĂN--
+-----------------------------------------------------------------
+-- XÓA DỮ LIỆU CŨ trong CongThucNauAn để chèn lại
+DELETE FROM [dbo].[CongThucNauAn];
+GO
+--CHÈN DỮ LIỆU CÔNG THỨC MỚI (120 dòng - 40 món x 3 size)
+INSERT INTO [dbo].[CongThucNauAn] ([MaCongThuc], [MaCT], [MaPhienBan], [Gia]) VALUES
+-- MA001 (Hạt dưa)
+('CT001_S', 'CT001', 'PB001', 30000), ('CT001_M', 'CT001', 'PB002', 39000), ('CT001_L', 'CT001', 'PB003', 54000),
+-- MA002 (Đậu phộng)
+('CT002_S', 'CT002', 'PB001', 30000), ('CT002_M', 'CT002', 'PB002', 39000), ('CT002_L', 'CT002', 'PB003', 54000),
+-- MA003 (Chả giò)
+('CT003_S', 'CT003', 'PB001', 35000), ('CT003_M', 'CT003', 'PB002', 45000), ('CT003_L', 'CT003', 'PB003', 63000),
+-- MA004 (Mứt dâu)
+('CT004_S', 'CT004', 'PB001', 35000), ('CT004_M', 'CT004', 'PB002', 45000), ('CT004_L', 'CT004', 'PB003', 63000),
+-- MA005 (Salad trái cây)
+('CT005_S', 'CT005', 'PB001', 40000), ('CT005_M', 'CT005', 'PB002', 52000), ('CT005_L', 'CT005', 'PB003', 72000),
+-- MA006 (Lẩu Thái hải sản)
+('CT006_S', 'CT006', 'PB001', 250000), ('CT006_M', 'CT006', 'PB002', 350000), ('CT006_L', 'CT006', 'PB003', 450000),
+-- MA007 (Lẩu gà lá giang)
+('CT007_S', 'CT007', 'PB001', 200000), ('CT007_M', 'CT007', 'PB002', 280000), ('CT007_L', 'CT007', 'PB003', 380000),
+-- MA008 (Lẩu bò nhúng giấm)
+('CT008_S', 'CT008', 'PB001', 280000), ('CT008_M', 'CT008', 'PB002', 390000), ('CT008_L', 'CT008', 'PB003', 500000),
+-- MA009 (Lẩu cá hồi)
+('CT009_S', 'CT009', 'PB001', 300000), ('CT009_M', 'CT009', 'PB002', 420000), ('CT009_L', 'CT009', 'PB003', 540000),
+-- MA010 (Lẩu tôm)
+('CT010_S', 'CT010', 'PB001', 220000), ('CT010_M', 'CT010', 'PB002', 300000), ('CT010_L', 'CT010', 'PB003', 400000),
+-- MA011 (Bánh flan)
+('CT011_S', 'CT011', 'PB001', 25000), ('CT011_M', 'CT011', 'PB002', 32000), ('CT011_L', 'CT011', 'PB003', 45000),
+-- MA012 (Chè hạt sen)
+('CT012_S', 'CT012', 'PB001', 30000), ('CT012_M', 'CT012', 'PB002', 39000), ('CT012_L', 'CT012', 'PB003', 54000),
+-- MA013 (Sữa chua nếp cẩm)
+('CT013_S', 'CT013', 'PB001', 25000), ('CT013_M', 'CT013', 'PB002', 32000), ('CT013_L', 'CT013', 'PB003', 45000),
+-- MA014 (Kem tươi)
+('CT014_S', 'CT014', 'PB001', 40000), ('CT014_M', 'CT014', 'PB002', 52000), ('CT014_L', 'CT014', 'PB003', 72000),
+-- MA015 (Sương sáo hột é)
+('CT015_S', 'CT015', 'PB001', 35000), ('CT015_M', 'CT015', 'PB002', 45000), ('CT015_L', 'CT015', 'PB003', 63000),
+-- MA016 (Nước lọc)
+('CT016_S', 'CT016', 'PB001', 10000), ('CT016_M', 'CT016', 'PB002', 13000), ('CT016_L', 'CT016', 'PB003', 18000),
+-- MA017 (Nước ép trái cây)
+('CT017_S', 'CT017', 'PB001', 30000), ('CT017_M', 'CT017', 'PB002', 39000), ('CT017_L', 'CT017', 'PB003', 54000),
+-- MA018 (Pepsi)
+('CT018_S', 'CT018', 'PB001', 25000), ('CT018_M', 'CT018', 'PB002', 32000), ('CT018_L', 'CT018', 'PB003', 45000),
+-- MA019 (Bia Sài Gòn)
+('CT019_S', 'CT019', 'PB001', 30000), ('CT019_M', 'CT019', 'PB002', 39000), ('CT019_L', 'CT019', 'PB003', 54000),
+-- MA020 (Coca)
+('CT020_S', 'CT020', 'PB001', 25000), ('CT020_M', 'CT020', 'PB002', 32000), ('CT020_L', 'CT020', 'PB003', 45000),
+-- MA021 (Sườn nướng BBQ)
+('CT021_S', 'CT021', 'PB001', 150000), ('CT021_M', 'CT021', 'PB002', 200000), ('CT021_L', 'CT021', 'PB003', 270000),
+-- MA022 (Hàu nướng phô mai)
+('CT022_S', 'CT022', 'PB001', 220000), ('CT022_M', 'CT022', 'PB002', 300000), ('CT022_L', 'CT022', 'PB003', 400000),
+-- MA023 (Tôm nướng muối ớt)
+('CT023_S', 'CT023', 'PB001', 200000), ('CT023_M', 'CT023', 'PB002', 280000), ('CT023_L', 'CT023', 'PB003', 360000),
+-- MA024 (Ba chỉ bò nướng)
+('CT024_S', 'CT024', 'PB001', 180000), ('CT024_M', 'CT024', 'PB002', 250000), ('CT024_L', 'CT024', 'PB003', 320000),
+-- MA025 (Gà nướng muối tiêu)
+('CT025_S', 'CT025', 'PB001', 200000), ('CT025_M', 'CT025', 'PB002', 280000), ('CT025_L', 'CT025', 'PB003', 360000),
+-- MA026 (Cơm chay đậu hũ)
+('CT026_S', 'CT026', 'PB001', 60000), ('CT026_M', 'CT026', 'PB002', 78000), ('CT026_L', 'CT026', 'PB003', 108000),
+-- MA027 (Đậu hũ chiên sả)
+('CT027_S', 'CT027', 'PB001', 40000), ('CT027_M', 'CT027', 'PB002', 52000), ('CT027_L', 'CT027', 'PB003', 72000),
+-- MA028 (Canh chua chay)
+('CT028_S', 'CT028', 'PB001', 45000), ('CT028_M', 'CT028', 'PB002', 58000), ('CT028_L', 'CT028', 'PB003', 81000),
+-- MA029 (Mì xào chay)
+('CT029_S', 'CT029', 'PB001', 55000), ('CT029_M', 'CT029', 'PB002', 71000), ('CT029_L', 'CT029', 'PB003', 99000),
+-- MA030 (Nấm hấp xả)
+('CT030_S', 'CT030', 'PB001', 50000), ('CT030_M', 'CT030', 'PB002', 65000), ('CT030_L', 'CT030', 'PB003', 90000),
+-- MA031 (Cơm tấm sườn bì chả)
+('CT031_S', 'CT031', 'PB001', 75000), ('CT031_M', 'CT031', 'PB002', 97000), ('CT031_L', 'CT031', 'PB003', 135000),
+-- MA032 (Cơm chiên dương châu)
+('CT032_S', 'CT032', 'PB001', 70000), ('CT032_M', 'CT032', 'PB002', 91000), ('CT032_L', 'CT032', 'PB003', 126000),
+-- MA033 (Cơm rang hải sản)
+('CT033_S', 'CT033', 'PB001', 85000), ('CT033_M', 'CT033', 'PB002', 110000), ('CT033_L', 'CT033', 'PB003', 153000),
+-- MA034 (Cơm gà xối mỡ)
+('CT034_S', 'CT034', 'PB001', 75000), ('CT034_M', 'CT034', 'PB002', 97000), ('CT034_L', 'CT034', 'PB003', 135000),
+-- MA035 (Cơm bò lúc lắc)
+('CT035_S', 'CT035', 'PB001', 80000), ('CT035_M', 'CT035', 'PB002', 104000), ('CT035_L', 'CT035', 'PB003', 144000),
+-- MA036 (Tôm hùm nướng bơ tỏi)
+('CT036_S', 'CT036', 'PB001', 450000), ('CT036_M', 'CT036', 'PB002', 600000), ('CT036_L', 'CT036', 'PB003', 800000),
+-- MA037 (Cua rang me)
+('CT037_S', 'CT037', 'PB001', 300000), ('CT037_M', 'CT037', 'PB002', 420000), ('CT037_L', 'CT037', 'PB003', 540000),
+-- MA038 (Ghẹ hấp bia)
+('CT038_S', 'CT038', 'PB001', 280000), ('CT038_M', 'CT038', 'PB002', 390000), ('CT038_L', 'CT038', 'PB003', 500000),
+-- MA039 (Mực chiên giòn)
+('CT039_S', 'CT039', 'PB001', 180000), ('CT039_M', 'CT039', 'PB002', 250000), ('CT039_L', 'CT039', 'PB003', 320000),
+-- MA040 (Sò điệp nướng phô mai)
+('CT040_S', 'CT040', 'PB001', 250000), ('CT040_M', 'CT040', 'PB002', 350000), ('CT040_L', 'CT040', 'PB003', 450000);
+GO
+
+
 
 -- 11. CHÈN DỮ LIỆU CÔNG THỨC NẤU ĂN
 INSERT INTO [dbo].[CongThucNauAn] ([MaCongThuc], [MaCT], [MaPhienBan], [Gia]) VALUES
@@ -1357,4 +1458,44 @@ INSERT INTO [dbo].[ChiTietMenu] ([MaMenu], [MaCongThuc], [SoLuong], [GhiChu], [T
 ('MENU005', 'CT024', 1, N'Ba chỉ bò nướng', 3),
 ('MENU005', 'CT028', 1, N'Canh chua chay', 4),
 ('MENU005', 'CT016', 4, N'Nước lọc (4 chai)', 5);
+GO
+
+-- Gán bàn vào các tầng
+UPDATE [dbo].[BanAn]
+SET [MaTang] = 'T001'
+WHERE [MaBan] BETWEEN 'B001' AND 'B014';
+GO
+
+
+UPDATE [dbo].[BanAn]
+SET [MaTang] = 'T002'
+WHERE [MaBan] BETWEEN 'B015' AND 'B027';
+GO
+
+
+UPDATE [dbo].[BanAn]
+SET [MaTang] = 'T003'
+WHERE [MaBan] BETWEEN 'B028' AND 'B040';
+GO
+
+CREATE TABLE RefreshTokens (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Token NVARCHAR(MAX) NOT NULL,
+    UserId NVARCHAR(450) NOT NULL,
+    Expires DATETIME2 NOT NULL,
+    IsRevoked BIT NOT NULL DEFAULT 0
+);
+
+SELECT name 
+FROM sys.foreign_keys 
+WHERE parent_object_id = OBJECT_ID('dbo.ChiTietDonHang')
+
+-- 1. Xóa khóa ngoại trước
+ALTER TABLE [dbo].[ChiTietDonHang] 
+DROP CONSTRAINT [FK_ChiTietDonHang_DonHang]; 
+GO
+
+
+ALTER TABLE [dbo].[ChiTietDonHang]
+DROP COLUMN [MaDonHang];
 GO
