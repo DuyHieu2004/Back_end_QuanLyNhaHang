@@ -42,8 +42,8 @@ namespace QuanLyNhaHang.Controllers
                     // Khi chưa có Token, biến User sẽ rỗng. Ta phải gán cứng mã nhân viên để test.
                     // SAU NÀY CÓ LOGIN: Comment dòng dưới, mở comment dòng User.FindFirst...
 
-                    string maNhanVienHienTai = "NV001"; // <--- Gán cứng mã của bạn để test (Đảm bảo NV001 có trong DB)
-                    // string maNhanVienHienTai = User.FindFirst("MaNhanVien")?.Value; // <--- Code chuẩn sau này
+                   // string maNhanVienHienTai = "NV001"; // <--- Gán cứng mã của bạn để test (Đảm bảo NV001 có trong DB)
+                     string maNhanVienHienTai = User.FindFirst("MaNhanVien")?.Value; // <--- Code chuẩn sau này
 
                     if (string.IsNullOrEmpty(maNhanVienHienTai))
                     {
