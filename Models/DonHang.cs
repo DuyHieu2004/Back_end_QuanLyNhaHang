@@ -39,7 +39,7 @@ public partial class DonHang
 
     public decimal? TienGiamGia { get; set; }
 
-    public virtual ICollection<ChiTietDonHang> ChiTietDonHangs { get; set; } = new List<ChiTietDonHang>();
+ //   public virtual ICollection<ChiTietDonHang> ChiTietDonHangs { get; set; } = new List<ChiTietDonHang>();
 
     public virtual ICollection<BanAnDonHang> BanAnDonHangs { get; set; } = new List<BanAnDonHang>();
 

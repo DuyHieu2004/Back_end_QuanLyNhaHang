@@ -53,9 +53,12 @@ namespace QuanLyNhaHang.Controllers
 
             foreach (var item in request.Items)
             {
-                // Tìm công thức nấu ăn dựa trên Phiên bản (Size)
                 var congThuc = await _context.CongThucNauAns
-                    .FirstOrDefaultAsync(ct => ct.MaPhienBan == item.MaPhienBan);
+                    .Include(ct => ct.MaCtNavigation) // Phải Join bảng cha để check món
+                    .FirstOrDefaultAsync(ct =>
+                        ct.MaPhienBan == item.MaPhienBan &&
+                        ct.MaCtNavigation.MaMonAn == item.MaMonAn // <-- QUAN TRỌNG NHẤT LÀ DÒNG NÀY
+                    );
 
                 if (congThuc == null)
                 {
@@ -67,6 +70,7 @@ namespace QuanLyNhaHang.Controllers
 
                 var chiTietMoi = new ChiTietDonHang
                 {
+                   
                     MaPhienBan = item.MaPhienBan,
                     MaCongThuc = congThuc.MaCongThuc,
                     SoLuong = item.SoLuong,
@@ -79,6 +83,7 @@ namespace QuanLyNhaHang.Controllers
                 };
 
                 _context.ChiTietDonHangs.Add(chiTietMoi);
+                await _context.SaveChangesAsync();
             }
 
             await _context.SaveChangesAsync();
@@ -112,7 +117,9 @@ namespace QuanLyNhaHang.Controllers
                 danhSachBan = dh.BanAnDonHangs.Any()
                     ? string.Join(", ", dh.BanAnDonHangs.Select(badh => badh.MaBanNavigation.TenBan))
                     : null,
-                tongTien = dh.ChiTietDonHangs.Sum(ct => ct.SoLuong * ct.MaCongThucNavigation.Gia)
+                tongTien = dh.BanAnDonHangs
+                     .SelectMany(b => b.ChiTietDonHangs)
+                     .Sum(ct => ct.SoLuong * ct.MaCongThucNavigation.Gia)
             });
         }
 
@@ -205,7 +212,9 @@ namespace QuanLyNhaHang.Controllers
                     .Include(dh => dh.MaKhachHangNavigation)
                     .Include(dh => dh.MaNhanVienNavigation)
                     .Include(dh => dh.BanAnDonHangs).ThenInclude(badh => badh.MaBanNavigation)
-                    .Include(dh => dh.ChiTietDonHangs).ThenInclude(ct => ct.MaCongThucNavigation)
+                    .Include(dh => dh.BanAnDonHangs)
+        .ThenInclude(badh => badh.ChiTietDonHangs)
+            .ThenInclude(ct => ct.MaCongThucNavigation)
                     .Where(dh => dh.MaTrangThaiDonHang == statusUpper)
                     .OrderByDescending(dh => dh.ThoiGianKetThuc ?? dh.ThoiGianDatHang);
 
@@ -232,13 +241,13 @@ namespace QuanLyNhaHang.Controllers
 
                 // Tính tổng doanh thu hôm nay - xử lý null an toàn
                 var totalRevenueToday = await _context.DonHangs
-                    .Where(dh => dh.MaTrangThaiDonHang == "DA_HOAN_THANH" &&
-                                 dh.ThoiGianKetThuc.HasValue &&
-                                 dh.ThoiGianKetThuc.Value.Date == today)
-                    .Include(dh => dh.ChiTietDonHangs)
-                        .ThenInclude(ct => ct.MaCongThucNavigation)
-                    .SelectMany(dh => dh.ChiTietDonHangs)
-                    .SumAsync(ct => ct.SoLuong * (ct.MaCongThucNavigation.Gia));
+            .Where(dh => dh.MaTrangThaiDonHang == "DA_HOAN_THANH" &&
+                         dh.ThoiGianKetThuc.HasValue &&
+                         dh.ThoiGianKetThuc.Value.Date == today)
+            // Đi đường vòng: DonHang -> BanAnDonHang -> ChiTietDonHang
+            .SelectMany(dh => dh.BanAnDonHangs)
+            .SelectMany(badh => badh.ChiTietDonHangs)
+            .SumAsync(ct => ct.SoLuong * (ct.MaCongThucNavigation.Gia));
 
                 // Đếm số đơn theo trạng thái
                 var statusCounts = await _context.DonHangs
@@ -299,20 +308,17 @@ namespace QuanLyNhaHang.Controllers
 
         [HttpGet("GetMyBookingDetail")]
         public async Task<IActionResult> GetMyBookingDetail(
-            [FromQuery] string? maDonHang,
-            [FromQuery] string? maBan,
-            [FromQuery] DateTime? dateTime)
+    [FromQuery] string? maDonHang,
+    [FromQuery] string? maBan,
+    [FromQuery] DateTime? dateTime)
         {
-            // 1. Xây dựng câu truy vấn (LOGIC MỚI)
-            // Vì cấu trúc DB thay đổi, ta không thể Include trực tiếp ChiTietDonHangs từ DonHang được nữa
-            // Ta phải đi xuyên qua bảng trung gian BanAnDonHangs
-
+            // 1. Xây dựng câu truy vấn
             var query = _context.DonHangs
-                // Lấy thông tin Khách và Trạng thái (Giữ nguyên)
+                // Lấy thông tin Khách và Trạng thái
                 .Include(dh => dh.MaKhachHangNavigation)
                 .Include(dh => dh.MaTrangThaiDonHangNavigation)
 
-                // Lấy danh sách Bàn và Món ăn nằm trong bàn đó (QUAN TRỌNG)
+                // Lấy danh sách Bàn và Món ăn nằm trong bàn đó
                 .Include(dh => dh.BanAnDonHangs)
                     .ThenInclude(badh => badh.MaBanNavigation) // Lấy tên bàn
 
@@ -329,12 +335,13 @@ namespace QuanLyNhaHang.Controllers
                                 .ThenInclude(ctma => ctma.MaMonAnNavigation)
                                     .ThenInclude(m => m.HinhAnhMonAns)
 
-                // Tối ưu hiệu suất vì query quá nhiều bảng lồng nhau
+                // Tối ưu hiệu suất
                 .AsSplitQuery()
                 .AsQueryable();
 
             DonHang? donHang = null;
 
+            // 2. Thực thi truy vấn
             if (!string.IsNullOrEmpty(maDonHang))
             {
                 donHang = await query.FirstOrDefaultAsync(dh => dh.MaDonHang == maDonHang);
@@ -343,7 +350,7 @@ namespace QuanLyNhaHang.Controllers
             {
                 var gioBatDau = dateTime.Value;
                 donHang = await query.FirstOrDefaultAsync(dh =>
-                    // Logic tìm bàn: Phải chui vào bảng trung gian để tìm
+                    // Logic tìm đơn hàng có chứa bàn này
                     dh.BanAnDonHangs.Any(b => b.MaBan == maBan) &&
 
                     (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
@@ -365,16 +372,25 @@ namespace QuanLyNhaHang.Controllers
                 return NotFound(new { message = "Không tìm thấy thông tin đặt bàn." });
             }
 
-            if (donHang == null) return NotFound(new { message = "Không tìm thấy thông tin đặt bàn." });
-
-            // Lấy tên các bàn
+            // Lấy tên các bàn (để hiển thị chung)
             string tenCacBan = donHang.BanAnDonHangs != null && donHang.BanAnDonHangs.Any()
                 ? string.Join(", ", donHang.BanAnDonHangs.Select(b => b.MaBanNavigation.TenBan))
                 : "Chưa xếp bàn";
 
-            // --- [QUAN TRỌNG] ---
-            // Vì món ăn giờ nằm rải rác trong từng bàn (BanAnDonHangs), ta phải gom tất cả lại thành 1 danh sách chung
-            var tatCaMonAn = donHang.BanAnDonHangs.SelectMany(b => b.ChiTietDonHangs).ToList();
+            // --- [LOGIC QUAN TRỌNG ĐÃ SỬA] ---
+            // Mặc định lấy tất cả món của đơn hàng
+            var danhSachMonCanHienThi = donHang.BanAnDonHangs.SelectMany(b => b.ChiTietDonHangs).ToList();
+
+            // NẾU CÓ MÃ BÀN -> CHỈ LỌC MÓN CỦA BÀN ĐÓ
+            if (!string.IsNullOrEmpty(maBan))
+            {
+                var lienKetCuaBanNay = donHang.BanAnDonHangs.FirstOrDefault(b => b.MaBan == maBan);
+                if (lienKetCuaBanNay != null)
+                {
+                    danhSachMonCanHienThi = lienKetCuaBanNay.ChiTietDonHangs.ToList();
+                }
+            }
+            // ---------------------------------
 
             var result = new ChiTietDatBanDto
             {
@@ -390,8 +406,8 @@ namespace QuanLyNhaHang.Controllers
                 TenNguoiDat = donHang.TenNguoiNhan ?? donHang.MaKhachHangNavigation.HoTen,
                 SDTNguoiDat = donHang.SdtnguoiNhan ?? donHang.MaKhachHangNavigation.SoDienThoai,
 
-                // Map danh sách món ăn từ list đã gom
-                MonAns = tatCaMonAn
+                // Map danh sách món ăn (đã được lọc ở trên)
+                MonAns = danhSachMonCanHienThi
                     .Select(ct =>
                     {
                         var congThuc = ct.MaCongThucNavigation;
@@ -399,8 +415,7 @@ namespace QuanLyNhaHang.Controllers
                         var monAn = congThuc?.MaCtNavigation?.MaMonAnNavigation;
                         string hinhAnhUrl = monAn?.HinhAnhMonAns.FirstOrDefault()?.UrlhinhAnh ?? "";
 
-                        // Lấy thông tin bàn chứa món này (truy ngược lại parent của nó)
-                        // Lưu ý: ct.MaBanAnDonHang là khóa ngoại mới
+                        // Lấy lại thông tin bàn của món này để hiển thị cho đúng
                         var banChuaMonNay = donHang.BanAnDonHangs.FirstOrDefault(b => b.MaBanAnDonHang == ct.MaBanAnDonHang);
 
                         return new MonAnDatDto
@@ -411,15 +426,13 @@ namespace QuanLyNhaHang.Controllers
                             DonGia = congThuc?.Gia ?? 0,
                             HinhAnh = hinhAnhUrl,
 
-                            // Map bàn cụ thể
                             MaBan = banChuaMonNay?.MaBan ?? "",
                             TenBan = banChuaMonNay?.MaBanNavigation?.TenBan ?? "Chung",
 
-                            // GhiChu = ct.GhiChu ?? ""
                             GhiChu = ""
                         };
                     })
-                    .OrderBy(m => m.TenBan) // Gom món theo bàn cho đẹp
+                    .OrderBy(m => m.TenBan) // Sắp xếp theo tên bàn
                     .ToList()
             };
 

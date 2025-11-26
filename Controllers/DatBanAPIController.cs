@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,7 +31,7 @@ namespace QuanLyNhaHang.Controllers
             public string Password { get; set; }
         }
 
-        // [Authorize(Roles = "Staff, Admin")] 
+        [Authorize(Roles = "NhanVien")]
         [HttpPost("staff/create")]
         public async Task<IActionResult> TaoDatBanChoNhanVien([FromBody] DatBanDto donHangDto)
         {
@@ -43,12 +44,21 @@ namespace QuanLyNhaHang.Controllers
                     // SAU NÀY CÓ LOGIN: Comment dòng dưới, mở comment dòng User.FindFirst...
 
                    // string maNhanVienHienTai = "NV001"; // <--- Gán cứng mã của bạn để test (Đảm bảo NV001 có trong DB)
-                     string maNhanVienHienTai = User.FindFirst("MaNhanVien")?.Value; // <--- Code chuẩn sau này
+                    // string maNhanVienHienTai = User.FindFirst("MaNhanVien")?.Value; // <--- Code chuẩn sau này
+
+                    string maNhanVienHienTai = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+                    // Phòng hờ: Nếu cấu hình Identity không tự map, thì tìm trực tiếp chữ "sub"
+                    if (string.IsNullOrEmpty(maNhanVienHienTai))
+                    {
+                        maNhanVienHienTai = User.FindFirst("sub")?.Value;
+                    }
 
                     if (string.IsNullOrEmpty(maNhanVienHienTai))
                     {
-                        return Unauthorized("Không xác định được nhân viên thực hiện.");
+                        return Unauthorized("Lỗi xác thực: Không tìm thấy mã nhân viên trong Token.");
                     }
+
 
                     // -----------------------------------------------------------
                     // LOGIC 1: XỬ LÝ THÔNG TIN KHÁCH HÀNG (Nhập tay từ Web)

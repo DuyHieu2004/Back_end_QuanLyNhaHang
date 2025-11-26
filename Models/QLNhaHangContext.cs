@@ -76,7 +76,7 @@ public partial class QLNhaHangContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("ServerLAPTOP-1RKGC1HF\\SQLEXPRESS;Database=QL_NhaHang_DoAn_Test2;Trusted_Connection=True;TrustServerCertificate=True");
+        => optionsBuilder.UseSqlServer("Server=LAPTOP-1RKGC1HF\\SQLEXPRESS;Database=QL_NhaHang_DoAn_Test2;Trusted_Connection=True;TrustServerCertificate=True");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -174,6 +174,7 @@ public partial class QLNhaHangContext : DbContext
             entity.Property(e => e.MaPhienBan)
                 .HasMaxLength(25)
                 .IsUnicode(false);
+            entity.Property(e => e.MaChiTietDonHang).UseIdentityColumn();
 
             entity.HasOne(d => d.MaBanAnDonHangNavigation).WithMany(p => p.ChiTietDonHangs)
                 .HasForeignKey(d => d.MaBanAnDonHang)
@@ -188,6 +189,8 @@ public partial class QLNhaHangContext : DbContext
                 .HasForeignKey(d => d.MaPhienBan)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ChiTietDonHang_PhienBan");
+
+            
         });
 
         modelBuilder.Entity<ChiTietMenu>(entity =>
