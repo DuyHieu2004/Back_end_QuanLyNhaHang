@@ -275,11 +275,12 @@ namespace QuanLyNhaHang.Controllers
                 return StatusCode(500, new { message = "Lỗi server khi lấy thống kê", error = ex.Message });
             }
         }
-
         [HttpGet("GetActiveBookings")]
         public async Task<IActionResult> GetActiveBookings([FromQuery] DateTime? ngay)
         {
             DateTime filterDate = ngay?.Date ?? DateTime.Today;
+
+            // Danh sách các trạng thái muốn hiển thị
             var activeStatuses = new[] { "CHO_XAC_NHAN", "DA_XAC_NHAN", "CHO_THANH_TOAN" };
 
             var bookings = await _context.DonHangs
@@ -287,11 +288,14 @@ namespace QuanLyNhaHang.Controllers
                     .ThenInclude(badh => badh.MaBanNavigation)
                 .Include(dh => dh.MaTrangThaiDonHangNavigation)
                 .Where(dh =>
-                    activeStatuses.Contains(dh.MaTrangThaiDonHang) &&
-                    dh.TGNhanBan.HasValue &&
-                    dh.TGNhanBan.Value.Date == filterDate
+                    // 1. Chỉ lấy các trạng thái Đang hoạt động (bao gồm cả Chờ xác nhận)
+                    activeStatuses.Contains(dh.MaTrangThaiDonHang)
+
+                    // 2. VÀ Quan trọng nhất: Phải có giờ hẹn TRÙNG với ngày đang lọc
+                    && dh.TGNhanBan.HasValue
+                    && dh.TGNhanBan.Value.Date == filterDate
                 )
-                .OrderBy(dh => dh.TGNhanBan)
+                .OrderBy(dh => dh.TGNhanBan) // Sắp xếp từ sáng đến tối
                 .Select(dh => new
                 {
                     maDonHang = dh.MaDonHang,

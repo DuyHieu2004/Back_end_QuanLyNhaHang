@@ -31,6 +31,57 @@ namespace QuanLyNhaHang.Controllers
             public string Password { get; set; }
         }
 
+
+        [HttpGet("TimKiemKhachHang/{soDienThoai}")]
+        public async Task<IActionResult> TimKiemKhachHang(string soDienThoai)
+        {
+            if (string.IsNullOrEmpty(soDienThoai))
+            {
+                return BadRequest(new { found = false, message = "Vui lòng nhập số điện thoại" });
+            }
+
+            try
+            {
+                // 1. Tìm khách hàng trong DB
+                var khachHang = await _context.KhachHangs
+                    .FirstOrDefaultAsync(k => k.SoDienThoai == soDienThoai);
+
+                if (khachHang != null)
+                {
+                    // 2. Logic kiểm tra khuyến mãi (Ví dụ: Ăn trên 10 lần được giảm giá)
+                    bool duocGiamGia = (khachHang.SoLanAnTichLuy) >= 10;
+                    string msg = duocGiamGia
+                        ? $"Khách VIP ({khachHang.SoLanAnTichLuy} lần ăn) - Được giảm 10%"
+                        : $"Khách thân thiết ({khachHang.SoLanAnTichLuy} lần ăn)";
+
+                    // 3. Trả về thông tin tìm thấy
+                    return Ok(new
+                    {
+                        found = true,
+                        maKhachHang = khachHang.MaKhachHang,
+                        tenKhach = khachHang.HoTen,
+                        email = khachHang.Email,
+                        soLanAn = khachHang.SoLanAnTichLuy,
+                        duocGiamGia = duocGiamGia,
+                        message = msg
+                    });
+                }
+                else
+                {
+                    // 4. Không tìm thấy
+                    return Ok(new
+                    {
+                        found = false,
+                        message = "Khách hàng mới (Chưa có lịch sử tích lũy)"
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { found = false, message = "Lỗi server: " + ex.Message });
+            }
+        }
+
         [Authorize(Roles = "NhanVien")]
         [HttpPost("staff/create")]
         public async Task<IActionResult> TaoDatBanChoNhanVien([FromBody] DatBanDto donHangDto)

@@ -17,6 +17,118 @@ namespace QuanLyNhaHang.Controllers
             _context = context;
         }
 
+        // API DÀNH RIÊNG CHO NHÂN VIÊN/QUẢN LÝ (Xem chi tiết)
+        [HttpGet("GetManagerTableStatus")]
+        public async Task<IActionResult> GetManagerTableStatus([FromQuery] DateTime dateTime)
+        {
+            if (_context.BanAns == null) return NotFound();
+
+            // 1. Xác định khung giờ check (Mặc định check trong vòng 2 tiếng từ thời điểm chọn)
+            var checkTimeStart = dateTime;
+            var checkTimeEnd = dateTime.AddMinutes(120);
+
+            // 2. Lấy danh sách Đơn hàng dính dáng tới khung giờ này
+            // Mục đích: Lấy ra chi tiết ai đặt, SĐT nào, trạng thái gì
+            var activeOrders = await _context.DonHangs
+                .Include(dh => dh.BanAnDonHangs)
+                .Where(dh =>
+                    // Các trạng thái đơn hàng có hiệu lực
+                    (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
+                     dh.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
+                     dh.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
+
+                    dh.ThoiGianDatHang != null &&
+                    dh.ThoiGianKetThuc != null &&
+
+                    // Logic trùng giờ:
+                    // (Giờ bắt đầu check < Giờ đơn kết thúc) VÀ (Giờ kết thúc check > Giờ đơn bắt đầu)
+                    (checkTimeStart < dh.ThoiGianKetThuc) &&
+                    (checkTimeEnd > dh.ThoiGianDatHang)
+                )
+                .SelectMany(dh => dh.BanAnDonHangs.Select(badh => new
+                {
+                    MaBan = badh.MaBan,
+                    MaDonHang = dh.MaDonHang,
+                    TenKhach = dh.TenNguoiNhan ?? "Khách vãng lai", // Giả sử có trường tên người nhận
+                    SDT = dh.SdtnguoiNhan,
+                    GioDen = dh.ThoiGianDatHang,
+                    TrangThaiDon = dh.MaTrangThaiDonHang
+                }))
+                .ToListAsync();
+
+            // 3. Lấy tất cả bàn
+            var allTables = await _context.BanAns
+                .Include(b => b.MaTrangThaiNavigation)
+                .Include(b => b.MaTangNavigation)
+                .Where(b => b.IsShow == true) // Chỉ lấy bàn đang hiển thị
+                .ToListAsync();
+
+            // 4. Ghép dữ liệu để trả về cho nhân viên
+            var result = allTables.Select(ban =>
+            {
+                // Tìm xem bàn này có đơn nào dính vào giờ này không
+                var bookingInfo = activeOrders.FirstOrDefault(o => o.MaBan == ban.MaBan);
+
+                string finalStatus = "Trống";
+                string note = ""; // Ghi chú thêm cho nhân viên (VD: "A.Hiếu - 090xxx")
+
+                // --- LOGIC PHÂN LOẠI TRẠNG THÁI CHO NHÂN VIÊN ---
+
+                // TH1: Bàn đang bảo trì (Ưu tiên cao nhất)
+                if (ban.MaTrangThai == "TTBA004")
+                {
+                    finalStatus = "Bảo trì";
+                }
+                // TH2: Có đơn hàng dính vào giờ này
+                else if (bookingInfo != null)
+                {
+                    // Nếu trạng thái là CHỜ THANH TOÁN -> Bàn đang dọn dẹp hoặc chờ tính tiền
+                    if (bookingInfo.TrangThaiDon == "CHO_THANH_TOAN")
+                    {
+                        finalStatus = "Chờ thanh toán";
+                        note = $"Khách: {bookingInfo.TenKhach}";
+                    }
+                    // Nếu thời gian check > thời gian khách đến -> Khách ĐANG NGỒI ĂN
+                    else if (dateTime >= bookingInfo.GioDen)
+                    {
+                        finalStatus = "Đang phục vụ";
+                        note = $"Đơn: {bookingInfo.MaDonHang}";
+                    }
+                    // Nếu thời gian check < thời gian khách đến -> Khách ĐÃ ĐẶT (Sắp đến)
+                    else
+                    {
+                        finalStatus = "Đã đặt";
+                        // Tính xem bao lâu nữa khách đến
+                        var minutesLeft = (bookingInfo.GioDen.Value - dateTime).TotalMinutes;
+                        note = $"{bookingInfo.TenKhach} ({bookingInfo.GioDen:HH:mm})";
+                    }
+                }
+                // TH3: Không có gì -> Trống
+                else
+                {
+                    finalStatus = "Trống";
+                }
+
+                return new
+                {
+                    MaBan = ban.MaBan,
+                    TenBan = ban.TenBan,
+                    SucChua = ban.SucChua,
+                    TenTang = ban.MaTangNavigation?.TenTang,
+
+                    // Các trường quan trọng cho Staff
+                    TrangThaiHienThi = finalStatus, // Trống | Đang phục vụ | Đã đặt | Chờ thanh toán | Bảo trì
+                    GhiChu = note,                 // Thông tin nhanh để nhân viên liếc qua là biết
+
+                    // Giữ lại mã màu gốc nếu cần mapping icon
+                    MaTrangThaiGoc = ban.MaTrangThai
+                };
+            }).OrderBy(b => b.MaBan).ToList();
+
+            return Ok(result);
+        }
+
+
         [HttpGet("GetDashboardTableStatus")]
         public async Task<IActionResult> GetDashboardTableStatus([FromQuery] DateTime dateTime)
         {
