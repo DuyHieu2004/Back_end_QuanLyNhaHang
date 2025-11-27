@@ -191,6 +191,52 @@ namespace QuanLyNhaHang.Controllers
 
             return Ok(new { message = "Xóa khuyến mãi thành công!" });
         }
+        [HttpGet("DanhMuc")]
+        public async Task<IActionResult> GetDanhMuc()
+        {
+            var danhMuc = await _context.DanhMucMonAns
+                .Select(d => new { d.MaDanhMuc, d.TenDanhMuc })
+                .ToListAsync();
+            return Ok(danhMuc);
+        }
+
+        [HttpGet("CongThuc")]
+        public async Task<IActionResult> GetCongThuc()
+        {
+            var congThuc = await _context.CongThucNauAns
+                .Include(c => c.MaCtNavigation)
+                .ThenInclude(ct => ct.MaMonAnNavigation)
+                .Include(c => c.MaPhienBanNavigation)
+                .Select(c => new
+                {
+                    c.MaCongThuc,
+                    TenMonAn = c.MaCtNavigation.MaMonAnNavigation.TenMonAn,
+                    TenPhienBan = c.MaPhienBanNavigation.TenPhienBan,
+                    c.Gia
+                })
+                .ToListAsync();
+            return Ok(congThuc);
+        }
+
+        [HttpGet("CongThucVaDanhMuc")]
+        public async Task<IActionResult> GetCongThucVaDanhMuc()
+        {
+            var congThuc = await _context.CongThucNauAns
+                .Include(c => c.MaCtNavigation)
+                .ThenInclude(ct => ct.MaMonAnNavigation)
+                .Include(c => c.MaPhienBanNavigation)
+                .Select(c => new
+                {
+                    c.MaCongThuc,
+                    TenMonAn = c.MaCtNavigation.MaMonAnNavigation.TenMonAn,
+                    TenPhienBan = c.MaPhienBanNavigation.TenPhienBan,
+                    c.Gia,
+                    MaDanhMuc = c.MaCtNavigation.MaMonAnNavigation.MaDanhMuc,
+                    TenDanhMuc = c.MaCtNavigation.MaMonAnNavigation.MaDanhMucNavigation.TenDanhMuc
+                })
+                .ToListAsync();
+            return Ok(congThuc);
+        }
     }
 
     public class CreateKhuyenMaiDto
