@@ -171,7 +171,9 @@ namespace QuanLyNhaHang.Controllers
                         danhSachBan = dh.BanAnDonHangs.Any()
                             ? string.Join(", ", dh.BanAnDonHangs.Select(b => b.MaBanNavigation.TenBan))
                             : null,
-                        tongTien = dh.TienDatCoc ?? 0 // Tạm thời dùng tiền cọc
+                        tongTien = dh.BanAnDonHangs
+                 .SelectMany(b => b.ChiTietDonHangs)
+                 .Sum(ct => ct.SoLuong * ct.MaCongThucNavigation.Gia)
                     })
                     .ToListAsync();
 
