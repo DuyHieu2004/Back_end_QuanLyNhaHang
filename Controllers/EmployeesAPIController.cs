@@ -34,12 +34,12 @@ namespace QuanLyNhaHang.Controllers
                 ?? HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         }
 
+      
         [HttpGet]
         public async Task<IActionResult> GetEmployees()
         {
             var employees = await _context.NhanViens
                 .Include(n => n.MaVaiTroNavigation)
-              
                 .Select(n => new
                 {
                     n.MaNhanVien,
@@ -47,7 +47,12 @@ namespace QuanLyNhaHang.Controllers
                     n.Email,
                     n.SoDienThoai,
                     n.TenDangNhap,
-                    VaiTro = n.MaVaiTroNavigation != null ? n.MaVaiTroNavigation.TenVaiTro : null,
+
+                    // --- SỬA Ở ĐÂY: Đổi "VaiTro" thành "TenVaiTro" cho khớp với Frontend ---
+                    TenVaiTro = n.MaVaiTroNavigation != null ? n.MaVaiTroNavigation.TenVaiTro : null,
+
+                    // Thêm luôn MaVaiTro để lỡ Frontend cần dùng cho việc edit/phân quyền
+                    n.MaVaiTro
                 })
                 .ToListAsync();
 
