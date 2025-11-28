@@ -178,172 +178,336 @@ public class MonAnsAPIController : ControllerBase
        return Ok(dto);
    }
 
-   [HttpPost]
-   public async Task<ActionResult<MonAn>> CreateMonAn([FromBody] CreateMonAnDTO dto)
-   {
-       if (!ModelState.IsValid)
-       {
-           return BadRequest(ModelState);
-       }
+  [HttpPost]
+  public async Task<ActionResult<MonAn>> CreateMonAn([FromBody] CreateMonAnDTO dto)
+  {
+      if (!ModelState.IsValid)
+      {
+          return BadRequest(ModelState);
+      }
 
-       try
-       {
-           // Tạo mã món ăn mới
-           var maMonAn = "MA" + DateTime.Now.ToString("yyMMddHHmmss");
+      try
+      {
+          // Tạo mã món ăn mới
+          var maMonAn = "MA" + DateTime.Now.ToString("yyMMddHHmmss");
 
-           // Tạo món ăn
-           var monAn = new MonAn
-           {
-               MaMonAn = maMonAn,
-               TenMonAn = dto.TenMonAn,
-               MaDanhMuc = dto.MaDanhMuc,
-               IsShow = dto.IsShow
-           };
-
-           _context.MonAns.Add(monAn);
-           await _context.SaveChangesAsync(); // Lưu để có MaMonAn trước khi di chuyển ảnh
-
-           // Tạo thư mục cho món ăn
-           string webRootPath = _webHostEnvironment.WebRootPath;
-           string monAnFolderPath = Path.Combine(webRootPath, "images", "monans", maMonAn);
-           Directory.CreateDirectory(monAnFolderPath);
-
-           // Thêm hình ảnh và di chuyển từ temp nếu cần
-           if (dto.HinhAnhUrls != null && dto.HinhAnhUrls.Count > 0)
-           {
-               int imageOrder = 1;
-               foreach (var url in dto.HinhAnhUrls)
-               {
-                   string finalUrl = url;
-                    
-                   // Nếu ảnh đang ở thư mục temp, di chuyển sang thư mục món ăn
-                   if (url.StartsWith("images/monans/temp/"))
-                   {
-                       // Xử lý path đúng cách
-                       string relativePath = url.Replace("images/monans/temp/", "");
-                       string tempFilePath = Path.Combine(webRootPath, "images", "monans", "temp", relativePath);
-                        
-                       if (System.IO.File.Exists(tempFilePath))
-                       {
-                           string fileName = Path.GetFileName(tempFilePath);
-                           string fileExtension = Path.GetExtension(fileName);
-                           string fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
-                            
-                           // Tạo tên file mới với số thứ tự
-                           string newFileName = $"{fileNameWithoutExt}_{imageOrder}{fileExtension}";
-                           string newFilePath = Path.Combine(monAnFolderPath, newFileName);
-                            
-                           // Di chuyển file
-                           System.IO.File.Move(tempFilePath, newFilePath);
-                            
-                           // Cập nhật URL
-                           finalUrl = $"images/monans/{maMonAn}/{newFileName}";
-                       }
-                   }
-                   else if (!url.Contains($"/{maMonAn}/"))
-                   {
-                       // Nếu URL không đúng format, cập nhật lại
-                       string fileName = Path.GetFileName(url);
-                       string newFileName = $"{Path.GetFileNameWithoutExtension(fileName)}_{imageOrder}{Path.GetExtension(fileName)}";
-                       finalUrl = $"images/monans/{maMonAn}/{newFileName}";
-                   }
-
-                   var hinhAnh = new HinhAnhMonAn
-                   {
-                       MaMonAn = maMonAn,
-                       UrlhinhAnh = finalUrl
-                   };
-                   _context.HinhAnhMonAns.Add(hinhAnh);
-                   imageOrder++;
-               }
-           }
-
-           // Tạo ChiTietMonAn (ít nhất 1 chi tiết)
-           var maChiTiet = "CT" + DateTime.Now.ToString("yyMMddHHmmss") + "_001";
-           var chiTietMonAn = new ChiTietMonAn
-           {
-               MaCt = maChiTiet,
-               TenCt = "Chi tiết 1",
-               MaMonAn = maMonAn
-           };
-           _context.ChiTietMonAns.Add(chiTietMonAn);
-
-           // Thêm các phiên bản món ăn
-           int pbIndex = 0;
-          foreach (var pbDto in dto.PhienBanMonAns)
+          // Tạo món ăn
+          var monAn = new MonAn
           {
-              pbIndex++;
-              string maPhienBan;
-              PhienBanMonAn? phienBan = null;
+              MaMonAn = maMonAn,
+              TenMonAn = dto.TenMonAn,
+              MaDanhMuc = dto.MaDanhMuc,
+              IsShow = dto.IsShow
+          };
 
-              if (!string.IsNullOrWhiteSpace(pbDto.MaPhienBan))
+          _context.MonAns.Add(monAn);
+          await _context.SaveChangesAsync(); // Lưu để có MaMonAn trước khi di chuyển ảnh
+
+          // Tạo thư mục cho món ăn
+          string webRootPath = _webHostEnvironment.WebRootPath;
+          string monAnFolderPath = Path.Combine(webRootPath, "images", "monans", maMonAn);
+          Directory.CreateDirectory(monAnFolderPath);
+
+          // Thêm hình ảnh và di chuyển từ temp nếu cần
+          if (dto.HinhAnhUrls != null && dto.HinhAnhUrls.Count > 0)
+          {
+              int imageOrder = 1;
+              foreach (var url in dto.HinhAnhUrls)
               {
-                  maPhienBan = pbDto.MaPhienBan;
-                  phienBan = await _context.PhienBanMonAns
-                      .FirstOrDefaultAsync(p => p.MaPhienBan == maPhienBan);
-
-                  if (phienBan == null)
+                  string finalUrl = url;
+                   
+                  // Nếu ảnh đang ở thư mục temp, di chuyển sang thư mục món ăn
+                  if (url.StartsWith("images/monans/temp/"))
                   {
-                      return BadRequest(new { message = $"Không tìm thấy phiên bản món ăn với mã {maPhienBan}." });
+                      // Xử lý path đúng cách
+                      string relativePath = url.Replace("images/monans/temp/", "");
+                      string tempFilePath = Path.Combine(webRootPath, "images", "monans", "temp", relativePath);
+                       
+                      if (System.IO.File.Exists(tempFilePath))
+                      {
+                          string fileName = Path.GetFileName(tempFilePath);
+                          string fileExtension = Path.GetExtension(fileName);
+                          string fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
+                           
+                          // Tạo tên file mới với số thứ tự
+                          string newFileName = $"{fileNameWithoutExt}_{imageOrder}{fileExtension}";
+                          string newFilePath = Path.Combine(monAnFolderPath, newFileName);
+                           
+                          // Di chuyển file
+                          System.IO.File.Move(tempFilePath, newFilePath);
+                           
+                          // Cập nhật URL
+                          finalUrl = $"images/monans/{maMonAn}/{newFileName}";
+                      }
                   }
-              }
-              else
-              {
-                  maPhienBan = "PB" + DateTime.Now.ToString("yyMMddHHmmss") + "_" + pbIndex.ToString("D3");
-                  phienBan = new PhienBanMonAn
+                  else if (!url.Contains($"/{maMonAn}/"))
                   {
+                      // Nếu URL không đúng format, cập nhật lại
+                      string fileName = Path.GetFileName(url);
+                      string newFileName = $"{Path.GetFileNameWithoutExtension(fileName)}_{imageOrder}{Path.GetExtension(fileName)}";
+                      finalUrl = $"images/monans/{maMonAn}/{newFileName}";
+                  }
+
+                  var hinhAnh = new HinhAnhMonAn
+                  {
+                      MaMonAn = maMonAn,
+                      UrlhinhAnh = finalUrl
+                  };
+                  _context.HinhAnhMonAns.Add(hinhAnh);
+                  imageOrder++;
+              }
+          }
+
+          // Tạo ChiTietMonAn (ít nhất 1 chi tiết)
+          var maChiTiet = "CT" + DateTime.Now.ToString("yyMMddHHmmss") + "_001";
+          var chiTietMonAn = new ChiTietMonAn
+          {
+              MaCt = maChiTiet,
+              TenCt = "Chi tiết 1",
+              MaMonAn = maMonAn
+          };
+          _context.ChiTietMonAns.Add(chiTietMonAn);
+
+          // Thêm các phiên bản món ăn
+          int pbIndex = 0;
+         foreach (var pbDto in dto.PhienBanMonAns)
+         {
+             pbIndex++;
+             string maPhienBan;
+             PhienBanMonAn? phienBan = null;
+
+             if (!string.IsNullOrWhiteSpace(pbDto.MaPhienBan))
+             {
+                 maPhienBan = pbDto.MaPhienBan;
+                 phienBan = await _context.PhienBanMonAns
+                     .FirstOrDefaultAsync(p => p.MaPhienBan == maPhienBan);
+
+                 if (phienBan == null)
+                 {
+                     return BadRequest(new { message = $"Không tìm thấy phiên bản món ăn với mã {maPhienBan}." });
+                 }
+             }
+             else
+             {
+                 maPhienBan = "PB" + DateTime.Now.ToString("yyMMddHHmmss") + "_" + pbIndex.ToString("D3");
+                 phienBan = new PhienBanMonAn
+                 {
+                     MaPhienBan = maPhienBan,
+                     TenPhienBan = pbDto.TenPhienBan,
+                     MaTrangThai = pbDto.MaTrangThai,
+                     ThuTu = pbDto.ThuTu
+                 };
+
+                 _context.PhienBanMonAns.Add(phienBan);
+             }
+
+              // Thêm công thức nấu ăn cho mỗi phiên bản
+              int ctIndex = 0;
+              foreach (var ctDto in pbDto.CongThucNauAns)
+              {
+                  ctIndex++;
+                  var maCongThuc = "CT" + DateTime.Now.ToString("yyMMddHHmmss") + "_" + pbIndex.ToString("D3") + "_" + ctIndex.ToString("D3");
+                  var congThuc = new CongThucNauAn
+                  {
+                      MaCongThuc = maCongThuc,
+                      MaCt = maChiTiet, // Liên kết với ChiTietMonAn
                       MaPhienBan = maPhienBan,
-                      TenPhienBan = pbDto.TenPhienBan,
-                      MaTrangThai = pbDto.MaTrangThai,
-                      ThuTu = pbDto.ThuTu
+                      Gia = pbDto.Gia // Giá nằm trong CongThucNauAn
                   };
 
-                  _context.PhienBanMonAns.Add(phienBan);
+                  _context.CongThucNauAns.Add(congThuc);
+
+                  // Thêm chi tiết công thức (nguyên liệu)
+                  var chiTietCongThuc = new ChiTietCongThuc
+                  {
+                      MaCongThuc = maCongThuc,
+                      MaNguyenLieu = ctDto.MaNguyenLieu,
+                      SoLuongCanDung = ctDto.SoLuongCanDung
+                  };
+
+                  _context.ChiTietCongThucs.Add(chiTietCongThuc);
               }
+         }
 
-               // Thêm công thức nấu ăn cho mỗi phiên bản
-               int ctIndex = 0;
-               foreach (var ctDto in pbDto.CongThucNauAns)
-               {
-                   ctIndex++;
-                   var maCongThuc = "CT" + DateTime.Now.ToString("yyMMddHHmmss") + "_" + pbIndex.ToString("D3") + "_" + ctIndex.ToString("D3");
-                   var congThuc = new CongThucNauAn
-                   {
-                       MaCongThuc = maCongThuc,
-                       MaCt = maChiTiet, // Liên kết với ChiTietMonAn
-                       MaPhienBan = maPhienBan,
-                       Gia = pbDto.Gia // Giá nằm trong CongThucNauAn
-                   };
+          await _context.SaveChangesAsync();
 
-                   _context.CongThucNauAns.Add(congThuc);
+          // Load lại với đầy đủ thông tin và map sang DTO
+          var result = await GetMonAn(maMonAn);
+          if (result.Result is OkObjectResult okResult && okResult.Value is MonAnDetailDTO resultDto)
+          {
+              return CreatedAtAction(nameof(GetMonAn), new { id = maMonAn }, resultDto);
+          }
+          return CreatedAtAction(nameof(GetMonAn), new { id = maMonAn }, new { MaMonAn = maMonAn });
+      }
+      catch (Exception ex)
+      {
+          return StatusCode(500, new { message = "Lỗi khi tạo món ăn: " + ex.Message });
+      }
+  }
 
-                   // Thêm chi tiết công thức (nguyên liệu)
-                   var chiTietCongThuc = new ChiTietCongThuc
-                   {
-                       MaCongThuc = maCongThuc,
-                       MaNguyenLieu = ctDto.MaNguyenLieu,
-                       SoLuongCanDung = ctDto.SoLuongCanDung
-                   };
+  [HttpPut("{maMonAn}")]
+  public async Task<ActionResult> UpdateMonAn(string maMonAn, [FromBody] CreateMonAnDTO dto)
+  {
+      if (!ModelState.IsValid)
+      {
+          return BadRequest(ModelState);
+      }
 
-                   _context.ChiTietCongThucs.Add(chiTietCongThuc);
-               }
-           }
+      await using var transaction = await _context.Database.BeginTransactionAsync();
+      try
+      {
+          var monAn = await _context.MonAns
+              .Include(m => m.HinhAnhMonAns)
+              .Include(m => m.ChiTietMonAns)
+                  .ThenInclude(ct => ct.CongThucNauAns)
+                      .ThenInclude(cta => cta.ChiTietCongThucs)
+              .FirstOrDefaultAsync(m => m.MaMonAn == maMonAn);
 
-           await _context.SaveChangesAsync();
+            if (monAn == null)
+            {
+                return NotFound();
+            }
 
-           // Load lại với đầy đủ thông tin và map sang DTO
-           var result = await GetMonAn(maMonAn);
-           if (result.Result is OkObjectResult okResult && okResult.Value is MonAnDetailDTO resultDto)
-           {
-               return CreatedAtAction(nameof(GetMonAn), new { id = maMonAn }, resultDto);
-           }
-           return CreatedAtAction(nameof(GetMonAn), new { id = maMonAn }, new { MaMonAn = maMonAn });
-       }
-       catch (Exception ex)
-       {
-           return StatusCode(500, new { message = "Lỗi khi tạo món ăn: " + ex.Message });
-       }
-   }
+            monAn.TenMonAn = dto.TenMonAn;
+            monAn.MaDanhMuc = dto.MaDanhMuc;
+            monAn.IsShow = dto.IsShow;
+            _context.MonAns.Update(monAn);
+
+            if (dto.HinhAnhUrls != null)
+            {
+                var existingImages = monAn.HinhAnhMonAns.ToList();
+                _context.HinhAnhMonAns.RemoveRange(existingImages);
+
+                string webRootPath = _webHostEnvironment.WebRootPath;
+                int imageOrder = 1;
+                foreach (var url in dto.HinhAnhUrls)
+                {
+                    if (string.IsNullOrWhiteSpace(url)) continue;
+                    string finalUrl = url;
+
+                    if (url.StartsWith("images/monans/temp/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string relativePath = url.Replace("images/monans/temp/", "");
+                        string tempFilePath = Path.Combine(webRootPath, "images", "monans", "temp", relativePath);
+                        if (System.IO.File.Exists(tempFilePath))
+                        {
+                            string fileName = Path.GetFileNameWithoutExtension(relativePath);
+                            string extension = Path.GetExtension(relativePath);
+                            string newFileName = $"{fileName}_{imageOrder}{extension}";
+                            string monAnFolderPath = Path.Combine(webRootPath, "images", "monans", maMonAn);
+                            Directory.CreateDirectory(monAnFolderPath);
+                            string newFilePath = Path.Combine(monAnFolderPath, newFileName);
+                            if (System.IO.File.Exists(newFilePath))
+                            {
+                                System.IO.File.Delete(newFilePath);
+                            }
+                            System.IO.File.Move(tempFilePath, newFilePath);
+                            finalUrl = $"images/monans/{maMonAn}/{newFileName}";
+                        }
+                    }
+                    else if (finalUrl.StartsWith("/"))
+                    {
+                        finalUrl = finalUrl.TrimStart('/');
+                    }
+
+                    var hinhAnh = new HinhAnhMonAn
+                    {
+                        MaMonAn = maMonAn,
+                        UrlhinhAnh = finalUrl
+                    };
+                    _context.HinhAnhMonAns.Add(hinhAnh);
+                    imageOrder++;
+                }
+            }
+
+            foreach (var chiTiet in monAn.ChiTietMonAns.ToList())
+            {
+                foreach (var congThuc in chiTiet.CongThucNauAns.ToList())
+                {
+                    _context.ChiTietCongThucs.RemoveRange(congThuc.ChiTietCongThucs);
+                }
+                _context.CongThucNauAns.RemoveRange(chiTiet.CongThucNauAns);
+            }
+            _context.ChiTietMonAns.RemoveRange(monAn.ChiTietMonAns);
+
+            var maChiTiet = "CT" + DateTime.Now.ToString("yyMMddHHmmssfff");
+            var chiTietMonAn = new ChiTietMonAn
+            {
+                MaCt = maChiTiet,
+                TenCt = "Chi tiết 1",
+                MaMonAn = maMonAn
+            };
+            _context.ChiTietMonAns.Add(chiTietMonAn);
+
+            int pbIndex = 0;
+            foreach (var pbDto in dto.PhienBanMonAns)
+            {
+                pbIndex++;
+                string maPhienBan;
+                PhienBanMonAn? phienBan = null;
+
+                if (!string.IsNullOrWhiteSpace(pbDto.MaPhienBan))
+                {
+                    maPhienBan = pbDto.MaPhienBan;
+                    phienBan = await _context.PhienBanMonAns.FirstOrDefaultAsync(p => p.MaPhienBan == maPhienBan);
+                    if (phienBan == null)
+                    {
+                        return BadRequest(new { message = $"Không tìm thấy phiên bản món ăn với mã {maPhienBan}." });
+                    }
+                    phienBan.TenPhienBan = pbDto.TenPhienBan;
+                    phienBan.MaTrangThai = pbDto.MaTrangThai ?? phienBan.MaTrangThai;
+                    phienBan.ThuTu = pbDto.ThuTu;
+                    _context.PhienBanMonAns.Update(phienBan);
+                }
+                else
+                {
+                    maPhienBan = "PB" + DateTime.Now.ToString("yyMMddHHmmss") + "_" + pbIndex.ToString("D3");
+                    phienBan = new PhienBanMonAn
+                    {
+                        MaPhienBan = maPhienBan,
+                        TenPhienBan = pbDto.TenPhienBan,
+                        MaTrangThai = pbDto.MaTrangThai ?? "CON_HANG",
+                        ThuTu = pbDto.ThuTu
+                    };
+                    _context.PhienBanMonAns.Add(phienBan);
+                }
+
+                int ctIndex = 0;
+                foreach (var ctDto in pbDto.CongThucNauAns)
+                {
+                    ctIndex++;
+                    var maCongThuc = "CT" + DateTime.Now.ToString("yyMMddHHmmss") + "_" + pbIndex.ToString("D3") + "_" + ctIndex.ToString("D3");
+                    var congThuc = new CongThucNauAn
+                    {
+                        MaCongThuc = maCongThuc,
+                        MaCt = maChiTiet,
+                        MaPhienBan = phienBan.MaPhienBan,
+                        Gia = pbDto.Gia
+                    };
+                    _context.CongThucNauAns.Add(congThuc);
+
+                    var chiTietCongThuc = new ChiTietCongThuc
+                    {
+                        MaCongThuc = maCongThuc,
+                        MaNguyenLieu = ctDto.MaNguyenLieu,
+                        SoLuongCanDung = ctDto.SoLuongCanDung
+                    };
+                    _context.ChiTietCongThucs.Add(chiTietCongThuc);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            var updated = await GetMonAn(maMonAn);
+            return updated.Result ?? updated;
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            return StatusCode(500, new { message = "Lỗi khi cập nhật món ăn: " + ex.Message });
+        }
+  }
 
    [HttpPost("upload-image")]
    public async Task<IActionResult> UploadImage(IFormFile file, [FromQuery] string? maMonAn = null)
