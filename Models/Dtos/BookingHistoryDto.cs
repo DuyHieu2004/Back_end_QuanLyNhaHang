@@ -5,6 +5,7 @@
         public string MaDonHang { get; set; }
         public string TenBan { get; set; }
         public DateTime ThoiGianBatDau { get; set; }
+        public DateTime? ThoiGianDuKien { get; set; }
         public int SoLuongNguoi { get; set; }
         public string? GhiChu { get; set; }
 
