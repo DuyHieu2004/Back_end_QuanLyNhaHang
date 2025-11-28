@@ -500,7 +500,11 @@ public class MonAnsAPIController : ControllerBase
             await transaction.CommitAsync();
 
             var updated = await GetMonAn(maMonAn);
-            return updated.Result ?? updated;
+            if (updated.Result != null)
+            {
+                return updated.Result;
+            }
+            return Ok(updated.Value);
         }
         catch (Exception ex)
         {
