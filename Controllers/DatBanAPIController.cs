@@ -626,39 +626,43 @@ namespace QuanLyNhaHang.Controllers
         {
             if (string.IsNullOrWhiteSpace(maTrangThai)) return BadRequest(new { message = "Mã trạng thái không hợp lệ." });
 
+            // Include đầy đủ để lấy tên bàn và thông tin khách gửi mail
             var donHang = await _context.DonHangs
                 .Include(dh => dh.BanAnDonHangs)
-                .ThenInclude(badh => badh.MaBanNavigation)
+                .ThenInclude(badh => badh.MaBanNavigation) // Để lấy tên bàn
                 .FirstOrDefaultAsync(dh => dh.MaDonHang == maDonHang);
 
             if (donHang == null) return NotFound(new { message = "Không tìm thấy đơn hàng." });
 
+            // Kiểm tra trạng thái hợp lệ
             var exists = await _context.TrangThaiDonHangs.AnyAsync(t => t.MaTrangThai == maTrangThai);
             if (!exists) return BadRequest(new { message = "Trạng thái không tồn tại." });
 
+            // Cập nhật trạng thái đơn
             donHang.MaTrangThaiDonHang = maTrangThai;
-
             string maTrangThaiBanMoi = null;
 
+            // --- LOGIC XỬ LÝ TRẠNG THÁI BÀN ---
             switch (maTrangThai)
             {
-                case "CHO_THANH_TOAN":
-                    maTrangThaiBanMoi = "TTBA002";
+                case "CHO_THANH_TOAN": // Khách vào bàn
+                    maTrangThaiBanMoi = "TTBA002"; // Đang có khách
                     if (donHang.TGNhanBan == null) donHang.TGNhanBan = DateTime.Now;
                     break;
 
-                case "DA_HOAN_THANH":
-                    maTrangThaiBanMoi = "TTBA001";
+                case "DA_HOAN_THANH": // Thanh toán xong
+                    maTrangThaiBanMoi = "TTBA001"; // Trả về bàn TRỐNG
                     if (donHang.ThoiGianKetThuc == null) donHang.ThoiGianKetThuc = DateTime.Now;
-                    donHang.ThanhToan = true;
+                    donHang.ThanhToan = true; // Đánh dấu đã thanh toán
                     break;
 
                 case "DA_HUY":
                 case "NO_SHOW":
-                    maTrangThaiBanMoi = "TTBA001";
+                    maTrangThaiBanMoi = "TTBA001"; // Trả về bàn TRỐNG
                     break;
             }
 
+            // Cập nhật trạng thái các bàn liên quan
             if (maTrangThaiBanMoi != null && donHang.BanAnDonHangs != null && donHang.BanAnDonHangs.Any())
             {
                 foreach (var banAnDonHang in donHang.BanAnDonHangs)
@@ -673,6 +677,45 @@ namespace QuanLyNhaHang.Controllers
 
             _context.DonHangs.Update(donHang);
             await _context.SaveChangesAsync();
+
+            // =================================================================
+            // BƯỚC GỬI EMAIL (Logic mới thêm)
+            // =================================================================
+            if (maTrangThai == "DA_XAC_NHAN" && !string.IsNullOrEmpty(donHang.EmailNguoiNhan))
+            {
+                try
+                {
+                    // Lấy danh sách tên bàn để hiển thị trong mail
+                    var listTenBan = donHang.BanAnDonHangs
+                                        .Where(b => b.MaBanNavigation != null)
+                                        .Select(b => b.MaBanNavigation.TenBan)
+                                        .ToList();
+                    string tenCacBan = string.Join(", ", listTenBan);
+
+                    // Resolve Service gửi mail (lấy từ HttpContext giống TaoDatBan)
+                    var emailService = HttpContext.RequestServices.GetService<Services.IEmailService>();
+
+                    if (emailService != null)
+                    {
+                        // Gửi mail không chờ (Fire and forget) để không làm chậm response
+                        _ = emailService.SendBookingConfirmationEmailAsync(
+                            donHang.EmailNguoiNhan,          // Email khách
+                            donHang.TenNguoiNhan,            // Tên khách
+                            donHang.MaDonHang,               // Mã đơn
+                            tenCacBan,                       // Tên bàn
+                            donHang.TGNhanBan ?? DateTime.Now, // Giờ nhận bàn
+                            donHang.SoLuongNguoiDK,          // Số người
+                            donHang.GhiChu                   // Ghi chú
+                        );
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log lỗi mail nhưng không return lỗi API
+                    Console.WriteLine("Lỗi gửi mail xác nhận: " + ex.Message);
+                }
+            }
+
             return Ok(new { message = "Cập nhật trạng thái thành công.", maDonHang, maTrangThai });
         }
     }
