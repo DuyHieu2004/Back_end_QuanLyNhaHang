@@ -44,11 +44,13 @@ public class BookingHistoryController : ControllerBase
                 // SỬA: Lấy tên bàn từ bảng trung gian
                 TenBan = string.Join(", ", dh.BanAnDonHangs.Select(b => b.MaBanNavigation.TenBan)),
                 ThoiGianBatDau = dh.ThoiGianDatHang ?? DateTime.Now,
+                ThoiGianDuKien = dh.TgdatDuKien,
                 SoLuongNguoi = dh.SoLuongNguoiDK,
                 GhiChu = dh.GhiChu,
                 DaHuy = (dh.MaTrangThaiDonHang == "DA_HUY"),
                 MaTrangThai = dh.MaTrangThaiDonHang,
-                CoTheHuy = ((dh.ThoiGianDatHang) > DateTime.Now && dh.MaTrangThaiDonHang != "DA_HUY"),
+                // SỬA: Sử dụng logic giống endpoint cancel - ưu tiên TgdatDuKien, fallback về ThoiGianDatHang
+                CoTheHuy = ((dh.TgdatDuKien ?? dh.ThoiGianDatHang ?? DateTime.Now) > DateTime.Now && dh.MaTrangThaiDonHang != "DA_HUY" && dh.MaTrangThaiDonHang != "DA_HOAN_THANH"),
                 TrangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai
             })
             .ToListAsync();
