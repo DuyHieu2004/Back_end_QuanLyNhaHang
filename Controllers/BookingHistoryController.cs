@@ -5,6 +5,8 @@ using QuanLyNhaHang.Models;
 using QuanLyNhaHang.Models.DTO;
 using QuanLyNhaHang.Services;
 using System.Security.Claims;
+using System.Collections.Generic;
+using System.Linq;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -44,16 +46,84 @@ public class BookingHistoryController : ControllerBase
                 // SỬA: Lấy tên bàn từ bảng trung gian
                 TenBan = string.Join(", ", dh.BanAnDonHangs.Select(b => b.MaBanNavigation.TenBan)),
                 ThoiGianBatDau = dh.ThoiGianDatHang ?? DateTime.Now,
+                ThoiGianDuKien = dh.TgdatDuKien,
                 SoLuongNguoi = dh.SoLuongNguoiDK,
                 GhiChu = dh.GhiChu,
                 DaHuy = (dh.MaTrangThaiDonHang == "DA_HUY"),
                 MaTrangThai = dh.MaTrangThaiDonHang,
-                CoTheHuy = ((dh.ThoiGianDatHang) > DateTime.Now && dh.MaTrangThaiDonHang != "DA_HUY"),
+                // SỬA: Sử dụng logic giống endpoint cancel - ưu tiên TgdatDuKien, fallback về ThoiGianDatHang
+                CoTheHuy = ((dh.TgdatDuKien ?? dh.ThoiGianDatHang ?? DateTime.Now) > DateTime.Now && dh.MaTrangThaiDonHang != "DA_HUY" && dh.MaTrangThaiDonHang != "DA_HOAN_THANH"),
                 TrangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai
             })
             .ToListAsync();
 
         return Ok(donHangs);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("by-phone/{phone}")]
+    public async Task<IActionResult> GetBookingHistoryByPhone(string phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone))
+        {
+            return BadRequest(new
+            {
+                found = false,
+                message = "Vui lòng nhập số điện thoại.",
+                bookings = new List<BookingHistoryDto>()
+            });
+        }
+
+        var normalizedPhone = phone.Trim();
+
+        var khachHang = await _context.KhachHangs
+            .FirstOrDefaultAsync(k => k.SoDienThoai == normalizedPhone);
+
+        if (khachHang == null)
+        {
+            return Ok(new
+            {
+                found = false,
+                message = "Không tìm thấy khách hàng với số điện thoại này.",
+                bookings = new List<BookingHistoryDto>()
+            });
+        }
+
+        var donHangs = await _context.DonHangs
+            .Where(dh => dh.MaKhachHang == khachHang.MaKhachHang)
+            .Include(dh => dh.BanAnDonHangs)
+                .ThenInclude(badh => badh.MaBanNavigation)
+            .Include(dh => dh.MaTrangThaiDonHangNavigation)
+            .OrderByDescending(dh => dh.ThoiGianDatHang)
+            .Select(dh => new BookingHistoryDto
+            {
+                MaDonHang = dh.MaDonHang,
+                TenBan = string.Join(", ", dh.BanAnDonHangs.Select(b => b.MaBanNavigation.TenBan)),
+                ThoiGianBatDau = dh.ThoiGianDatHang ?? DateTime.Now,
+                ThoiGianDuKien = dh.TgdatDuKien,
+                SoLuongNguoi = dh.SoLuongNguoiDK,
+                GhiChu = dh.GhiChu,
+                DaHuy = (dh.MaTrangThaiDonHang == "DA_HUY"),
+                MaTrangThai = dh.MaTrangThaiDonHang,
+                CoTheHuy = ((dh.TgdatDuKien ?? dh.ThoiGianDatHang ?? DateTime.Now) > DateTime.Now && dh.MaTrangThaiDonHang != "DA_HUY" && dh.MaTrangThaiDonHang != "DA_HOAN_THANH"),
+                TrangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai
+            })
+            .ToListAsync();
+
+        return Ok(new
+        {
+            found = true,
+            message = $"Đã tìm thấy khách hàng {khachHang.HoTen ?? khachHang.MaKhachHang}.",
+            customer = new
+            {
+                maKhachHang = khachHang.MaKhachHang,
+                hoTen = khachHang.HoTen,
+                email = khachHang.Email,
+                soDienThoai = khachHang.SoDienThoai,
+                soLanAn = khachHang.SoLanAnTichLuy
+            },
+            bookings = donHangs
+        });
     }
 
     [HttpPost("cancel")]

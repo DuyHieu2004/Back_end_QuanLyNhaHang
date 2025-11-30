@@ -1,12 +1,30 @@
-﻿
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuanLyNhaHang.Models;
 using System.Globalization;
+using System.Linq;
 
 namespace QuanLyNhaHang.Controllers
 {
+    // DTO DÙNG CHO API TRẢ VỀ DANH SÁCH
+    public class KhachHangListDto
+    {
+        public string MaKhachHang { get; set; } = null!;
+        public string HoTen { get; set; } = null!;
+        public string SoDienThoai { get; set; } = null!;
+        public string? Email { get; set; }
+        public string? HinhAnh { get; set; }
+        public int SoLanAnTichLuy { get; set; }
+        public int? NoShowCount { get; set; }
+        public DateTime? NgayTao { get; set; }
+
+        public decimal TongChiTieu { get; set; } = 0;
+        public DateTime? LanCuoiDen { get; set; }
+    }
+
+    // KHÁCH HÀNG CONTROLLER
+
     [Route("api/[controller]")]
     [ApiController]
     public class KhachHangController : ControllerBase
@@ -16,47 +34,6 @@ namespace QuanLyNhaHang.Controllers
         public KhachHangController(QLNhaHangContext context)
         {
             _context = context;
-        }
-
-        // API tìm kiếm theo số điện thoại
-        [HttpGet("TimKiem/{sdt}")]
-        public async Task<IActionResult> GetKhachHangBySDT(string sdt)
-        {
-            try
-            {
-                var khachHang = await _context.KhachHangs
-                                        .FirstOrDefaultAsync(k => k.SoDienThoai == sdt);
-
-                if (khachHang != null)
-                {
-                    return Ok(new
-                    {
-                        Success = true,
-                        Message = "Đã tìm thấy khách hàng!",
-                        Data = new
-                        {
-                            MaKhachHang = khachHang.MaKhachHang,
-                            HoTen = khachHang.HoTen,
-                            Email = khachHang.Email,
-                            SoLanAn = khachHang.SoLanAnTichLuy,
-                            NoShowCount = khachHang.NoShowCount
-                        }
-                    });
-                }
-                else
-                {
-                    return Ok(new
-                    {
-                        Success = false,
-                        Message = "Khách hàng mới",
-                        Data = (object)null
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { Success = false, Message = "Lỗi server: " + ex.Message });
-            }
         }
 
         // API lấy thống kê nhanh
@@ -75,37 +52,38 @@ namespace QuanLyNhaHang.Controllers
                     .Where(k => k.NgayTao >= startOfMonth && k.NgayTao <= endOfMonth)
                     .CountAsync();
 
-                // Khách hàng thân thiết: trên 5 lần ăn
                 var khachHangThanThiet = await _context.KhachHangs
                     .Where(k => k.SoLanAnTichLuy >= 5)
                     .CountAsync();
 
-                // Khách No-show: có ít nhất 1 lần no-show
                 var khachNoShow = await _context.KhachHangs
                     .Where(k => k.NoShowCount > 0)
                     .CountAsync();
 
                 return Ok(new
                 {
-                    TongKhachHang = totalKhachHang,
-                    KhachHangMoiThang = khachHangMoiThang,
-                    KhachHangThanThiet = khachHangThanThiet,
-                    KhachNoShow = khachNoShow
+                    
+                    tongKhachHang = totalKhachHang,
+                    khachHangMoiThang = khachHangMoiThang,
+                    khachHangThanThiet = khachHangThanThiet,
+                    khachNoShow = khachNoShow
                 });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Success = false, Message = "Lỗi server: " + ex.Message });
+                Console.WriteLine(" LỖI ThongKe KhachHang: " + ex.ToString());
+                return StatusCode(500, new { success = false, message = "Lỗi server: " + ex.Message });
             }
         }
 
-        // API lấy danh sách khách hàng với phân trang và tìm kiếm
+        // API lấy danh sách khách hàng
         [HttpGet]
         public async Task<IActionResult> GetKhachHangs([FromQuery] string search = "", [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
                 var query = _context.KhachHangs.AsQueryable();
+                query = query.Where(k => k.MaKhachHang != "KH_VANG_LAI");
 
                 if (!string.IsNullOrEmpty(search))
                 {
@@ -115,15 +93,16 @@ namespace QuanLyNhaHang.Controllers
                         (k.Email != null && k.Email.Contains(search))
                     );
                 }
-
                 var totalRecords = await query.CountAsync();
 
                 var khachHangs = await query
+                    .AsNoTracking()
                     .OrderByDescending(k => k.SoLanAnTichLuy)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
-                    .Select(k => new
+                    .Select(k => new KhachHangListDto
                     {
+                        
                         MaKhachHang = k.MaKhachHang,
                         HoTen = k.HoTen,
                         SoDienThoai = k.SoDienThoai,
@@ -132,102 +111,28 @@ namespace QuanLyNhaHang.Controllers
                         SoLanAnTichLuy = k.SoLanAnTichLuy,
                         NoShowCount = k.NoShowCount,
                         NgayTao = k.NgayTao,
-                        // Tính tổng chi tiêu từ tiền đặt cọc các đơn hàng đã thanh toán
-                        TongChiTieu = _context.DonHangs
-                            .Where(d => d.MaKhachHang == k.MaKhachHang && d.ThanhToan == true)
-                            .Sum(d => d.TienDatCoc ?? 0),
-                        // Lấy thời gian đặt hàng gần nhất
-                        LanCuoiDen = _context.DonHangs
-                            .Where(d => d.MaKhachHang == k.MaKhachHang)
-                            .OrderByDescending(d => d.ThoiGianDatHang)
-                            .Select(d => d.ThoiGianDatHang)
-                            .FirstOrDefault()
+                        TongChiTieu = 0.0m,
+                        LanCuoiDen = (DateTime?)null
                     })
                     .ToListAsync();
 
                 return Ok(new
                 {
-                    TotalRecords = totalRecords,
-                    Page = page,
-                    PageSize = pageSize,
-                    Data = khachHangs
+                  
+                    totalRecords = totalRecords,
+                    page = page,
+                    pageSize = pageSize,
+                    data = khachHangs
                 });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Success = false, Message = "Lỗi server: " + ex.Message });
+                Console.WriteLine(" LỖI NGHIÊM TRỌNG KHI TẢI KHÁCH HÀNG (GetKhachHangs): " + ex.ToString());
+                return StatusCode(500, new { success = false, message = "Lỗi nghiêm trọng khi tải danh sách khách hàng. Vui lòng kiểm tra log backend." });
             }
         }
 
-        // API lấy chi tiết khách hàng
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetKhachHangDetail(string id)
-        {
-            try
-            {
-                var khachHang = await _context.KhachHangs
-                    .FirstOrDefaultAsync(k => k.MaKhachHang == id);
-
-                if (khachHang == null)
-                {
-                    return NotFound(new { Success = false, Message = "Không tìm thấy khách hàng" });
-                }
-
-                // Lấy lịch sử đơn hàng
-                var donHangs = await _context.DonHangs
-                    .Where(d => d.MaKhachHang == id)
-                    .OrderByDescending(d => d.ThoiGianDatHang)
-                    .Select(d => new
-                    {
-                        MaDonHang = d.MaDonHang,
-                        ThoiGianDatHang = d.ThoiGianDatHang,
-                        TienDatCoc = d.TienDatCoc,
-                        TrangThai = d.MaTrangThaiDonHang,
-                        SoLuongNguoiDK = d.SoLuongNguoiDK,
-                        GhiChu = d.GhiChu
-                    })
-                    .Take(20)
-                    .ToListAsync();
-
-                // Lấy thông tin bàn ăn từ lịch sử đơn hàng
-                var datBans = await _context.BanAnDonHangs
-                    .Where(b => b.MaDonHangNavigation.MaKhachHang == id)
-                    .Select(b => new
-                    {
-                        MaDonHang = b.MaDonHang,
-                        TenBan = b.MaBanNavigation.TenBan,
-                        ThoiGianDatHang = b.MaDonHangNavigation.ThoiGianDatHang,
-                        TrangThai = b.MaDonHangNavigation.MaTrangThaiDonHang
-                    })
-                    .OrderByDescending(b => b.ThoiGianDatHang)
-                    .Take(10)
-                    .ToListAsync();
-
-                return Ok(new
-                {
-                    Success = true,
-                    Profile = new
-                    {
-                        khachHang.MaKhachHang,
-                        khachHang.HoTen,
-                        khachHang.SoDienThoai,
-                        khachHang.Email,
-                        khachHang.HinhAnh,
-                        khachHang.SoLanAnTichLuy,
-                        khachHang.NoShowCount,
-                        khachHang.NgayTao
-                    },
-                    DonHangs = donHangs,
-                    DatBans = datBans
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { Success = false, Message = "Lỗi server: " + ex.Message });
-            }
-        }
-
-        // API thêm khách hàng mới
+        // API thêm khách hàng mới 
         [HttpPost]
         public async Task<IActionResult> CreateKhachHang([FromBody] KhachHangCreateModel model)
         {
@@ -236,7 +141,7 @@ namespace QuanLyNhaHang.Controllers
                 // Kiểm tra số điện thoại đã tồn tại
                 if (await _context.KhachHangs.AnyAsync(k => k.SoDienThoai == model.SoDienThoai))
                 {
-                    return BadRequest(new { Success = false, Message = "Số điện thoại đã tồn tại" });
+                    return BadRequest(new { success = false, message = "Số điện thoại đã tồn tại" });
                 }
 
                 var khachHang = new KhachHang
@@ -254,11 +159,87 @@ namespace QuanLyNhaHang.Controllers
                 _context.KhachHangs.Add(khachHang);
                 await _context.SaveChangesAsync();
 
-                return Ok(new { Success = true, Message = "Thêm khách hàng thành công", Data = khachHang });
+                return Ok(new { success = true, message = "Thêm khách hàng thành công", data = khachHang });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Success = false, Message = "Lỗi server: " + ex.Message });
+                Console.WriteLine(" LỖI NGHIÊM TRỌNG KHI THÊM KHÁCH HÀNG (API POST): " + ex.ToString());
+                return StatusCode(500, new { success = false, message = "Lỗi kết nối Database hoặc server. Vui lòng kiểm tra log backend." });
+            }
+        }
+
+        // API lấy chi tiết khách hàng 
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetKhachHangDetail(string id)
+        {
+            try
+            {
+                // 1. Lấy hồ sơ khách hàng cơ bản
+                var khachHang = await _context.KhachHangs
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(k => k.MaKhachHang == id);
+
+                if (khachHang == null)
+                {
+                    return NotFound(new { success = false, message = "Không tìm thấy khách hàng" });
+                }
+
+                // 2. Lấy lịch sử đơn hàng
+                var donHangs = await _context.DonHangs
+                    .AsNoTracking()
+                    .Where(d => d.MaKhachHang == id)
+                    .OrderByDescending(d => d.ThoiGianDatHang)
+                    .Select(d => new
+                    {
+                        maDonHang = d.MaDonHang,
+                        thoiGianDatHang = d.ThoiGianDatHang,
+                        tienDatCoc = d.TienDatCoc,
+                        trangThai = d.MaTrangThaiDonHang,
+                        soLuongNguoiDK = d.SoLuongNguoiDK,
+                        ghiChu = d.GhiChu
+                    })
+                    .Take(20)
+                    .ToListAsync();
+
+                var datBans = await _context.BanAnDonHangs
+                    .AsNoTracking()
+                    .Include(b => b.MaDonHangNavigation)
+                    .Include(b => b.MaBanNavigation)
+                    .Where(b => b.MaDonHangNavigation!.MaKhachHang == id)
+                    .Select(b => new 
+                    {
+                        maDonHang = b.MaDonHang,
+                        tenBan = b.MaBanNavigation!.TenBan,
+                        thoiGianDatHang = b.MaDonHangNavigation!.ThoiGianDatHang,
+                        trangThai = b.MaDonHangNavigation!.MaTrangThaiDonHang 
+                    
+                    })
+                    .OrderByDescending(b => b.thoiGianDatHang)
+                    .Take(10)
+                    .ToListAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    profile = new
+                    {
+                        maKhachHang = khachHang.MaKhachHang,
+                        hoTen = khachHang.HoTen,
+                        soDienThoai = khachHang.SoDienThoai,
+                        email = khachHang.Email,
+                        hinhAnh = khachHang.HinhAnh,
+                        soLanAnTichLuy = khachHang.SoLanAnTichLuy,
+                        noShowCount = khachHang.NoShowCount,
+                        ngayTao = khachHang.NgayTao
+                    },
+                    donHangs = donHangs,
+                    datBans = datBans
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("🔴 LỖI GetKhachHangDetail: " + ex.ToString());
+                return StatusCode(500, new { success = false, message = "Lỗi server khi lấy chi tiết khách hàng: " + ex.Message });
             }
         }
 
@@ -271,13 +252,13 @@ namespace QuanLyNhaHang.Controllers
                 var existing = await _context.KhachHangs.FirstOrDefaultAsync(k => k.MaKhachHang == id);
                 if (existing == null)
                 {
-                    return NotFound(new { Success = false, Message = "Không tìm thấy khách hàng" });
+                    return NotFound(new { success = false, message = "Không tìm thấy khách hàng" });
                 }
 
                 // Kiểm tra số điện thoại trùng
                 if (await _context.KhachHangs.AnyAsync(k => k.SoDienThoai == model.SoDienThoai && k.MaKhachHang != id))
                 {
-                    return BadRequest(new { Success = false, Message = "Số điện thoại đã được sử dụng bởi khách hàng khác" });
+                    return BadRequest(new { success = false, message = "Số điện thoại đã được sử dụng bởi khách hàng khác" });
                 }
 
                 existing.HoTen = model.HoTen;
@@ -287,11 +268,12 @@ namespace QuanLyNhaHang.Controllers
 
                 await _context.SaveChangesAsync();
 
-                return Ok(new { Success = true, Message = "Cập nhật khách hàng thành công" });
+                return Ok(new { success = true, message = "Cập nhật khách hàng thành công" });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Success = false, Message = "Lỗi server: " + ex.Message });
+                Console.WriteLine("LỖI Cập nhật KhachHang: " + ex.ToString());
+                return StatusCode(500, new { success = false, message = "Lỗi server: " + ex.Message });
             }
         }
 
@@ -323,37 +305,51 @@ namespace QuanLyNhaHang.Controllers
                         SoLanAn = k.SoLanAnTichLuy,
                         NoShowCount = k.NoShowCount ?? 0,
                         NgayTao = k.NgayTao,
-                        TongChiTieu = _context.DonHangs
-                            .Where(d => d.MaKhachHang == k.MaKhachHang && d.ThanhToan == true)
-                            .Sum(d => d.TienDatCoc ?? 0)
+                        TongChiTieu = 0.0m
                     })
                     .ToListAsync();
 
                 return Ok(new
                 {
-                    Success = true,
-                    Message = "Dữ liệu xuất Excel đã sẵn sàng",
-                    Data = khachHangs
+                    success = true,
+                    message = "Dữ liệu xuất Excel đã sẵn sàng",
+                    data = khachHangs
                 });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Success = false, Message = "Lỗi server: " + ex.Message });
+                Console.WriteLine("LỖI Export KhachHang: " + ex.ToString());
+                return StatusCode(500, new { success = false, message = "Lỗi server: " + ex.Message });
             }
         }
 
+        // Hàm tạo mã khách hàng
         private async Task<string> GenerateCustomerCodeAsync()
         {
             var lastCustomer = await _context.KhachHangs
+                .AsNoTracking()
+                .Where(k => k.MaKhachHang != "KH_VANG_LAI")
                 .OrderByDescending(k => k.MaKhachHang)
+                .Select(k => k.MaKhachHang)
                 .FirstOrDefaultAsync();
 
-            if (lastCustomer == null)
+            if (string.IsNullOrEmpty(lastCustomer))
             {
                 return "KH0001";
             }
 
-            var lastNumber = int.Parse(lastCustomer.MaKhachHang.Substring(2));
+            int lastNumber = 0;
+            if (lastCustomer.Length >= 3 &&
+                lastCustomer.StartsWith("KH") &&
+                int.TryParse(lastCustomer.Substring(2), out int parsedNumber))
+            {
+                lastNumber = parsedNumber;
+            }
+            else
+            {
+                lastNumber = 0;
+            }
+
             return "KH" + (lastNumber + 1).ToString("D4");
         }
     }
