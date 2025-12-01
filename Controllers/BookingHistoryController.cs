@@ -14,8 +14,7 @@ using System.Linq;
 public class BookingHistoryController : ControllerBase
 {
     private readonly QLNhaHangContext _context;
-
-    private readonly IEmailService _emailService; // Inject thêm Email Service
+    private readonly IEmailService _emailService;
 
     public BookingHistoryController(QLNhaHangContext context, IEmailService emailService)
     {
@@ -23,36 +22,40 @@ public class BookingHistoryController : ControllerBase
         _emailService = emailService;
     }
 
+    // =========================================================================
+    // API 1: LẤY LỊCH SỬ ĐẶT BÀN CỦA TÔI
+    // =========================================================================
     [HttpGet("me")]
     public async Task<IActionResult> GetMyBookingHistory()
     {
         var maKhachHang = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if (maKhachHang == null)
-        {
-            return Unauthorized();
-        }
+        if (maKhachHang == null) return Unauthorized();
 
         var donHangs = await _context.DonHangs
             .Where(dh => dh.MaKhachHang == maKhachHang)
-            // SỬA: Include bảng trung gian để lấy thông tin bàn
-            .Include(dh => dh.BanAnDonHangs)
-                .ThenInclude(badh => badh.MaBanNavigation)
+            // SỬA: Đi từ ChiTietDonHang -> BanAnDonHang -> BanAn
+            .Include(dh => dh.ChiTietDonHangs)
+                .ThenInclude(ct => ct.BanAnDonHangs)
+                    .ThenInclude(badh => badh.MaBanNavigation)
             .Include(dh => dh.MaTrangThaiDonHangNavigation)
             .OrderByDescending(dh => dh.ThoiGianDatHang)
             .Select(dh => new BookingHistoryDto
             {
                 MaDonHang = dh.MaDonHang,
-                // SỬA: Lấy tên bàn từ bảng trung gian
-                TenBan = string.Join(", ", dh.BanAnDonHangs.Select(b => b.MaBanNavigation.TenBan)),
+                // SỬA: Lấy tên bàn từ ChiTiet -> BanAnDonHang
+                TenBan = string.Join(", ", dh.ChiTietDonHangs
+                                    .SelectMany(ct => ct.BanAnDonHangs)
+                                    .Select(b => b.MaBanNavigation.TenBan)
+                                    .Distinct()),
                 ThoiGianBatDau = dh.ThoiGianDatHang ?? DateTime.Now,
                 ThoiGianDuKien = dh.TgdatDuKien,
                 SoLuongNguoi = dh.SoLuongNguoiDK,
                 GhiChu = dh.GhiChu,
                 DaHuy = (dh.MaTrangThaiDonHang == "DA_HUY"),
                 MaTrangThai = dh.MaTrangThaiDonHang,
-                // SỬA: Sử dụng logic giống endpoint cancel - ưu tiên TgdatDuKien, fallback về ThoiGianDatHang
-                CoTheHuy = ((dh.TgdatDuKien ?? dh.ThoiGianDatHang ?? DateTime.Now) > DateTime.Now && dh.MaTrangThaiDonHang != "DA_HUY" && dh.MaTrangThaiDonHang != "DA_HOAN_THANH"),
+                CoTheHuy = ((dh.TgdatDuKien ?? dh.ThoiGianDatHang ?? DateTime.Now) > DateTime.Now
+                            && dh.MaTrangThaiDonHang != "DA_HUY"
+                            && dh.MaTrangThaiDonHang != "DA_HOAN_THANH"),
                 TrangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai
             })
             .ToListAsync();
@@ -60,52 +63,51 @@ public class BookingHistoryController : ControllerBase
         return Ok(donHangs);
     }
 
+    // =========================================================================
+    // API 2: TÌM LỊCH SỬ BẰNG SỐ ĐIỆN THOẠI (CHO NHÂN VIÊN/KHÁCH VÃNG LAI)
+    // =========================================================================
     [AllowAnonymous]
     [HttpGet("by-phone/{phone}")]
     public async Task<IActionResult> GetBookingHistoryByPhone(string phone)
     {
         if (string.IsNullOrWhiteSpace(phone))
         {
-            return BadRequest(new
-            {
-                found = false,
-                message = "Vui lòng nhập số điện thoại.",
-                bookings = new List<BookingHistoryDto>()
-            });
+            return BadRequest(new { found = false, message = "Vui lòng nhập SĐT." });
         }
 
         var normalizedPhone = phone.Trim();
-
-        var khachHang = await _context.KhachHangs
-            .FirstOrDefaultAsync(k => k.SoDienThoai == normalizedPhone);
+        var khachHang = await _context.KhachHangs.FirstOrDefaultAsync(k => k.SoDienThoai == normalizedPhone);
 
         if (khachHang == null)
         {
-            return Ok(new
-            {
-                found = false,
-                message = "Không tìm thấy khách hàng với số điện thoại này.",
-                bookings = new List<BookingHistoryDto>()
-            });
+            return Ok(new { found = false, message = "Không tìm thấy khách hàng.", bookings = new List<BookingHistoryDto>() });
         }
 
         var donHangs = await _context.DonHangs
             .Where(dh => dh.MaKhachHang == khachHang.MaKhachHang)
-            .Include(dh => dh.BanAnDonHangs)
-                .ThenInclude(badh => badh.MaBanNavigation)
+            // SỬA: Include đúng đường dẫn
+            .Include(dh => dh.ChiTietDonHangs)
+                .ThenInclude(ct => ct.BanAnDonHangs)
+                    .ThenInclude(badh => badh.MaBanNavigation)
             .Include(dh => dh.MaTrangThaiDonHangNavigation)
             .OrderByDescending(dh => dh.ThoiGianDatHang)
             .Select(dh => new BookingHistoryDto
             {
                 MaDonHang = dh.MaDonHang,
-                TenBan = string.Join(", ", dh.BanAnDonHangs.Select(b => b.MaBanNavigation.TenBan)),
+                // SỬA: Lấy tên bàn
+                TenBan = string.Join(", ", dh.ChiTietDonHangs
+                                    .SelectMany(ct => ct.BanAnDonHangs)
+                                    .Select(b => b.MaBanNavigation.TenBan)
+                                    .Distinct()),
                 ThoiGianBatDau = dh.ThoiGianDatHang ?? DateTime.Now,
                 ThoiGianDuKien = dh.TgdatDuKien,
                 SoLuongNguoi = dh.SoLuongNguoiDK,
                 GhiChu = dh.GhiChu,
                 DaHuy = (dh.MaTrangThaiDonHang == "DA_HUY"),
                 MaTrangThai = dh.MaTrangThaiDonHang,
-                CoTheHuy = ((dh.TgdatDuKien ?? dh.ThoiGianDatHang ?? DateTime.Now) > DateTime.Now && dh.MaTrangThaiDonHang != "DA_HUY" && dh.MaTrangThaiDonHang != "DA_HOAN_THANH"),
+                CoTheHuy = ((dh.TgdatDuKien ?? dh.ThoiGianDatHang ?? DateTime.Now) > DateTime.Now
+                            && dh.MaTrangThaiDonHang != "DA_HUY"
+                            && dh.MaTrangThaiDonHang != "DA_HOAN_THANH"),
                 TrangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai
             })
             .ToListAsync();
@@ -113,91 +115,135 @@ public class BookingHistoryController : ControllerBase
         return Ok(new
         {
             found = true,
-            message = $"Đã tìm thấy khách hàng {khachHang.HoTen ?? khachHang.MaKhachHang}.",
+            message = $"Đã tìm thấy khách hàng {khachHang.HoTen}.",
             customer = new
             {
                 maKhachHang = khachHang.MaKhachHang,
                 hoTen = khachHang.HoTen,
                 email = khachHang.Email,
                 soDienThoai = khachHang.SoDienThoai,
-                soLanAn = khachHang.SoLanAnTichLuy
+                // SỬA: Dùng cột mới NgayCuoiCungTichLuy thay vì SoLanAnTichLuy (nếu có trong DTO)
+                // soLanAn = khachHang.SoLanAnTichLuy 
             },
             bookings = donHangs
         });
     }
 
+    // =========================================================================
+    // API 3: HỦY ĐẶT BÀN (TỪ APP)
+    // =========================================================================
     [HttpPost("cancel")]
     public async Task<IActionResult> CancelBooking([FromBody] CancelBookingRequest request)
     {
-        // Lấy user ID từ Token để đảm bảo khách chỉ hủy đơn của chính mình
         var maKhachHang = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (maKhachHang == null) return Unauthorized();
 
         var donHang = await _context.DonHangs
-            // SỬA: Include bảng trung gian để cập nhật trạng thái bàn
-            .Include(dh => dh.BanAnDonHangs)
-                .ThenInclude(badh => badh.MaBanNavigation)
+            // SỬA: Include để lấy thông tin bàn cần reset trạng thái
+            .Include(dh => dh.ChiTietDonHangs)
+                .ThenInclude(ct => ct.BanAnDonHangs)
+                    .ThenInclude(badh => badh.MaBanNavigation)
             .FirstOrDefaultAsync(d => d.MaDonHang == request.MaDonHang && d.MaKhachHang == maKhachHang);
 
-        if (donHang == null)
+        if (donHang == null) return NotFound(new { message = "Không tìm thấy đơn hàng." });
+        if (donHang.MaTrangThaiDonHang == "DA_HUY") return BadRequest(new { message = "Đơn hàng đã hủy rồi." });
+        if (donHang.MaTrangThaiDonHang == "DA_HOAN_THANH") return BadRequest(new { message = "Đơn hàng đã hoàn thành." });
+
+        var gioAn = donHang.TgdatDuKien ?? donHang.ThoiGianDatHang ?? DateTime.Now;
+        if (DateTime.Now >= gioAn) return BadRequest(new { message = "Đã quá giờ đặt, không thể hủy." });
+
+        // --- TIẾN HÀNH HỦY ---
+        donHang.MaTrangThaiDonHang = "DA_HUY";
+        donHang.GhiChu += $" | Khách hủy lúc {DateTime.Now:HH:mm dd/MM}";
+
+        // SỬA: Cập nhật trạng thái bàn về TRỐNG
+        // Duyệt qua tất cả các bàn liên kết với đơn hàng này (thông qua ChiTiet)
+        var allTables = donHang.ChiTietDonHangs
+            .SelectMany(ct => ct.BanAnDonHangs)
+            .Select(b => b.MaBanNavigation)
+            .Where(b => b != null)
+            .Distinct();
+
+        foreach (var ban in allTables)
         {
-            return NotFound(new { message = "Đơn hàng không tồn tại hoặc không thuộc quyền sở hữu." });
+            ban.MaTrangThai = "TTBA001"; // Trống
         }
 
-        if (donHang.MaTrangThaiDonHang == "DA_HUY")
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "Hủy đặt bàn thành công." });
+    }
+
+    // =========================================================================
+    // API 4: HỦY NHANH TỪ EMAIL (QUICK CANCEL)
+    // =========================================================================
+    [HttpGet("quick-cancel/{maDonHang}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> QuickCancelFromEmail(string maDonHang, [FromQuery] bool confirm = false)
+    {
+        var donHang = await _context.DonHangs
+            // SỬA: Include đúng đường dẫn
+            .Include(dh => dh.ChiTietDonHangs)
+                .ThenInclude(ct => ct.BanAnDonHangs)
+                    .ThenInclude(badh => badh.MaBanNavigation)
+            .FirstOrDefaultAsync(d => d.MaDonHang == maDonHang);
+
+        if (donHang == null || donHang.MaTrangThaiDonHang == "DA_HUY")
         {
-            return BadRequest(new { message = "Đơn hàng đã bị hủy trước đó." });
+            string htmlLoi = _emailService.GetHtml_ThongBaoLoi("Đơn hàng không tồn tại hoặc đã hủy.");
+            return Content(htmlLoi, "text/html");
         }
 
         if (donHang.MaTrangThaiDonHang == "DA_HOAN_THANH")
         {
-            return BadRequest(new { message = "Đơn hàng đã hoàn thành, không thể hủy." });
+            string htmlLoi = _emailService.GetHtml_ThongBaoLoi("Đơn hàng đã hoàn thành.");
+            return Content(htmlLoi, "text/html");
         }
 
-        // Kiểm tra thời gian (Ví dụ: Không cho hủy nếu đã quá giờ đặt hoặc sắp tới giờ đặt)
         var gioAn = donHang.TgdatDuKien ?? donHang.ThoiGianDatHang ?? DateTime.Now;
         if (DateTime.Now >= gioAn)
         {
-            return BadRequest(new { message = "Đã quá giờ đặt bàn, không thể hủy online. Vui lòng gọi hotline." });
+            string htmlLoi = _emailService.GetHtml_ThongBaoLoi("Đã quá giờ đặt.");
+            return Content(htmlLoi, "text/html");
         }
 
-        // --- TIẾN HÀNH HỦY ---
-        donHang.MaTrangThaiDonHang = "DA_HUY";
-        donHang.GhiChu += $" | Khách tự hủy lúc {DateTime.Now:HH:mm dd/MM}";
-
-        // Cập nhật trạng thái bàn về TRỐNG (TTBA001)
-        // SỬA: Lặp qua danh sách BanAnDonHangs
-        if (donHang.BanAnDonHangs != null)
+        // TRƯỜNG HỢP A: CHƯA XÁC NHẬN
+        if (confirm == false)
         {
-            foreach (var banAnDonHang in donHang.BanAnDonHangs)
-            {
-                if (banAnDonHang.MaBanNavigation != null)
-                {
-                    banAnDonHang.MaBanNavigation.MaTrangThai = "TTBA001"; // Mã bàn Trống
-                }
-            }
+            string linkXacNhan = $"/api/BookingHistory/quick-cancel/{maDonHang}?confirm=true";
+            string htmlConfirm = _emailService.GetHtml_XacNhanHuy(maDonHang, linkXacNhan);
+            return Content(htmlConfirm, "text/html");
+        }
+
+        // TRƯỜNG HỢP B: ĐÃ XÁC NHẬN -> HỦY
+        donHang.MaTrangThaiDonHang = "DA_HUY";
+        donHang.GhiChu += " | Hủy nhanh qua Email.";
+
+        // SỬA: Cập nhật trạng thái bàn
+        var allTables = donHang.ChiTietDonHangs
+            .SelectMany(ct => ct.BanAnDonHangs)
+            .Select(b => b.MaBanNavigation)
+            .Where(b => b != null)
+            .Distinct();
+
+        foreach (var ban in allTables)
+        {
+            ban.MaTrangThai = "TTBA001";
         }
 
         await _context.SaveChangesAsync();
-
-        return Ok(new { message = "Hủy đặt bàn thành công." });
+        string htmlSuccess = _emailService.GetHtml_HuyThanhCong();
+        return Content(htmlSuccess, "text/html");
     }
 
-
-
-
-
-    // =================================================================
-    // ENDPOINT 2: GỬI NHẮC NHỞ (Quét đơn trong 24h tới)
-    // =================================================================
-    // Endpoint này để Admin bấm hoặc Job tự gọi mỗi sáng
+    // =========================================================================
+    // API 5: GỬI NHẮC NHỞ (Giữ nguyên logic query DonHang cơ bản)
+    // =========================================================================
     [HttpPost("send-reminders")]
     public async Task<IActionResult> SendDailyReminders()
     {
         var now = DateTime.Now;
         var limit = now.AddHours(24);
 
-        // Lấy các đơn SẮP DIỄN RA và CHƯA HỦY
         var donHangs = await _context.DonHangs
             .Include(dh => dh.MaKhachHangNavigation)
             .Where(dh =>
@@ -207,101 +253,24 @@ public class BookingHistoryController : ControllerBase
             ).ToListAsync();
 
         int emailCount = 0;
-        int smsCount = 0;
-
         foreach (var dh in donHangs)
         {
             var email = dh.MaKhachHangNavigation.Email;
-            var sdt = dh.SdtnguoiNhan ?? dh.MaKhachHangNavigation.SoDienThoai;
             var ten = dh.TenNguoiNhan ?? dh.MaKhachHangNavigation.HoTen;
 
             if (!string.IsNullOrEmpty(email))
             {
-
                 string baseUrl = $"{Request.Scheme}://{Request.Host}";
-
                 string linkHuy = $"{baseUrl}/api/BookingHistory/quick-cancel/{dh.MaDonHang}";
 
-
                 _ = _emailService.SendReminderEmailAsync(
-                    email, ten, dh.TgdatDuKien?? DateTime.Now, "", linkHuy
+                    email, ten, dh.TgdatDuKien ?? DateTime.Now, "", linkHuy
                 );
                 emailCount++;
             }
-            else
-            {
-                Console.WriteLine($"[SMS MOCK] Gửi đến {sdt}: Chào {ten}, nhắc bạn có lịch đặt bàn lúc {dh.TgdatDuKien:HH:mm}.");
-                smsCount++;
-            }
         }
-
-        return Ok(new { Message = "Đã chạy tiến trình nhắc nhở.", SentEmails = emailCount, MockSMS = smsCount });
+        return Ok(new { Message = "Đã gửi nhắc nhở.", SentEmails = emailCount });
     }
-
-    // ENDPOINT 3: HỦY NHANH TỪ EMAIL (Quick Cancel)
-    [HttpGet("quick-cancel/{maDonHang}")]
-    [AllowAnonymous]
-    public async Task<IActionResult> QuickCancelFromEmail(string maDonHang, [FromQuery] bool confirm = false)
-    {
-        var donHang = await _context.DonHangs
-            // SỬA: Include bảng trung gian để cập nhật trạng thái bàn
-            .Include(dh => dh.BanAnDonHangs)
-                .ThenInclude(badh => badh.MaBanNavigation)
-            .FirstOrDefaultAsync(d => d.MaDonHang == maDonHang);
-
-        if (donHang == null || donHang.MaTrangThaiDonHang == "DA_HUY")
-        {
-            string htmlLoi = _emailService.GetHtml_ThongBaoLoi("Đơn hàng không tồn tại hoặc đã được hủy trước đó.");
-            return Content(htmlLoi, "text/html");
-        }
-
-        if (donHang.MaTrangThaiDonHang == "DA_HOAN_THANH")
-        {
-            string htmlLoi = _emailService.GetHtml_ThongBaoLoi("Đơn hàng đã hoàn thành, không thể hủy.");
-            return Content(htmlLoi, "text/html");
-        }
-
-        var gioAn = donHang.TgdatDuKien ?? donHang.ThoiGianDatHang ?? DateTime.Now;
-        if (DateTime.Now >= gioAn)
-        {
-            string htmlLoi = _emailService.GetHtml_ThongBaoLoi("Không thể hủy đơn hàng vì thời gian đặt bàn đã diễn ra.");
-            return Content(htmlLoi, "text/html");
-        }
-        // TRƯỜNG HỢP A: CHƯA XÁC NHẬN -> HIỆN TRANG WEB CÓ NÚT BẤM
-
-        if (confirm == false)
-        {
-            // Lưu ý: Thay đổi Base URL cho đúng với Domain thật khi deploy
-            string linkXacNhan = $"/api/BookingHistory/quick-cancel/{maDonHang}?confirm=true";
-
-            string htmlConfirm = _emailService.GetHtml_XacNhanHuy(maDonHang, linkXacNhan);
-
-            return Content(htmlConfirm, "text/html");
-        }
-
-
-        // TRƯỜNG HỢP B: ĐÃ BẤM XÁC NHẬN (confirm=true) -> TIẾN HÀNH HỦY
-        donHang.MaTrangThaiDonHang = "DA_HUY";
-        donHang.GhiChu += " | Khách hủy nhanh qua Email.";
-
-        // SỬA: Cập nhật trạng thái bàn qua bảng trung gian
-        if (donHang.BanAnDonHangs != null)
-        {
-            foreach (var banAnDonHang in donHang.BanAnDonHangs)
-            {
-                if (banAnDonHang.MaBanNavigation != null)
-                {
-                    banAnDonHang.MaBanNavigation.MaTrangThai = "TTBA001";
-                }
-            }
-        }
-
-        await _context.SaveChangesAsync();
-
-        string htmlSuccess = _emailService.GetHtml_HuyThanhCong();
-        return Content(htmlSuccess, "text/html");
-    }
-
 }
 
 public class CancelBookingRequest

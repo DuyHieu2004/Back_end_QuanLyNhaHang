@@ -11,9 +11,11 @@ public partial class BanAnDonHang
 
     public string MaBan { get; set; } = null!;
 
-    public virtual ICollection<ChiTietDonHang> ChiTietDonHangs { get; set; } = new List<ChiTietDonHang>();
+    public string? MaChiTietDonHang { get; set; }
 
     public virtual BanAn MaBanNavigation { get; set; } = null!;
+
+    public virtual ChiTietDonHang? MaChiTietDonHangNavigation { get; set; }
 
     public virtual DonHang MaDonHangNavigation { get; set; } = null!;
 }

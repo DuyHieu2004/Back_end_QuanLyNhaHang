@@ -28,7 +28,7 @@ namespace QuanLyNhaHang.Controllers
                     n.TenNguyenLieu,
                     n.DonViTinh,
                     Stock = n.SoLuongTonKho,
-                    MinStock = 0,
+                   // MinStock = n.MinStock, // Lấy MinStock từ DB
                     n.GiaBan
                 })
                 .ToListAsync();

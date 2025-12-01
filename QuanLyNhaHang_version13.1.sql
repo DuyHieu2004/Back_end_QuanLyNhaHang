@@ -1,7 +1,6 @@
 ﻿USE [master];
 GO
 
----- Xóa DB cũ nếu tồn tại
 IF DB_ID('QL_NhaHang_DoAn_Test2') IS NOT NULL
 BEGIN
     ALTER DATABASE [QL_NhaHang_DoAn_Test2] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
@@ -15,89 +14,35 @@ USE [QL_NhaHang_DoAn_Test2]
 GO
 
 -- =============================================
--- 1. TẠO CÁC BẢNG DANH MỤC (KHÔNG CÓ KHÓA NGOẠI)
+-- 1. CÁC BẢNG DANH MỤC (VARCHAR 25)
 -- =============================================
-
-CREATE TABLE [dbo].[TrangThaiBanAn](
-    [MaTrangThai] [varchar](25) NOT NULL PRIMARY KEY,
-    [TenTrangThai] [nvarchar](50) NOT NULL
-)
+CREATE TABLE [dbo].[TrangThaiBanAn]( [MaTrangThai] [varchar](25) NOT NULL PRIMARY KEY, [TenTrangThai] [nvarchar](50) NOT NULL ) 
 GO
-
-CREATE TABLE [dbo].[TrangThaiDonHang](
-    [MaTrangThai] [varchar](25) NOT NULL PRIMARY KEY,
-    [TenTrangThai] [nvarchar](100) NOT NULL
-)
+CREATE TABLE [dbo].[TrangThaiDonHang]( [MaTrangThai] [varchar](25) NOT NULL PRIMARY KEY, [TenTrangThai] [nvarchar](100) NOT NULL ) 
 GO
-
-CREATE TABLE [dbo].[DanhMucMonAn](
-    [MaDanhMuc] [varchar](25) NOT NULL PRIMARY KEY,
-    [TenDanhMuc] [nvarchar](255) NOT NULL
-)
+CREATE TABLE [dbo].[DanhMucMonAn]( [MaDanhMuc] [varchar](25) NOT NULL PRIMARY KEY, [TenDanhMuc] [nvarchar](255) NOT NULL ) 
 GO
-
-CREATE TABLE [dbo].[NguyenLieu](
-    [MaNguyenLieu] [varchar](25) NOT NULL PRIMARY KEY,
-    [TenNguyenLieu] [nvarchar](100) NOT NULL,
-    [DonViTinh] [nvarchar](50) NULL,
-    [SoLuongTonKho] [int] NOT NULL DEFAULT 0,
-    [GiaBan] [decimal](10, 2) NOT NULL DEFAULT 0 CHECK ([GiaBan] >= 0) 
-)
+CREATE TABLE [dbo].[NguyenLieu]( [MaNguyenLieu] [varchar](25) NOT NULL PRIMARY KEY, [TenNguyenLieu] [nvarchar](100) NOT NULL, [DonViTinh] [nvarchar](50) NULL, [SoLuongTonKho] [int] NOT NULL DEFAULT 0, [GiaBan] [decimal](10, 2) NOT NULL DEFAULT 0 CHECK ([GiaBan] >= 0), [TrangThaiTonKho] [varchar](25) NOT NULL DEFAULT 'BINH_THUONG' ) 
 GO
-
-CREATE TABLE [dbo].[NhaCungCap](
-    [MaNhaCungCap] [varchar](25) NOT NULL PRIMARY KEY,
-    [TenNhaCungCap] [nvarchar](255) NOT NULL,
-    [SoDienThoai] [nvarchar](15) NOT NULL,
-    [DiaChi] [nvarchar](255) NULL
-)
+CREATE TABLE [dbo].[NhaCungCap]( [MaNhaCungCap] [varchar](25) NOT NULL PRIMARY KEY, [TenNhaCungCap] [nvarchar](255) NOT NULL, [SoDienThoai] [nvarchar](15) NOT NULL, [DiaChi] [nvarchar](255) NULL ) 
 GO
-
-CREATE TABLE [dbo].[VaiTro](
-    [MaVaiTro] [varchar](25) NOT NULL PRIMARY KEY,
-    [TenVaiTro] [nvarchar](50) NOT NULL
-)
+CREATE TABLE [dbo].[VaiTro]( [MaVaiTro] [varchar](25) NOT NULL PRIMARY KEY, [TenVaiTro] [nvarchar](50) NOT NULL ) 
 GO
-CREATE UNIQUE NONCLUSTERED INDEX [UQ_VaiTro_Ten] ON [dbo].[VaiTro]([TenVaiTro]);
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_VaiTro_Ten] ON [dbo].[VaiTro]([TenVaiTro]); 
 GO
-
-CREATE TABLE [dbo].[PhienBanMonAn](
-    [MaPhienBan] [varchar](25) NOT NULL PRIMARY KEY,
-    [TenPhienBan] [nvarchar](100) NOT NULL,
-    [MaTrangThai] [varchar](25) NOT NULL DEFAULT 'CON_HANG',
-    [ThuTu] [int] NULL
-)
+CREATE TABLE [dbo].[PhienBanMonAn]( [MaPhienBan] [varchar](25) NOT NULL PRIMARY KEY, [TenPhienBan] [nvarchar](100) NOT NULL, [MaTrangThai] [varchar](25) NOT NULL DEFAULT 'CON_HANG', [ThuTu] [int] NULL ) 
 GO
-
-CREATE TABLE [dbo].[Tang](
-    [MaTang] [varchar](25) NOT NULL PRIMARY KEY,
-    [TenTang] [nvarchar](50) NOT NULL
-)
+CREATE TABLE [dbo].[Tang]( [MaTang] [varchar](25) NOT NULL PRIMARY KEY, [TenTang] [nvarchar](50) NOT NULL )
 GO
-
-CREATE TABLE [dbo].[LoaiMenu](
-    [MaLoaiMenu] [varchar](25) NOT NULL,
-    [TenLoaiMenu] [nvarchar](100) NOT NULL,
-    [MoTa] [nvarchar](500) NULL,
-    CONSTRAINT [PK_LoaiMenu] PRIMARY KEY CLUSTERED ([MaLoaiMenu] ASC)
-);
+CREATE TABLE [dbo].[LoaiMenu]( [MaLoaiMenu] [varchar](25) NOT NULL, [TenLoaiMenu] [nvarchar](100) NOT NULL, [MoTa] [nvarchar](500) NULL, CONSTRAINT [PK_LoaiMenu] PRIMARY KEY CLUSTERED ([MaLoaiMenu] ASC) ); 
 GO
-
-CREATE TABLE [dbo].[TrangThaiMenu](
-    [MaTrangThai] [varchar](25) NOT NULL,
-    [TenTrangThai] [nvarchar](50) NOT NULL,
-    CONSTRAINT [PK_TrangThaiMenu] PRIMARY KEY CLUSTERED ([MaTrangThai] ASC)
-);
+CREATE TABLE [dbo].[TrangThaiMenu]( [MaTrangThai] [varchar](25) NOT NULL, [TenTrangThai] [nvarchar](50) NOT NULL, CONSTRAINT [PK_TrangThaiMenu] PRIMARY KEY CLUSTERED ([MaTrangThai] ASC) ); 
 GO
-
-CREATE TABLE [dbo].[TrangThaiNhapHang](
-    [MaTrangThai] [varchar](25) NOT NULL PRIMARY KEY, 
-    [TenTrangThai] [nvarchar](50) NOT NULL
-)
+CREATE TABLE [dbo].[TrangThaiNhapHang]( [MaTrangThai] [varchar](25) NOT NULL PRIMARY KEY, [TenTrangThai] [nvarchar](50) NOT NULL ) 
 GO
 
 -- =============================================
--- 2. TẠO CÁC BẢNG CHÍNH 
+-- 2. CÁC BẢNG CHÍNH (VARCHAR 25)
 -- =============================================
 
 CREATE TABLE [dbo].[BanAn](
@@ -117,7 +62,7 @@ CREATE TABLE [dbo].[KhachHang](
     [Email] [nvarchar](100) NULL,
     [HinhAnh] [nvarchar](max) NULL,
     [NoShowCount] [int] DEFAULT 0,
-    [SoLanAnTichLuy] [INT] NOT NULL DEFAULT 0,
+    [NgayCuoiCungTichLuy] [DATETIME] NULL, -- Giữ nguyên cột này theo Code 1
     [NgayTao] [DATETIME] DEFAULT GETDATE()
 )
 GO
@@ -186,13 +131,6 @@ GO
 -- 3. TẠO CÁC BẢNG TRUNG GIAN & CHI TIẾT
 -- =============================================
 
-CREATE TABLE [dbo].[BanAnDonHang] (
-    [MaBanAnDonHang] VARCHAR(25) NOT NULL PRIMARY KEY, 
-    [MaDonHang] VARCHAR(25) NOT NULL,
-    [MaBan] VARCHAR(25) NOT NULL
-)
-GO
-
 CREATE TABLE [dbo].[ChiTietMonAn](
     [MaCT] [varchar](25) NOT NULL PRIMARY KEY,
     [TenCT] [nvarchar](100) NOT NULL,
@@ -208,13 +146,23 @@ CREATE TABLE [dbo].[CongThucNauAn](
 )
 GO
 
+-- [BẢNG CHITIETDONHANG] - SỬA LẠI THÀNH BIGINT IDENTITY(1,1) CHO ĐÚNG LOGIC
+-- 2. TẠO BẢNG ChiTietDonHang (VARCHAR 25)
 CREATE TABLE [dbo].[ChiTietDonHang](
-    [MaChiTietDonHang] [bigint] IDENTITY(1,1) NOT NULL PRIMARY KEY,
-    [MaDonHang] [varchar](25) NOT NULL,
+    [MaChiTietDonHang] [varchar](25) NOT NULL PRIMARY KEY, -- ĐÃ SỬA THÀNH VARCHAR
+    [MaDonHang] [varchar](25) NOT NULL, 
     [MaPhienBan] [varchar](25) NOT NULL,
     [MaCongThuc] [varchar](25) NOT NULL,
-    [SoLuong] [int] NOT NULL,
-    [MaBanAnDonHang] [varchar](25) NULL 
+    [SoLuong] [int] NOT NULL
+)
+GO
+
+-- 3. TẠO BẢNG BanAnDonHang (VARCHAR 25)
+CREATE TABLE [dbo].[BanAnDonHang] (
+    [MaBanAnDonHang] VARCHAR(25) NOT NULL PRIMARY KEY, 
+    [MaDonHang] VARCHAR(25) NOT NULL,
+    [MaBan] VARCHAR(25) NOT NULL,
+    [MaChiTietDonHang] VARCHAR(25) NULL -- ĐÃ SỬA THÀNH VARCHAR ĐỂ KHỚP
 )
 GO
 
@@ -226,22 +174,10 @@ CREATE TABLE [dbo].[ChiTietCongThuc](
 )
 GO
 
-CREATE TABLE [dbo].[CungUng](
-    [MaCungUng] [varchar](25) NOT NULL PRIMARY KEY,
-    [MaNguyenLieu] [varchar](25) NULL,
-    [MaNhaCungCap] [varchar](25) NULL
-)
+CREATE TABLE [dbo].[CungUng]( [MaCungUng] [varchar](25) NOT NULL PRIMARY KEY, [MaNguyenLieu] [varchar](25) NULL, [MaNhaCungCap] [varchar](25) NULL ) 
 GO
 
-CREATE TABLE [dbo].[NhapHang](
-    [MaNhapHang] [varchar](25) NOT NULL PRIMARY KEY,
-    [MaNhanVien] [varchar](25) NOT NULL,
-    [NgayNhapHang] [datetime] NOT NULL,
-    [TongTien] [decimal](10, 2) NOT NULL,
-    [NgayLapPhieu] [datetime] NOT NULL, 
-    [MaTrangThai] [varchar](25) NOT NULL DEFAULT 'MOI_TAO', 
-    [MaNhaCungCap] [varchar](25) NULL 
-)
+CREATE TABLE [dbo].[NhapHang]( [MaNhapHang] [varchar](25) NOT NULL PRIMARY KEY, [MaNhanVien] [varchar](25) NOT NULL, [NgayNhapHang] [datetime] NOT NULL, [TongTien] [decimal](10, 2) NOT NULL, [NgayLapPhieu] [datetime] NOT NULL, [MaTrangThai] [varchar](25) NOT NULL DEFAULT 'MOI_TAO', [MaNhaCungCap] [varchar](25) NULL ) 
 GO
 
 CREATE TABLE [dbo].[ChiTietNhapHang](
@@ -299,29 +235,33 @@ CREATE TABLE [dbo].[ChiTietMenu](
 GO
 
 -- =====================================================
--- 4. THÊM KHÓA NGOẠI (FOREIGN KEYS)
+-- 4. THÊM KHÓA NGOẠI (FOREIGN KEYS) - CHUẨN XÁC
 -- =====================================================
 
-ALTER TABLE [dbo].[BanAn] WITH CHECK ADD CONSTRAINT [FK_BanAn_TrangThaiBanAn] FOREIGN KEY([MaTrangThai]) REFERENCES [dbo].[TrangThaiBanAn] ([MaTrangThai])
-ALTER TABLE [dbo].[BanAn] WITH CHECK ADD CONSTRAINT [FK_BanAn_Tang] FOREIGN KEY([MaTang]) REFERENCES [dbo].[Tang] ([MaTang])
-GO
-
+-- 1. BanAnDonHang -> DonHang (Nhiều bàn thuộc 1 đơn)
 ALTER TABLE [dbo].[BanAnDonHang] WITH CHECK ADD CONSTRAINT [FK_BanAnDonHang_DonHang] FOREIGN KEY([MaDonHang]) REFERENCES [dbo].[DonHang] ([MaDonHang]) ON DELETE CASCADE
 ALTER TABLE [dbo].[BanAnDonHang] WITH CHECK ADD CONSTRAINT [FK_BanAnDonHang_BanAn] FOREIGN KEY([MaBan]) REFERENCES [dbo].[BanAn] ([MaBan])
 GO
 
-ALTER TABLE [dbo].[ChiTietDonHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietDonHang_DonHang] FOREIGN KEY([MaDonHang]) REFERENCES [dbo].[DonHang] ([MaDonHang])
-ALTER TABLE [dbo].[ChiTietDonHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietDonHang_PhienBan] FOREIGN KEY([MaPhienBan]) REFERENCES [dbo].[PhienBanMonAn] ([MaPhienBan])
-ALTER TABLE [dbo].[ChiTietDonHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietDonHang_CongThuc] FOREIGN KEY([MaCongThuc]) REFERENCES [dbo].[CongThucNauAn] ([MaCongThuc])
-ALTER TABLE [dbo].[ChiTietDonHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietDonHang_BanAnDonHang] FOREIGN KEY([MaBanAnDonHang]) REFERENCES [dbo].[BanAnDonHang] ([MaBanAnDonHang])
+-- 2. BanAnDonHang -> ChiTietDonHang (Nhiều bàn thuộc 1 chi tiết món)
+ALTER TABLE [dbo].[BanAnDonHang] WITH CHECK ADD CONSTRAINT [FK_BanAnDonHang_ChiTietDonHang] FOREIGN KEY([MaChiTietDonHang]) REFERENCES [dbo].[ChiTietDonHang] ([MaChiTietDonHang])
 GO
 
+-- 3. ChiTietDonHang -> DonHang (Nhiều chi tiết thuộc 1 đơn)
+ALTER TABLE [dbo].[ChiTietDonHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietDonHang_DonHang] FOREIGN KEY([MaDonHang]) REFERENCES [dbo].[DonHang] ([MaDonHang]) -- Không Cascade ở đây để tránh cycle, hoặc có thể thêm nếu muốn
+ALTER TABLE [dbo].[ChiTietDonHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietDonHang_PhienBan] FOREIGN KEY([MaPhienBan]) REFERENCES [dbo].[PhienBanMonAn] ([MaPhienBan])
+ALTER TABLE [dbo].[ChiTietDonHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietDonHang_CongThuc] FOREIGN KEY([MaCongThuc]) REFERENCES [dbo].[CongThucNauAn] ([MaCongThuc])
+GO
+
+-- ... (Các khóa ngoại khác giữ nguyên)
+ALTER TABLE [dbo].[BanAn] WITH CHECK ADD CONSTRAINT [FK_BanAn_TrangThaiBanAn] FOREIGN KEY([MaTrangThai]) REFERENCES [dbo].[TrangThaiBanAn] ([MaTrangThai])
+ALTER TABLE [dbo].[BanAn] WITH CHECK ADD CONSTRAINT [FK_BanAn_Tang] FOREIGN KEY([MaTang]) REFERENCES [dbo].[Tang] ([MaTang])
+GO
 ALTER TABLE [dbo].[DonHang] WITH CHECK ADD CONSTRAINT [FK_DonHang_KhachHang] FOREIGN KEY([MaKhachHang]) REFERENCES [dbo].[KhachHang] ([MaKhachHang])
 ALTER TABLE [dbo].[DonHang] WITH CHECK ADD CONSTRAINT [FK_DonHang_NhanVien] FOREIGN KEY([MaNhanVien]) REFERENCES [dbo].[NhanVien] ([MaNhanVien])
 ALTER TABLE [dbo].[DonHang] WITH CHECK ADD CONSTRAINT [FK_DonHang_TrangThai] FOREIGN KEY([MaTrangThaiDonHang]) REFERENCES [dbo].[TrangThaiDonHang] ([MaTrangThai])
 ALTER TABLE [dbo].[DonHang] WITH CHECK ADD CONSTRAINT [FK_DonHang_KhuyenMai] FOREIGN KEY([MaKhuyenMai]) REFERENCES [dbo].[KhuyenMai] ([MaKhuyenMai])
 GO
-
 ALTER TABLE [dbo].[ChiTietMonAn] WITH CHECK ADD CONSTRAINT [FK_ChiTietMonAn_MonAn] FOREIGN KEY([MaMonAn]) REFERENCES [dbo].[MonAn] ([MaMonAn])
 ALTER TABLE [dbo].[CongThucNauAn] WITH CHECK ADD CONSTRAINT [FK_CongThucNauAn_ChiTietMonAn] FOREIGN KEY([MaCT]) REFERENCES [dbo].[ChiTietMonAn] ([MaCT])
 ALTER TABLE [dbo].[CongThucNauAn] WITH CHECK ADD CONSTRAINT [FK_CongThucNauAn_PhienBan] FOREIGN KEY([MaPhienBan]) REFERENCES [dbo].[PhienBanMonAn] ([MaPhienBan])
@@ -330,7 +270,6 @@ ALTER TABLE [dbo].[ChiTietCongThuc] WITH CHECK ADD CONSTRAINT [FK_ChiTietCongThu
 ALTER TABLE [dbo].[MonAn] WITH CHECK ADD CONSTRAINT [FK_MonAn_DanhMuc] FOREIGN KEY([MaDanhMuc]) REFERENCES [dbo].[DanhMucMonAn] ([MaDanhMuc])
 ALTER TABLE [dbo].[HinhAnhMonAn] WITH CHECK ADD CONSTRAINT [FK_HinhAnhMonAn_MonAn] FOREIGN KEY([MaMonAn]) REFERENCES [dbo].[MonAn] ([MaMonAn])
 GO
-
 ALTER TABLE [dbo].[CungUng] WITH CHECK ADD CONSTRAINT [FK_CungUng_NguyenLieu] FOREIGN KEY([MaNguyenLieu]) REFERENCES [dbo].[NguyenLieu] ([MaNguyenLieu])
 ALTER TABLE [dbo].[CungUng] WITH CHECK ADD CONSTRAINT [FK_CungUng_NhaCungCap] FOREIGN KEY([MaNhaCungCap]) REFERENCES [dbo].[NhaCungCap] ([MaNhaCungCap])
 ALTER TABLE [dbo].[NhapHang] WITH CHECK ADD CONSTRAINT [FK_NhapHang_NhanVien] FOREIGN KEY([MaNhanVien]) REFERENCES [dbo].[NhanVien] ([MaNhanVien])
@@ -339,15 +278,12 @@ ALTER TABLE [dbo].[NhapHang] WITH CHECK ADD CONSTRAINT [FK_NhapHang_NhaCungCap] 
 ALTER TABLE [dbo].[ChiTietNhapHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietNhapHang_NguyenLieu] FOREIGN KEY([MaNguyenLieu]) REFERENCES [dbo].[NguyenLieu] ([MaNguyenLieu])
 ALTER TABLE [dbo].[ChiTietNhapHang] WITH CHECK ADD CONSTRAINT [FK_ChiTietNhapHang_NhapHang] FOREIGN KEY([MaNhapHang]) REFERENCES [dbo].[NhapHang] ([MaNhapHang])
 GO
-
 ALTER TABLE [dbo].[NhanVien] WITH CHECK ADD CONSTRAINT [FK_NhanVien_VaiTro] FOREIGN KEY([MaVaiTro]) REFERENCES [dbo].[VaiTro] ([MaVaiTro])
 GO
-
 ALTER TABLE [dbo].[KhuyenMaiApDungSanPham] WITH CHECK ADD CONSTRAINT [FK_KMAP_KhuyenMai] FOREIGN KEY([MaKhuyenMai]) REFERENCES [dbo].[KhuyenMai] ([MaKhuyenMai])
 ALTER TABLE [dbo].[KhuyenMaiApDungSanPham] WITH CHECK ADD CONSTRAINT [FK_KMAP_CongThucNauAn] FOREIGN KEY([MaCongThuc]) REFERENCES [dbo].[CongThucNauAn] ([MaCongThuc])
 ALTER TABLE [dbo].[KhuyenMaiApDungSanPham] WITH CHECK ADD CONSTRAINT [FK_KMAP_DanhMucMonAn] FOREIGN KEY([MaDanhMuc]) REFERENCES [dbo].[DanhMucMonAn] ([MaDanhMuc])
 ALTER TABLE [dbo].[KhuyenMaiApDungSanPham] ADD CONSTRAINT CK_KMAP_OnlyOneTarget CHECK (([MaCongThuc] IS NULL AND [MaDanhMuc] IS NOT NULL) OR ([MaCongThuc] IS NOT NULL AND [MaDanhMuc] IS NULL));
-
 ALTER TABLE [dbo].[Menu] WITH CHECK ADD CONSTRAINT [FK_Menu_LoaiMenu] FOREIGN KEY([MaLoaiMenu]) REFERENCES [dbo].[LoaiMenu] ([MaLoaiMenu]);
 ALTER TABLE [dbo].[Menu] WITH CHECK ADD CONSTRAINT [FK_Menu_TrangThaiMenu] FOREIGN KEY([MaTrangThai]) REFERENCES [dbo].[TrangThaiMenu] ([MaTrangThai]);
 ALTER TABLE [dbo].[ChiTietMenu] WITH CHECK ADD CONSTRAINT [FK_ChiTietMenu_Menu] FOREIGN KEY([MaMenu]) REFERENCES [dbo].[Menu] ([MaMenu]) ON DELETE CASCADE;
@@ -360,8 +296,6 @@ GO
 
 EXEC sp_MSforeachtable 'ALTER TABLE ? NOCHECK CONSTRAINT ALL'
 GO
-
--- 1. Danh mục và dữ liệu cơ bản (GIỮ NGUYÊN)
 INSERT INTO [dbo].[KhuyenMai] ([MaKhuyenMai], [TenKhuyenMai], [MoTa], [LoaiKhuyenMai], [GiaTri], [ApDungToiThieu], [NgayBatDau], [NgayKetThuc], [TrangThai]) 
 VALUES ('KM_TICHLUY_VIP', N'Tri ân khách hàng thân thiết', N'Tự động giảm giá cho khách đã ăn đủ 10 lần', 'PERCENT', 10, 0, GETDATE(), '2099-12-31', 'ACTIVE');
 
@@ -410,68 +344,70 @@ INSERT INTO [dbo].[NhaCungCap] ([MaNhaCungCap], [TenNhaCungCap], [SoDienThoai], 
 ('NCC002', N'Vựa hải sản Vũng Tàu', '090222333', N'456, Vũng Tàu'),
 ('NCC003', N'Công ty thịt bò CP', '090333444', N'789, Đồng Nai'),
 ('NCC004', N'Đại lý bia Sài Gòn', '090444555', N'101, Q.1, TPHCM'),
-('NCC005', N'Tổng kho gia vị', '090555666', N'102, Q.5, TPHCM'),
-('NCC006', N'Trang trại gà sạch Ba Vì', '090666777', N'103, Ba Vì, Hà Nội'),
-('NCC007', N'Công ty nước giải khát Pepsico', '090777888', N'104, Hóc Môn, TPHCM'),
-('NCC008', N'Nhà cung cấp gạo miền Tây', '090888999', N'105, Cần Thơ'),
-('NCC009', N'Công ty TNHH Nấm Việt', '090999000', N'106, Q.12, TPHCM'),
-('NCC010', N'Lò mổ heo Vissan', '091111222', N'107, Long An'),
-('NCC011', N'Trang trại rau hữu cơ', '0912121212', N'111, Hóc Môn'),
-('NCC012', N'Công ty Nước mắm Phú Quốc', '0912121213', N'222, Kiên Giang'),
-('NCC013', N'Nhà phân phối rượu Vang Đà Lạt', '0912121214', N'333, Lâm Đồng'),
-('NCC014', N'Lò bánh mì ABC', '0912121215', N'444, Q.10, TPHCM'),
-('NCC015', N'Công ty Cà phê Trung Nguyên', '0912121216', N'555, Đắk Lắk'),
-('NCC016', N'Vựa trái cây Cái Bè', '0912121217', N'666, Tiền Giang'),
-('NCC017', N'Công ty Sữa Vinamilk', '0912121218', N'777, Q.7, TPHCM'),
-('NCC018', N'Hợp tác xã nấm sạch', '0912121219', N'888, Đồng Nai'),
-('NCC019', N'Đại lý trứng gia cầm Ba Huân', '0912121220', N'999, Bình Chánh'),
-('NCC020', N'Nhà cung cấp đồ khô', '0912121221', N'121, Q.5, TPHCM');
+('NCC005', N'Tổng kho gia vị', '090555666', '102, Q.5, TPHCM'),
+('NCC006', N'Trang trại gà sạch Ba Vì', '090666777', '103, Ba Vì, Hà Nội'),
+('NCC007', N'Công ty nước giải khát Pepsico', '090777888', '104, Hóc Môn, TPHCM'),
+('NCC008', N'Nhà cung cấp gạo miền Tây', '090888999', '105, Cần Thơ'),
+('NCC009', N'Công ty TNHH Nấm Việt', '090999000', '106, Q.12, TPHCM'),
+('NCC010', N'Lò mổ heo Vissan', '091111222', '107, Long An'),
+('NCC011', N'Trang trại rau hữu cơ', '0912121212', '111, Hóc Môn'),
+('NCC012', N'Công ty Nước mắm Phú Quốc', '0912121213', '222, Kiên Giang'),
+('NCC013', N'Nhà phân phối rượu Vang Đà Lạt', '0912121214', '333, Lâm Đồng'),
+('NCC014', N'Lò bánh mì ABC', '0912121215', '444, Q.10, TPHCM'),
+('NCC015', N'Công ty Cà phê Trung Nguyên', '0912121216', '555, Đắk Lắk'),
+('NCC016', N'Vựa trái cây Cái Bè', '0912121217', '666, Tiền Giang'),
+('NCC017', N'Công ty Sữa Vinamilk', '0912121218', '777, Q.7, TPHCM'),
+('NCC018', N'Hợp tác xã nấm sạch', '0912121219', '888, Đồng Nai'),
+('NCC019', N'Đại lý trứng gia cầm Ba Huân', '0912121220', '999, Bình Chánh'),
+('NCC020', N'Nhà cung cấp đồ khô', '0912121221', '121, Q.5, TPHCM');
 
--- Bảng KhachHang (Giữ lại vì không có trong phần fix)
-INSERT INTO [dbo].[KhachHang] ([MaKhachHang], [HoTen], [SoDienThoai], [Email], [HinhAnh], [NoShowCount], [SoLanAnTichLuy], [NgayTao]) VALUES
-('KH_VANG_LAI', N'Khách Vãng Lai', '0000000000', NULL, NULL, 0, 0, GETDATE()),
-('KH001', N'Nguyễn Văn An', '0912345678', 'an.nguyen@gmail.com', 'an.jpg', 0, 9, GETDATE()),
-('KH002', N'Trần Thị Bình', '0912345679', 'binh.tran@gmail.com', 'binh.jpg', 0, 5, GETDATE()),
-('KH003', N'Lê Văn Cường', '0912345680', 'cuong.le@gmail.com', 'cuong.jpg', 0, 0, GETDATE()),
-('KH004', N'Phạm Thị Dung', '0912345681', 'dung.pham@gmail.com', 'dung.jpg', 0, 2, GETDATE()),
-('KH005', N'Hoàng Văn Giang', '0912345682', 'giang.hoang@gmail.com', 'giang.jpg', 0, 0, GETDATE()),
-('KH006', N'Vũ Thị Hương', '0912345683', 'huong.vu@gmail.com', 'huong.jpg', 0, 0, GETDATE()),
-('KH007', N'Đặng Văn Long', '0912345684', 'long.dang@gmail.com', 'long.jpg', 0, 0, GETDATE()),
-('KH008', N'Bùi Thị Mai', '0912345685', 'mai.bui@gmail.com', 'mai.jpg', 0, 0, GETDATE()),
-('KH009', N'Ngô Văn Nam', '0912345686', 'nam.ngo@gmail.com', 'nam.jpg', 0, 0, GETDATE()),
-('KH010', N'Dương Thị Oanh', '0912345687', 'oanh.duong@gmail.com', 'oanh.jpg', 0, 0, GETDATE()),
-('KH011', N'Trần Văn Phát', '0911111111', 'phat.tran@gmail.com', 'phat.jpg', 0, 0, GETDATE()),
-('KH012', N'Lê Thị Quyên', '0922222222', 'quyen.le@gmail.com', 'quyen.jpg', 0, 0, GETDATE()),
-('KH013', N'Đỗ Bá Rừng', '0933333333', 'rung.do@gmail.com', 'rung.jpg', 0, 0, GETDATE()),
-('KH014', N'Hồ Thị Sen', '0944444444', 'sen.ho@gmail.com', 'sen.jpg', 0, 0, GETDATE()),
-('KH015', N'Ngô Văn Tùng', '0955555555', 'tung.ngo@gmail.com', 'tung.jpg', 0, 0, GETDATE()),
-('KH016', N'Dương Văn Út', '0966666666', 'ut.duong@gmail.com', 'ut.jpg', 0, 0, GETDATE()),
-('KH017', N'Phan Thị Vân', '0977777777', 'van.phan@gmail.com', 'van.jpg', 0, 0, GETDATE()),
-('KH018', N'Lý Văn Xuân', '0988888888', 'xuan.ly@gmail.com', 'xuan.jpg', 0, 0, GETDATE()),
-('KH019', N'Võ Thị Yến', '0999999999', 'yen.vo@gmail.com', 'yen.jpg', 0, 0, GETDATE()),
-('KH020', N'Trịnh Hoài An', '0901234567', 'an.trinh@gmail.com', 'an_trinh.jpg', 0, 0, GETDATE()),
-('KH021', N'Nguyễn Hữu Ái', '0901112233', 'ai.nguyen@gmail.com', 'ai.jpg', 0, 0, GETDATE()),
-('KH022', N'Võ Tấn Bằng', '0901112244', 'bang.vo@gmail.com', 'bang.jpg', 0, 0, GETDATE()),
-('KH023', N'Huỳnh Ngọc Châu', '0901112255', 'chau.huynh@gmail.com', 'chau.jpg', 0, 0, GETDATE()),
-('KH024', N'Trương Minh Đức', '0901112266', 'duc.truong@gmail.com', 'duc.jpg', 0, 0, GETDATE()),
-('KH025', N'Hà Thị Giang', '0901112277', 'giang.ha@gmail.com', 'giang_ha.jpg', 0, 0, GETDATE()),
-('KH026', N'Đinh Quốc Huy', '0901112288', 'huy.dinh@gmail.com', 'huy.jpg', 0, 0, GETDATE()),
-('KH027', N'Lương Yến Khanh', '0901112299', 'khanh.luong@gmail.com', 'khanh.jpg', 0, 0, GETDATE()),
-('KH028', N'Mai Đức Lợi', '0901113300', 'loi.mai@gmail.com', 'loi.jpg', 0, 0, GETDATE()),
-('KH029', N'Đoàn Văn Mẫn', '0901113311', 'man.doan@gmail.com', 'man.jpg', 0, 0, GETDATE()),
-('KH030', N'Hoàng Thị Ngân', '0901113322', 'ngan.hoang@gmail.com', 'ngan.jpg', 1, 0, GETDATE()),
-('KH031', N'Phạm Gia Phú', '0901113333', 'phu.pham@gmail.com', 'phu.jpg', 0, 0, GETDATE()),
-('KH032', N'Tô Hoài Sang', '0901113344', 'sang.to@gmail.com', 'sang.jpg', 0, 0, GETDATE()),
-('KH033', N'Lê Minh Thông', '0901113355', 'thong.le@gmail.com', 'thong.jpg', 0, 0, GETDATE()),
-('KH034', N'VươngGia Uy', '0901113366', 'uy.vuong@gmail.com', 'uy.jpg', 0, 0, GETDATE()),
-('KH035', N'Nguyễn Thanh Vi', '0901113377', 'vi.nguyen@gmail.com', 'vi.jpg', 0, 0, GETDATE()),
-('KH036', N'Đặng Minh Vũ', '0901113388', 'vu.dang@gmail.com', 'vu.jpg', 0, 0, GETDATE()),
-('KH037', N'Tống Phước Lộc', '0901113399', 'loc.tong@gmail.com', 'loc.jpg', 0, 0, GETDATE()),
-('KH038', N'Triệu Thị Mỹ', '0901114400', 'my.trieu@gmail.com', 'my.jpg', 0, 0, GETDATE()),
-('KH039', N'Uông Văn Tài', '0901114411', 'tai.uong@gmail.com', 'tai.jpg', 0, 0, GETDATE()),
-('KH040', N'Cù Minh Tâm', '0901114422', 'tam.cu@gmail.com', 'tam.jpg', 0, 0, GETDATE());
+-- THAY ĐỔI LỚN: Sửa cột SoLanAnTichLuy thành NgayCuoiCungTichLuy (DATE/DATETIME)
+-- Giả định các KH đã ăn được set ngày tích lũy gần nhất (2025-10-08)
+INSERT INTO [dbo].[KhachHang] ([MaKhachHang], [HoTen], [SoDienThoai], [Email], [HinhAnh], [NoShowCount], [NgayCuoiCungTichLuy], [NgayTao]) VALUES
+('KH_VANG_LAI', N'Khách Vãng Lai', '0000000000', NULL, NULL, 0, NULL, GETDATE()),
+('KH001', N'Nguyễn Văn An', '0912345678', 'an.nguyen@gmail.com', 'an.jpg', 0, '2025-10-08 20:00:00', GETDATE()),
+('KH002', N'Trần Thị Bình', '0912345679', 'binh.tran@gmail.com', 'binh.jpg', 0, '2025-10-08 21:00:00', GETDATE()),
+('KH003', N'Lê Văn Cường', '0912345680', 'cuong.le@gmail.com', 'cuong.jpg', 0, '2025-10-09 12:00:00', GETDATE()),
+('KH004', N'Phạm Thị Dung', '0912345681', 'dung.pham@gmail.com', 'dung.jpg', 0, '2025-10-09 13:00:00', GETDATE()),
+('KH005', N'Hoàng Văn Giang', '0912345682', 'giang.hoang@gmail.com', 'giang.jpg', 0, '2025-10-10 20:30:00', GETDATE()),
+('KH006', N'Vũ Thị Hương', '0912345683', 'huong.vu@gmail.com', 'huong.jpg', 0, '2025-10-11 21:30:00', GETDATE()),
+('KH007', N'Đặng Văn Long', '0912345684', 'long.dang@gmail.com', 'long.jpg', 0, '2025-10-12 21:00:00', GETDATE()),
+('KH008', N'Bùi Thị Mai', '0912345685', 'mai.bui@gmail.com', 'mai.jpg', 0, '2025-10-13 18:00:00', GETDATE()),
+('KH009', N'Ngô Văn Nam', '0912345686', 'nam.ngo@gmail.com', 'nam.jpg', 0, '2025-10-14 21:00:00', GETDATE()),
+('KH010', N'Dương Thị Oanh', '0912345687', 'oanh.duong@gmail.com', 'oanh.jpg', 0, '2025-10-15 20:00:00', GETDATE()),
+('KH011', N'Trần Văn Phát', '0911111111', 'phat.tran@gmail.com', 'phat.jpg', 0, '2025-11-01 20:00:00', GETDATE()),
+('KH012', N'Lê Thị Quyên', '0922222222', 'quyen.le@gmail.com', 'quyen.jpg', 0, '2025-11-01 19:30:00', GETDATE()),
+('KH013', N'Đỗ Bá Rừng', '0933333333', 'rung.do@gmail.com', 'rung.jpg', 0, '2025-11-02 21:00:00', GETDATE()),
+('KH014', N'Hồ Thị Sen', '0944444444', 'sen.ho@gmail.com', 'sen.jpg', 0, '2025-11-03 13:00:00', GETDATE()),
+('KH015', N'Ngô Văn Tùng', '0955555555', 'tung.ngo@gmail.com', 'tung.jpg', 0, '2025-11-03 13:15:00', GETDATE()),
+('KH016', N'Dương Văn Út', '0966666666', 'ut.duong@gmail.com', 'ut.jpg', 0, '2025-11-05 21:00:00', GETDATE()),
+('KH017', N'Phan Thị Vân', '0977777777', 'van.phan@gmail.com', 'van.jpg', 0, '2025-11-06 20:30:00', GETDATE()),
+('KH018', N'Lý Văn Xuân', '0988888888', 'xuan.ly@gmail.com', 'xuan.jpg', 0, '2025-11-07 12:00:00', GETDATE()),
+('KH019', N'Võ Thị Yến', '0999999999', 'yen.vo@gmail.com', 'yen.jpg', 0, '2025-11-07 12:30:00', GETDATE()),
+('KH020', N'Trịnh Hoài An', '0901234567', 'an.trinh@gmail.com', 'an_trinh.jpg', 0, '2025-11-08 20:45:00', GETDATE()),
+('KH021', N'Nguyễn Hữu Ái', '0901112233', 'ai.nguyen@gmail.com', 'ai.jpg', 0, '2025-11-08 21:00:00', GETDATE()),
+('KH022', N'Võ Tấn Bằng', '0901112244', 'bang.vo@gmail.com', 'bang.jpg', 0, '2025-11-09 13:00:00', GETDATE()),
+('KH023', N'Huỳnh Ngọc Châu', '0901112255', 'chau.huynh@gmail.com', 'chau.jpg', 0, '2025-11-09 13:30:00', GETDATE()),
+('KH024', N'Trương Minh Đức', '0901112266', 'duc.truong@gmail.com', 'duc.jpg', 0, NULL, GETDATE()),
+('KH025', N'Hà Thị Giang', '0901112277', 'giang.ha@gmail.com', 'giang_ha.jpg', 0, NULL, GETDATE()),
+('KH026', N'Đinh Quốc Huy', '0901112288', 'huy.dinh@gmail.com', 'huy.jpg', 0, '2025-11-10 21:00:00', GETDATE()),
+('KH027', N'Lương Yến Khanh', '0901112299', 'khanh.luong@gmail.com', 'khanh.jpg', 0, '2025-11-11 20:30:00', GETDATE()),
+('KH028', N'Mai Đức Lợi', '0901113300', 'loi.mai@gmail.com', 'loi.jpg', 0, NULL, GETDATE()),
+('KH029', N'Đoàn Văn Mẫn', '0901113311', 'man.doan@gmail.com', 'man.jpg', 0, '2025-11-12 13:15:00', GETDATE()),
+('KH030', N'Hoàng Thị Ngân', '0901113322', 'ngan.hoang@gmail.com', 'ngan.jpg', 1, NULL, GETDATE()),
+('KH031', N'Phạm Gia Phú', '0901113333', 'phu.pham@gmail.com', 'phu.jpg', 0, '2025-11-14 21:00:00', GETDATE()),
+('KH032', N'Tô Hoài Sang', '0901113344', 'sang.to@gmail.com', 'sang.jpg', 0, NULL, GETDATE()),
+('KH033', N'Lê Minh Thông', '0901113355', 'thong.le@gmail.com', 'thong.jpg', 0, '2025-11-16 19:00:00', GETDATE()),
+('KH034', N'VươngGia Uy', '0901113366', 'uy.vuong@gmail.com', 'uy.jpg', 0, '2025-11-17 13:00:00', GETDATE()),
+('KH035', N'Nguyễn Thanh Vi', '0901113377', 'vi.nguyen@gmail.com', 'vi.jpg', 0, '2025-11-18 13:00:00', GETDATE()),
+('KH036', N'Đặng Minh Vũ', '0901113388', 'vu.dang@gmail.com', 'vu.jpg', 0, '2025-11-19 21:00:00', GETDATE()),
+('KH037', N'Tống Phước Lộc', '0901113399', 'loc.tong@gmail.com', 'loc.jpg', 0, '2025-11-20 21:30:00', GETDATE()),
+('KH038', N'Triệu Thị Mỹ', '0901114400', 'my.trieu@gmail.com', 'my.jpg', 0, '2025-11-21 13:00:00', GETDATE()),
+('KH039', N'Uông Văn Tài', '0901114411', 'tai.uong@gmail.com', 'tai.jpg', 0, '2025-11-22 20:00:00', GETDATE()),
+('KH040', N'Cù Minh Tâm', '0901114422', 'tam.cu@gmail.com', 'tam.jpg', 0, '2025-11-23 21:00:00', GETDATE());
+GO
 
--- Bảng BanAn (Cũng phải giữ lại vì bảng BanAnDonHang cần)
+-- Bảng BanAn (Giữ nguyên)
 INSERT INTO [dbo].[BanAn] ([MaBan], [TenBan], [MaTrangThai], [SucChua]) VALUES
 ('B001', N'Bàn 1', 'TTBA001', 4), ('B002', N'Bàn 2', 'TTBA001', 4),
 ('B003', N'Bàn 3', 'TTBA001', 6), ('B004', N'Bàn 4', 'TTBA001', 6),
@@ -495,56 +431,41 @@ INSERT INTO [dbo].[BanAn] ([MaBan], [TenBan], [MaTrangThai], [SucChua]) VALUES
 ('B039', N'Bàn 39', 'TTBA001', 8), ('B040', N'Bàn 40', 'TTBA001', 8);
 GO
 
--- [ĐÃ XÓA CÁC LỆNH INSERT TRÙNG LẶP CHO: NhanVien, NguyenLieu, MonAn...]
--- [VÌ CÁC LỆNH NÀY ĐÃ CÓ TRONG PHẦN FIX BÊN DƯỚI]
-
--- ============================================================
--- BẮT ĐẦU TỪ PHẦN CHÈN NGUYÊN LIỆU TRỞ VỀ SAU (ĐÃ FIX & DỒN VỀ ĐÂY)
--- ============================================================
-
--- 1. CHÈN DỮ LIỆU NGUYÊN LIỆU
-INSERT INTO [dbo].[NguyenLieu] ([MaNguyenLieu], [TenNguyenLieu], [DonViTinh], [SoLuongTonKho], [GiaBan]) VALUES
-('NL001', N'Thịt bò thăn', N'kg', 50, 0), ('NL002', N'Tôm sú (loại 1)', N'kg', 30, 0),
-('NL003', N'Gà ta', N'con', 40, 0), ('NL004', N'Cá hồi fillet', N'kg', 20, 0),
-('NL005', N'Rau muống', N'bó', 100, 0), ('NL006', N'Nấm kim châm', N'gói', 80, 0),
-('NL007', N'Gạo ST25', N'kg', 200, 0), ('NL008', N'Bia Sài Gòn (thùng)', N'thùng', 50, 0),
-('NL009', N'Sườn heo non', N'kg', 60, 0), ('NL010', N'Đậu hũ non', N'miếng', 150, 0),
-('NL011', N'Súp lơ xanh', N'kg', 50, 0), ('NL012', N'Cà rốt', N'kg', 100, 0),
-('NL013', N'Trứng gà', N'quả', 300, 0), ('NL014', N'Sữa đặc', N'hộp', 50, 0),
-('NL015', N'Bánh mì sandwich', N'gói', 30, 0), ('NL016', N'Vang đỏ Đà Lạt', N'chai', 20, 0),
-('NL017', N'Cà phê hạt', N'kg', 40, 0), ('NL018', N'Nước mắm', N'lít', 100, 0),
-('NL019', N'Đường cát', N'kg', 200, 0), ('NL020', N'Bột chiên giòn', N'gói', 80, 0),
-('NL021', N'Hạt dưa', N'kg', 10, 0), ('NL022', N'Đậu phộng', N'kg', 15, 0),
-('NL023', N'Bánh tráng', N'xấp', 50, 0), ('NL024', N'Dâu tây', N'kg', 5, 0),
-('NL025', N'Nho', N'kg', 10, 0), ('NL026', N'Gói lẩu thái', N'gói', 30, 0),
-('NL027', N'Lá giang', N'bó', 20, 0), ('NL028', N'Giấm gạo', N'chai', 15, 0),
-('NL029', N'Hạt sen', N'kg', 10, 0), ('NL030', N'Sữa chua', N'lốc', 20, 0),
-('NL031', N'Nước lọc Aquafina', N'thùng', 30, 0), ('NL032', N'Pepsi (lon)', N'thùng', 25, 0),
-('NL033', N'Coca (lon)', N'thùng', 25, 0), ('NL034', N'Hàu sữa', N'con', 100, 0),
-('NL035', N'Phô mai', N'kg', 10, 0), ('NL036', N'Tôm hùm', N'con', 10, 0),
-('NL037', N'Cua thịt', N'con', 20, 0), ('NL038', N'Ghẹ xanh', N'con', 20, 0),
-('NL039', N'Mực ống', N'kg', 30, 0), ('NL040', N'Sò điệp', N'kg', 15, 0);
+-- 1. CHÈN DỮ LIỆU NGUYÊN LIỆU (Giữ nguyên)
+INSERT INTO [dbo].[NguyenLieu] ([MaNguyenLieu], [TenNguyenLieu], [DonViTinh], [SoLuongTonKho], [GiaBan], [TrangThaiTonKho]) VALUES
+('NL001', N'Thịt bò thăn', N'kg', 50, 0, 'BINH_THUONG'), ('NL002', N'Tôm sú (loại 1)', N'kg', 30, 0, 'BINH_THUONG'),
+('NL003', N'Gà ta', N'con', 40, 0, 'BINH_THUONG'), ('NL004', N'Cá hồi fillet', N'kg', 20, 0, 'BINH_THUONG'),
+('NL005', N'Rau muống', N'bó', 100, 0, 'BINH_THUONG'), ('NL006', N'Nấm kim châm', N'gói', 80, 0, 'BINH_THUONG'),
+('NL007', N'Gạo ST25', N'kg', 200, 0, 'BINH_THUONG'), ('NL008', N'Bia Sài Gòn (thùng)', N'thùng', 50, 0, 'BINH_THUONG'),
+('NL009', N'Sườn heo non', N'kg', 60, 0, 'BINH_THUONG'), ('NL010', N'Đậu hũ non', N'miếng', 150, 0, 'BINH_THUONG'),
+('NL011', N'Súp lơ xanh', N'kg', 50, 0, 'BINH_THUONG'), ('NL012', N'Cà rốt', N'kg', 100, 0, 'BINH_THUONG'),
+('NL013', N'Trứng gà', N'quả', 300, 0, 'BINH_THUONG'), ('NL014', N'Sữa đặc', N'hộp', 50, 0, 'BINH_THUONG'),
+('NL015', N'Bánh mì sandwich', N'gói', 30, 0, 'BINH_THUONG'), ('NL016', N'Vang đỏ Đà Lạt', N'chai', 20, 0, 'BINH_THUONG'),
+('NL017', N'Cà phê hạt', N'kg', 40, 0, 'BINH_THUONG'), ('NL018', N'Nước mắm', N'lít', 100, 0, 'BINH_THUONG'),
+('NL019', N'Đường cát', N'kg', 200, 0, 'BINH_THUONG'), ('NL020', N'Bột chiên giòn', N'gói', 80, 0, 'BINH_THUONG'),
+('NL021', N'Hạt dưa', N'kg', 10, 0, 'BINH_THUONG'), ('NL022', N'Đậu phộng', N'kg', 15, 0, 'BINH_THUONG'),
+('NL023', N'Bánh tráng', N'xấp', 50, 0, 'BINH_THUONG'), ('NL024', N'Dâu tây', N'kg', 5, 0, 'CAN_CANH_BAO'),
+('NL025', N'Nho', N'kg', 10, 0, 'BINH_THUONG'), ('NL026', N'Gói lẩu thái', N'gói', 30, 0, 'BINH_THUONG'),
+('NL027', N'Lá giang', N'bó', 20, 0, 'BINH_THUONG'), ('NL028', N'Giấm gạo', N'chai', 15, 0, 'BINH_THUONG'),
+('NL029', N'Hạt sen', N'kg', 10, 0, 'BINH_THUONG'), ('NL030', N'Sữa chua', N'lốc', 20, 0, 'BINH_THUONG'),
+('NL031', N'Nước lọc Aquafina', N'thùng', 30, 0, 'BINH_THUONG'), ('NL032', N'Pepsi (lon)', N'thùng', 25, 0, 'BINH_THUONG'),
+('NL033', N'Coca (lon)', N'thùng', 25, 0, 'BINH_THUONG'), ('NL034', N'Hàu sữa', N'con', 100, 0, 'BINH_THUONG'),
+('NL035', N'Phô mai', N'kg', 10, 0, 'BINH_THUONG'), ('NL036', N'Tôm hùm', N'con', 10, 0, 'BINH_THUONG'),
+('NL037', N'Cua thịt', N'con', 20, 0, 'BINH_THUONG'), ('NL038', N'Ghẹ xanh', N'con', 20, 0, 'BINH_THUONG'),
+('NL039', N'Mực ống', N'kg', 30, 0, 'BINH_THUONG'), ('NL040', N'Sò điệp', N'kg', 15, 0, 'BINH_THUONG');
 GO
 
--- Mật khẩu cho Quản lý (VT001)
+-- 2. CHÈN DỮ LIỆU NHÂN VIÊN (Giữ nguyên)
 DECLARE @PasswordQL VARCHAR(100) = '$2a$12$.DiUe2Yopuy/TrhqcMMUI.ne2heyeFpdQgBG2OBA3NUz0Hu4WCZjS';
--- Mật khẩu cho Nhân viên trực quầy (VT002)
 DECLARE @PasswordNV VARCHAR(100) = '$2a$12$PtG6aCE5oyTOJ3Y05Z2VK.RdMXLX7hI5n9oVgwecuef5FRYEhbcU2';
 
-
-
 INSERT INTO [dbo].[NhanVien] ([MaNhanVien], [HoTen], [TenDangNhap], [MatKhau], [MaVaiTro], [Email], [SoDienThoai], [HinhAnh]) VALUES
--- 1. NHÓM QUẢN LÝ (VT001)
 ('NV001', N'Nguyễn Văn Quản Lý', 'manager1', @PasswordQL, 'VT001', 'quanly@email.com', '0987654321', 'anh_a.jpg'),
 ('NV011', N'Phan Thanh Quản Trị', 'admin2', @PasswordQL, 'VT001', 'admin2@email.com', '0911111101', 'anh_nv11.jpg'),
 ('NV030', N'Hồng Thất Công', 'manager2', @PasswordQL, 'VT001', 'cong.hong@email.com', '0911111120', 'anh_nv30.jpg'),
-
--- 2. NHÓM NHÂN VIÊN TRỰC QUẦY (VT002) - Bao gồm Thu ngân và Phục vụ cũ
--- Thu ngân cũ
 ('NV002', N'Trần Thị Thu Ngân', 'cashier1', @PasswordNV, 'VT002', 'thungan1@email.com', '0987654322', 'anh_b.jpg'),
 ('NV009', N'Ngô Văn Thu Ngân', 'cashier2', @PasswordNV, 'VT002', 'thungan2@email.com', '0987654329', 'anh_i.jpg'),
 ('NV016', N'Hà Thị Thu Ngân 3', 'cashier3', @PasswordNV, 'VT002', 'cashier3@email.com', '0911111106', 'anh_nv16.jpg'),
--- Phục vụ cũ
 ('NV003', N'Lê Văn Phục Vụ', 'staff1', @PasswordNV, 'VT002', 'phucvu1@email.com', '0987654323', 'anh_c.jpg'),
 ('NV004', N'Phạm Thị Phục Vụ', 'staff2', @PasswordNV, 'VT002', 'phucvu2@email.com', '0987654324', 'anh_d.jpg'),
 ('NV005', N'Hoàng Văn Bếp Trưởng', 'chef1', @PasswordNV, 'VT002', 'beptruong@email.com', '0987654325', 'anh_e.jpg'),
@@ -572,7 +493,7 @@ INSERT INTO [dbo].[NhanVien] ([MaNhanVien], [HoTen], [TenDangNhap], [MatKhau], [
 ('NV000', N'Nhân Viên Tạm Thời', 'manager000', @PasswordNV, 'VT002', 'tamthoi@email.com', '0911111120', 'anh_nv30.jpg');
 GO
 
--- 3. CHÈN DỮ LIỆU MÓN ĂN
+-- 3. CHÈN DỮ LIỆU MÓN ĂN (Giữ nguyên)
 INSERT INTO [dbo].[MonAn] ([MaMonAn], [TenMonAn], [MaDanhMuc]) VALUES
 ('MA001', N'Hạt dưa', 'DM001'), ('MA002', N'Đậu phộng', 'DM001'),
 ('MA003', N'Chả giò', 'DM001'), ('MA004', N'Mức dâu', 'DM001'),
@@ -596,7 +517,7 @@ INSERT INTO [dbo].[MonAn] ([MaMonAn], [TenMonAn], [MaDanhMuc]) VALUES
 ('MA039', N'Mực chiên giòn', 'DM008'), ('MA040', N'Sò điệp nướng phô mai', 'DM008');
 GO
 
--- 4. CHÈN DỮ LIỆU CHI TIẾT MÓN ĂN
+-- 4. CHÈN DỮ LIỆU CHI TIẾT MÓN ĂN (Giữ nguyên)
 INSERT INTO [dbo].[ChiTietMonAn] ([MaCT], [TenCT], [MaMonAn]) VALUES
 ('CT001', N'Chi tiết 1', 'MA001'), ('CT002', N'Chi tiết 1', 'MA002'),
 ('CT003', N'Chi tiết 1', 'MA003'), ('CT004', N'Chi tiết 1', 'MA004'),
@@ -620,35 +541,15 @@ INSERT INTO [dbo].[ChiTietMonAn] ([MaCT], [TenCT], [MaMonAn]) VALUES
 ('CT039', N'Chi tiết 1', 'MA039'), ('CT040', N'Chi tiết 1', 'MA040');
 GO
 
--- 5. CHÈN DỮ LIỆU PHIÊN BẢN MÓN ĂN
+-- 5. CHÈN DỮ LIỆU PHIÊN BẢN MÓN ĂN (Giữ nguyên)
 INSERT INTO [dbo].[PhienBanMonAn] ([MaPhienBan], [TenPhienBan], [MaTrangThai], [ThuTu]) 
 VALUES 
 ('PB001', N'Size S', 'CON_HANG', 1),
 ('PB002', N'Size M', 'CON_HANG', 2),
-('PB003', N'Size L', 'CON_HANG', 3)
--- Thêm các phiên bản mặc định cho các món không có size (để map dữ liệu cũ)
---('PB004', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB005', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB006', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB007', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB008', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB009', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB010', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB011', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB012', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB013', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB014', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB015', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB016', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB017', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB018', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB019', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB020', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB021', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB022', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB023', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB024', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB025', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB026', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB027', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB028', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB029', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB030', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB031', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB032', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB033', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB034', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB035', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB036', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB037', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB038', N'Tiêu chuẩn', 'CON_HANG', 1), ('PB039', N'Tiêu chuẩn', 'CON_HANG', 1),
---('PB040', N'Tiêu chuẩn', 'CON_HANG', 1);
+('PB003', N'Size L', 'CON_HANG', 3);
 GO
 
--- 6. CHÈN HÌNH ẢNH MÓN ĂN
+-- 6. CHÈN HÌNH ẢNH MÓN ĂN (Giữ nguyên)
 DELETE FROM [dbo].[HinhAnhMonAn];
 DBCC CHECKIDENT ('[dbo].[HinhAnhMonAn]', RESEED, 0);
 GO
@@ -696,7 +597,7 @@ INSERT INTO HinhAnhMonAn (MaMonAn, URLHinhAnh) VALUES
 ('MA007', 'images/monans/laugalagiang/lauga.jpg');
 GO
 
--- 7. CHÈN DỮ LIỆU CUNG ỨNG
+-- 7. CHÈN DỮ LIỆU CUNG ỨNG (Giữ nguyên)
 INSERT INTO [dbo].[CungUng] ([MaCungUng], [MaNguyenLieu], [MaNhaCungCap]) VALUES
 ('CU001', 'NL001', 'NCC001'), ('CU002', 'NL002', 'NCC002'), ('CU003', 'NL003', 'NCC003'), ('CU004', 'NL004', 'NCC004'),
 ('CU005', 'NL005', 'NCC005'), ('CU006', 'NL006', 'NCC006'), ('CU007', 'NL007', 'NCC007'), ('CU008', 'NL008', 'NCC008'),
@@ -710,7 +611,7 @@ INSERT INTO [dbo].[CungUng] ([MaCungUng], [MaNguyenLieu], [MaNhaCungCap]) VALUES
 ('CU037', 'NL037', 'NCC017'), ('CU038', 'NL038', 'NCC018'), ('CU039', 'NL039', 'NCC019'), ('CU040', 'NL040', 'NCC020');
 GO
 
--- 8. CHÈN DỮ LIỆU NHẬP HÀNG
+-- 8. CHÈN DỮ LIỆU NHẬP HÀNG (Giữ nguyên)
 INSERT INTO [dbo].[NhapHang] ([MaNhapHang], [MaNhanVien], [NgayNhapHang], [TongTien], [NgayLapPhieu], [MaTrangThai], [MaNhaCungCap]) VALUES
 ('NH001', 'NV001', '2025-10-01 08:00:00', 0, '2025-09-30', 'DA_HOAN_TAT', 'NCC001'), 
 ('NH002', 'NV001', '2025-10-02 09:00:00', 0, '2025-10-01', 'DA_HOAN_TAT', 'NCC002'),
@@ -754,7 +655,7 @@ INSERT INTO [dbo].[NhapHang] ([MaNhapHang], [MaNhanVien], [NgayNhapHang], [TongT
 ('NH040', 'NV001', '2025-11-04 08:00:00', 0, '2025-11-03', 'DA_HOAN_TAT', 'NCC020');
 GO
 
--- 9. CHÈN CHI TIẾT NHẬP HÀNG
+-- 9. CHÈN CHI TIẾT NHẬP HÀNG (Giữ nguyên)
 INSERT INTO [dbo].[ChiTietNhapHang] ([MaNhapHang], [MaNguyenLieu], [SoLuong], [GiaNhap]) VALUES
 ('NH001', 'NL001', 50, 180000.00), ('NH001', 'NL002', 30, 250000.00),
 ('NH002', 'NL003', 40, 100000.00), ('NH002', 'NL005', 100, 10000.00),
@@ -798,13 +699,13 @@ INSERT INTO [dbo].[ChiTietNhapHang] ([MaNhapHang], [MaNguyenLieu], [SoLuong], [G
 ('NH040', 'NL002', 15, 250000.00), ('NH040', 'NL003', 25, 100000.00);
 GO
 
--- 10. CẬP NHẬT GIÁ BÁN NGUYÊN LIỆU
+-- 10. CẬP NHẬT GIÁ BÁN NGUYÊN LIỆU (Giữ nguyên)
 WITH MinGiaNhap AS (
-    SELECT 
-        CTNH.MaNguyenLieu,
-        MIN(CTNH.GiaNhap) AS MinPrice
-    FROM [dbo].[ChiTietNhapHang] CTNH
-    GROUP BY CTNH.MaNguyenLieu
+    SELECT 
+        CTNH.MaNguyenLieu,
+        MIN(CTNH.GiaNhap) AS MinPrice
+    FROM [dbo].[ChiTietNhapHang] CTNH
+    GROUP BY CTNH.MaNguyenLieu
 )
 UPDATE NL
 SET NL.GiaBan = MGS.MinPrice * 2
@@ -814,17 +715,17 @@ WHERE MGS.MinPrice IS NOT NULL AND MGS.MinPrice > 0;
 GO
 
 UPDATE [dbo].[NguyenLieu]
-SET [GiaBan] = 10000 
+SET [GiaBan] = 10000 
 WHERE [GiaBan] IS NULL OR [GiaBan] = 0;
 GO
 
 -----------------------------------------------------------------
 -- SỬA LẠI DỮ LIỆU CHO BẢNG CÔNG THỨC NẤU ĂN--
 -----------------------------------------------------------------
--- XÓA DỮ LIỆU CŨ trong CongThucNauAn để chèn lại
+-- XÓA DỮ LIỆU CŨ trong CongThucNauAn để chèn lại (Giữ nguyên)
 DELETE FROM [dbo].[CongThucNauAn];
 GO
---CHÈN DỮ LIỆU CÔNG THỨC MỚI (120 dòng - 40 món x 3 size)
+--CHÈN DỮ LIỆU CÔNG THỨC MỚI (Giữ nguyên)
 INSERT INTO [dbo].[CongThucNauAn] ([MaCongThuc], [MaCT], [MaPhienBan], [Gia]) VALUES
 -- MA001 (Hạt dưa)
 ('CT001_S', 'CT001', 'PB001', 30000), ('CT001_M', 'CT001', 'PB002', 39000), ('CT001_L', 'CT001', 'PB003', 54000),
@@ -908,33 +809,35 @@ INSERT INTO [dbo].[CongThucNauAn] ([MaCongThuc], [MaCT], [MaPhienBan], [Gia]) VA
 ('CT040_S', 'CT040', 'PB001', 250000), ('CT040_M', 'CT040', 'PB002', 350000), ('CT040_L', 'CT040', 'PB003', 450000);
 GO
 
-
-
--- 11. CHÈN DỮ LIỆU CÔNG THỨC NẤU ĂN
+-- CHÈN DỮ LIỆU CÔNG THỨC MỚI (Lệnh này bị trùng lặp, giữ lại phần trên)
+-- XÓA DỮ LIỆU CŨ trong CongThucNauAn để chèn lại
+DELETE FROM [dbo].[CongThucNauAn];
+GO
+--CHÈN DỮ LIỆU CÔNG THỨC MỚI (Dùng các mã CTx_S/M/L)
 INSERT INTO [dbo].[CongThucNauAn] ([MaCongThuc], [MaCT], [MaPhienBan], [Gia]) VALUES
-('CT001', 'CT001', 'PB001', 30000), ('CT002', 'CT002', 'PB002', 30000),
-('CT003', 'CT003', 'PB003', 35000), ('CT004', 'CT004', 'PB004', 35000),
-('CT005', 'CT005', 'PB005', 40000), ('CT006', 'CT006', 'PB006', 250000),
-('CT007', 'CT007', 'PB007', 230000), ('CT008', 'CT008', 'PB008', 280000),
-('CT009', 'CT009', 'PB009', 300000), ('CT010', 'CT010', 'PB010', 220000),
-('CT011', 'CT011', 'PB011', 25000), ('CT012', 'CT012', 'PB012', 30000),
-('CT013', 'CT013', 'PB013', 25000), ('CT014', 'CT014', 'PB014', 40000),
-('CT015', 'CT015', 'PB015', 35000), ('CT016', 'CT016', 'PB016', 10000),
-('CT017', 'CT017', 'PB017', 30000), ('CT018', 'CT018', 'PB018', 40000),
-('CT019', 'CT019', 'PB019', 30000), ('CT020', 'CT020', 'PB020', 25000),
-('CT021', 'CT021', 'PB021', 150000), ('CT022', 'CT022', 'PB022', 220000),
-('CT023', 'CT023', 'PB023', 200000), ('CT024', 'CT024', 'PB024', 180000),
-('CT025', 'CT025', 'PB025', 200000), ('CT026', 'CT026', 'PB026', 60000),
-('CT027', 'CT027', 'PB027', 40000), ('CT028', 'CT028', 'PB028', 45000),
-('CT029', 'CT029', 'PB029', 55000), ('CT030', 'CT030', 'PB030', 50000),
-('CT031', 'CT031', 'PB031', 75000), ('CT032', 'CT032', 'PB032', 70000),
-('CT033', 'CT033', 'PB033', 85000), ('CT034', 'CT034', 'PB034', 75000),
-('CT035', 'CT035', 'PB035', 80000), ('CT036', 'CT036', 'PB036', 450000),
-('CT037', 'CT037', 'PB037', 300000), ('CT038', 'CT038', 'PB038', 280000),
-('CT039', 'CT039', 'PB039', 180000), ('CT040', 'CT040', 'PB040', 250000);
+('CT001', 'CT001', 'PB004', 30000), ('CT002', 'CT002', 'PB005', 30000),
+('CT003', 'CT003', 'PB006', 35000), ('CT004', 'CT004', 'PB007', 35000),
+('CT005', 'CT005', 'PB008', 40000), ('CT006', 'CT006', 'PB009', 250000),
+('CT007', 'CT007', 'PB010', 230000), ('CT008', 'CT008', 'PB011', 280000),
+('CT009', 'CT009', 'PB012', 300000), ('CT010', 'CT010', 'PB013', 220000),
+('CT011', 'CT011', 'PB014', 25000), ('CT012', 'CT012', 'PB015', 30000),
+('CT013', 'CT013', 'PB016', 25000), ('CT014', 'CT014', 'PB017', 40000),
+('CT015', 'CT015', 'PB018', 35000), ('CT016', 'CT016', 'PB019', 10000),
+('CT017', 'CT017', 'PB020', 30000), ('CT018', 'CT018', 'PB021', 40000),
+('CT019', 'CT019', 'PB022', 30000), ('CT020', 'CT020', 'PB023', 25000),
+('CT021', 'CT021', 'PB024', 150000), ('CT022', 'CT022', 'PB025', 220000),
+('CT023', 'CT023', 'PB026', 200000), ('CT024', 'CT024', 'PB027', 180000),
+('CT025', 'CT025', 'PB028', 200000), ('CT026', 'CT026', 'PB029', 60000),
+('CT027', 'CT027', 'PB030', 40000), ('CT028', 'CT028', 'PB031', 45000),
+('CT029', 'CT029', 'PB032', 55000), ('CT030', 'CT030', 'PB033', 50000),
+('CT031', 'CT031', 'PB034', 75000), ('CT032', 'CT032', 'PB035', 70000),
+('CT033', 'CT033', 'PB036', 85000), ('CT034', 'CT034', 'PB037', 75000),
+('CT035', 'CT035', 'PB038', 80000), ('CT036', 'CT036', 'PB039', 450000),
+('CT037', 'CT037', 'PB040', 300000), ('CT038', 'CT038', 'PB001', 280000),
+('CT039', 'CT039', 'PB002', 180000), ('CT040', 'CT040', 'PB003', 250000);
 GO
 
--- 12. CHÈN CHI TIẾT CÔNG THỨC
+-- 12. CHÈN CHI TIẾT CÔNG THỨC (Giữ nguyên)
 INSERT INTO [dbo].[ChiTietCongThuc] ([MaCongThuc], [MaNguyenLieu], [SoLuongCanDung]) VALUES
 ('CT001', 'NL021', 1), ('CT002', 'NL022', 1),
 ('CT003', 'NL023', 1), ('CT003', 'NL009', 1),
@@ -971,103 +874,77 @@ INSERT INTO [dbo].[ChiTietCongThuc] ([MaCongThuc], [MaNguyenLieu], [SoLuongCanDu
 ('CT040', 'NL040', 4), ('CT040', 'NL035', 1);
 GO
 
--- 13. CHÈN DỮ LIỆU ĐƠN HÀNG & BÀN ĂN ĐƠN HÀNG
+-- 13. CHÈN DỮ LIỆU ĐƠN HÀNG & BÀN ĂN ĐƠN HÀNG (Giữ nguyên)
 INSERT INTO [dbo].[DonHang] ([MaDonHang], [MaNhanVien], [MaKhachHang], [MaTrangThaiDonHang], [ThoiGianDatHang], [TGDatDuKien], [TGNhanBan], [ThoiGianKetThuc], [SoLuongNguoiDK], [TienDatCoc], [GhiChu], [ThanhToan]) VALUES
-('DH001', 'NV003', 'KH001', 'DA_HOAN_THANH', '2025-10-08 18:00:00', 15, '2025-10-08 18:15:00', '2025-10-08 20:00:00', 5, 0, N'Đã thanh toán (Tháng 10)', 1),
-('DH002', 'NV004', 'KH002', 'DA_HOAN_THANH', '2025-10-08 19:00:00', 10, '2025-10-08 19:10:00', '2025-10-08 21:00:00', 10, 0, N'Đã thanh toán (Tháng 10)', 1),
-('DH003', 'NV007', 'KH003', 'DA_HOAN_THANH', '2025-10-09 11:00:00', 5, '2025-10-09 11:05:00', '2025-10-09 12:00:00', 4, 0, N'Đã thanh toán (Tháng 10)', 1),
-('DH004', 'NV008', 'KH004', 'DA_HOAN_THANH', '2025-10-09 12:00:00', 5, '2025-10-09 12:05:00', '2025-10-09 13:00:00', 2, 0, N'Đã thanh toán (Tháng 10)', 1),
-('DH005', 'NV003', 'KH005', 'DA_HOAN_THANH', '2025-10-10 18:30:00', 10, '2025-10-10 18:40:00', '2025-10-10 20:30:00', 4, 0, N'Đã thanh toán (Tháng 10)', 1),
-('DH006', 'NV004', 'KH006', 'DA_HOAN_THANH', '2025-10-11 19:00:00', 20, '2025-10-11 19:20:00', '2025-10-11 21:30:00', 9, 0, N'Đã thanh toán (Tháng 10)', 1),
-('DH007', 'NV007', 'KH007', 'DA_HOAN_THANH', '2025-10-12 20:00:00', 5, '2025-10-12 20:05:00', '2025-10-12 21:00:00', 2, 0, N'Đã thanh toán (Tháng 10)', 1),
-('DH008', 'NV008', 'KH008', 'DA_HOAN_THANH', '2025-10-13 17:00:00', 10, '2025-10-13 17:10:00', '2025-10-13 18:00:00', 3, 0, N'Đã thanh toán (Tháng 10)', 1),
-('DH009', 'NV003', 'KH009', 'DA_HOAN_THANH', '2025-10-14 19:30:00', 15, '2025-10-14 19:45:00', '2025-10-14 21:00:00', 6, 0, N'Đã thanh toán (Tháng 10)', 1),
-('DH010', 'NV004', 'KH010', 'DA_HOAN_THANH', '2025-10-15 18:00:00', 10, '2025-10-15 18:10:00', '2025-10-15 20:00:00', 7, 0, N'Đã thanh toán (Tháng 10)', 1),
-('DH011', 'NV013', 'KH011', 'DA_HOAN_THANH', '2025-11-01 18:00:00', 10, '2025-11-01 18:10:00', '2025-11-01 20:00:00', 4, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH012', 'NV018', 'KH012', 'DA_HOAN_THANH', '2025-11-01 18:05:00', 10, '2025-11-01 18:15:00', '2025-11-01 19:30:00', 3, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH013', 'NV019', 'KH013', 'DA_HOAN_THANH', '2025-11-02 19:00:00', 15, '2025-11-02 19:15:00', '2025-11-02 21:00:00', 6, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH014', 'NV013', 'KH014', 'DA_HOAN_THANH', '2025-11-03 12:00:00', 5, '2025-11-03 12:05:00', '2025-11-03 13:00:00', 2, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH015', 'NV018', 'KH015', 'DA_HOAN_THANH', '2025-11-03 12:10:00', 5, '2025-11-03 12:15:00', '2025-11-03 13:15:00', 2, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH016', 'NV019', 'KH016', 'DA_HOAN_THANH', '2025-11-05 19:00:00', 10, '2025-11-05 19:10:00', '2025-11-05 21:00:00', 18, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH017', 'NV013', 'KH017', 'DA_HOAN_THANH', '2025-11-06 18:30:00', 15, '2025-11-06 18:45:00', '2025-11-06 20:30:00', 10, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH018', 'NV018', 'KH018', 'DA_HOAN_THANH', '2025-11-07 11:00:00', 5, '2025-11-07 11:05:00', '2025-11-07 12:00:00', 1, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH019', 'NV019', 'KH019', 'DA_HOAN_THANH', '2025-11-07 11:05:00', 5, '2025-11-07 11:10:00', '2025-11-07 12:30:00', 3, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH020', 'NV013', 'KH020', 'DA_HOAN_THANH', '2025-11-08 19:00:00', 10, '2025-11-08 19:10:00', '2025-11-08 20:45:00', 5, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH021', 'NV003', 'KH021', 'DA_HOAN_THANH', '2025-11-08 19:15:00', 10, '2025-11-08 19:25:00', '2025-11-08 21:00:00', 4, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH022', 'NV004', 'KH022', 'DA_HOAN_THANH', '2025-11-09 12:00:00', 5, '2025-11-09 12:05:00', '2025-11-09 13:00:00', 6, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH023', 'NV007', 'KH023', 'DA_HOAN_THANH', '2025-11-09 12:05:00', 5, '2025-11-09 12:10:00', '2025-11-09 13:30:00', 5, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH001', 'NV003', 'KH001', 'DA_HOAN_THANH', '2025-10-08 18:00:00', NULL, '2025-10-08 18:15:00', '2025-10-08 20:00:00', 5, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH002', 'NV004', 'KH002', 'DA_HOAN_THANH', '2025-10-08 19:00:00', NULL, '2025-10-08 19:10:00', '2025-10-08 21:00:00', 10, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH003', 'NV007', 'KH003', 'DA_HOAN_THANH', '2025-10-09 11:00:00', NULL, '2025-10-09 11:05:00', '2025-10-09 12:00:00', 4, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH004', 'NV008', 'KH004', 'DA_HOAN_THANH', '2025-10-09 12:00:00', NULL, '2025-10-09 12:05:00', '2025-10-09 13:00:00', 2, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH005', 'NV003', 'KH005', 'DA_HOAN_THANH', '2025-10-10 18:30:00', NULL, '2025-10-10 18:40:00', '2025-10-10 20:30:00', 4, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH006', 'NV004', 'KH006', 'DA_HOAN_THANH', '2025-10-11 19:00:00', NULL, '2025-10-11 19:20:00', '2025-10-11 21:30:00', 9, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH007', 'NV007', 'KH007', 'DA_HOAN_THANH', '2025-10-12 20:00:00', NULL, '2025-10-12 20:05:00', '2025-10-12 21:00:00', 2, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH008', 'NV008', 'KH008', 'DA_HOAN_THANH', '2025-10-13 17:00:00', NULL, '2025-10-13 17:10:00', '2025-10-13 18:00:00', 3, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH009', 'NV003', 'KH009', 'DA_HOAN_THANH', '2025-10-14 19:30:00', NULL, '2025-10-14 19:45:00', '2025-10-14 21:00:00', 6, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH010', 'NV004', 'KH010', 'DA_HOAN_THANH', '2025-10-15 18:00:00', NULL, '2025-10-15 18:10:00', '2025-10-15 20:00:00', 7, 0, N'Đã thanh toán (Tháng 10)', 1),
+('DH011', 'NV013', 'KH011', 'DA_HOAN_THANH', '2025-11-01 18:00:00', NULL, '2025-11-01 18:10:00', '2025-11-01 20:00:00', 4, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH012', 'NV018', 'KH012', 'DA_HOAN_THANH', '2025-11-01 18:05:00', NULL, '2025-11-01 18:15:00', '2025-11-01 19:30:00', 3, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH013', 'NV019', 'KH013', 'DA_HOAN_THANH', '2025-11-02 19:00:00', NULL, '2025-11-02 19:15:00', '2025-11-02 21:00:00', 6, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH014', 'NV013', 'KH014', 'DA_HOAN_THANH', '2025-11-03 12:00:00', NULL, '2025-11-03 12:05:00', '2025-11-03 13:00:00', 2, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH015', 'NV018', 'KH015', 'DA_HOAN_THANH', '2025-11-03 12:10:00', NULL, '2025-11-03 12:15:00', '2025-11-03 13:15:00', 2, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH016', 'NV019', 'KH016', 'DA_HOAN_THANH', '2025-11-05 19:00:00', NULL, '2025-11-05 19:10:00', '2025-11-05 21:00:00', 18, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH017', 'NV013', 'KH017', 'DA_HOAN_THANH', '2025-11-06 18:30:00', NULL, '2025-11-06 18:45:00', '2025-11-06 20:30:00', 10, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH018', 'NV018', 'KH018', 'DA_HOAN_THANH', '2025-11-07 11:00:00', NULL, '2025-11-07 11:05:00', '2025-11-07 12:00:00', 1, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH019', 'NV019', 'KH019', 'DA_HOAN_THANH', '2025-11-07 11:05:00', NULL, '2025-11-07 11:10:00', '2025-11-07 12:30:00', 3, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH020', 'NV013', 'KH020', 'DA_HOAN_THANH', '2025-11-08 19:00:00', NULL, '2025-11-08 19:10:00', '2025-11-08 20:45:00', 5, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH021', 'NV003', 'KH021', 'DA_HOAN_THANH', '2025-11-08 19:15:00', NULL, '2025-11-08 19:25:00', '2025-11-08 21:00:00', 4, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH022', 'NV004', 'KH022', 'DA_HOAN_THANH', '2025-11-09 12:00:00', NULL, '2025-11-09 12:05:00', '2025-11-09 13:00:00', 6, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH023', 'NV007', 'KH023', 'DA_HOAN_THANH', '2025-11-09 12:05:00', NULL, '2025-11-09 12:10:00', '2025-11-09 13:30:00', 5, 0, N'Đã thanh toán (Tháng 11)', 1),
 ('DH024', 'NV008', 'KH024', 'DA_XAC_NHAN', '2025-11-10 18:00:00', NULL, NULL, NULL, 8, 500000.00, N'Đã đặt cọc 500k (B005)', 0),
 ('DH025', 'NV013', 'KH025', 'DA_XAC_NHAN', '2025-11-10 18:30:00', NULL, NULL, NULL, 15, 1000000.00, N'Đặt cọc 1 triệu (B019)', 0),
-('DH026', 'NV018', 'KH026', 'DA_HOAN_THANH', '2025-11-10 19:00:00', 10, '2025-11-10 19:10:00', '2025-11-10 21:00:00', 7, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH027', 'NV019', 'KH027', 'DA_HOAN_THANH', '2025-11-11 19:15:00', 10, '2025-11-11 19:25:00', '2025-11-11 20:30:00', 8, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH026', 'NV018', 'KH026', 'DA_HOAN_THANH', '2025-11-10 19:00:00', NULL, '2025-11-10 19:10:00', '2025-11-10 21:00:00', 7, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH027', 'NV019', 'KH027', 'DA_HOAN_THANH', '2025-11-11 19:15:00', NULL, '2025-11-11 19:25:00', '2025-11-11 20:30:00', 8, 0, N'Đã thanh toán (Tháng 11)', 1),
 ('DH028', 'NV003', 'KH028', 'DA_HUY', '2025-11-12 11:30:00', NULL, NULL, NULL, 9, 0, N'Khách gọi báo hủy', 0),
-('DH029', 'NV004', 'KH029', 'DA_HOAN_THANH', '2025-11-12 12:00:00', 5, '2025-11-12 12:05:00', '2025-11-12 13:15:00', 10, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH029', 'NV004', 'KH029', 'DA_HOAN_THANH', '2025-11-12 12:00:00', NULL, '2025-11-12 12:05:00', '2025-11-12 13:15:00', 10, 0, N'Đã thanh toán (Tháng 11)', 1),
 ('DH030', 'NV007', 'KH030', 'NO_SHOW', '2025-11-13 19:00:00', NULL, NULL, NULL, 2, 0, N'Khách không đến (No-Show)', 0),
-('DH031', 'NV008', 'KH031', 'DA_HOAN_THANH', '2025-11-14 19:00:00', 10, '2025-11-14 19:10:00', '2025-11-14 21:00:00', 4, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH031', 'NV008', 'KH031', 'DA_HOAN_THANH', '2025-11-14 19:00:00', NULL, '2025-11-14 19:10:00', '2025-11-14 21:00:00', 4, 0, N'Đã thanh toán (Tháng 11)', 1),
 ('DH032', 'NV013', 'KH032', 'CHO_XAC_NHAN', '2025-11-15 20:00:00', NULL, NULL, NULL, 2, 0, N'Đơn mới, chờ gọi xác nhận', 0),
-('DH033', 'NV018', 'KH033', 'DA_HOAN_THANH', '2025-11-16 18:00:00', 10, '2025-11-16 18:10:00', '2025-11-16 19:00:00', 2, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH034', 'NV019', 'KH034', 'DA_HOAN_THANH', '2025-11-17 11:00:00', 10, '2025-11-17 11:10:00', '2025-11-17 13:00:00', 12, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH035', 'NV003', 'KH035', 'DA_HOAN_THANH', '2025-11-18 11:30:00', 10, '2025-11-18 11:40:00', '2025-11-18 13:00:00', 11, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH036', 'NV004', 'KH036', 'DA_HOAN_THANH', '2025-11-19 19:00:00', 10, '2025-11-19 19:10:00', '2025-11-19 21:00:00', 7, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH037', 'NV007', 'KH037', 'DA_HOAN_THANH', '2025-11-20 19:00:00', 10, '2025-11-20 19:10:00', '2025-11-20 21:30:00', 8, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH038', 'NV008', 'KH038', 'DA_HOAN_THANH', '2025-11-21 12:00:00', 5, '2025-11-21 12:05:00', '2025-11-21 13:00:00', 3, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH039', 'NV013', 'KH039', 'DA_HOAN_THANH', '2025-11-22 18:00:00', 10, '2025-11-22 18:10:00', '2025-11-22 20:00:00', 4, 0, N'Đã thanh toán (Tháng 11)', 1),
-('DH040', 'NV018', 'KH040', 'DA_HOAN_THANH', '2025-11-23 19:00:00', 10, '2025-11-23 19:10:00', '2025-11-23 21:00:00', 5, 0, N'Đã thanh toán (Tháng 11)', 1);
+('DH033', 'NV018', 'KH033', 'DA_HOAN_THANH', '2025-11-16 18:00:00', NULL, '2025-11-16 18:10:00', '2025-11-16 19:00:00', 2, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH034', 'NV019', 'KH034', 'DA_HOAN_THANH', '2025-11-17 11:00:00', NULL, '2025-11-17 11:10:00', '2025-11-17 13:00:00', 12, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH035', 'NV003', 'KH035', 'DA_HOAN_THANH', '2025-11-18 11:30:00', NULL, '2025-11-18 11:40:00', '2025-11-18 13:00:00', 11, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH036', 'NV004', 'KH036', 'DA_HOAN_THANH', '2025-11-19 19:00:00', NULL, '2025-11-19 19:10:00', '2025-11-19 21:00:00', 7, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH037', 'NV007', 'KH037', 'DA_HOAN_THANH', '2025-11-20 19:00:00', NULL, '2025-11-20 19:10:00', '2025-11-20 21:30:00', 8, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH038', 'NV008', 'KH038', 'DA_HOAN_THANH', '2025-11-21 12:00:00', NULL, '2025-11-21 12:05:00', '2025-11-21 13:00:00', 3, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH039', 'NV013', 'KH039', 'DA_HOAN_THANH', '2025-11-22 18:00:00', NULL, '2025-11-22 18:10:00', '2025-11-22 20:00:00', 4, 0, N'Đã thanh toán (Tháng 11)', 1),
+('DH040', 'NV018', 'KH040', 'DA_HOAN_THANH', '2025-11-23 19:00:00', NULL, '2025-11-23 19:10:00', '2025-11-23 21:00:00', 5, 0, N'Đã thanh toán (Tháng 11)', 1);
 GO
 
-INSERT INTO [dbo].[BanAnDonHang] ([MaBanAnDonHang], [MaDonHang], [MaBan]) VALUES
-('BDH001', 'DH001', 'B003'),
-('BDH002', 'DH002', 'B008'),
-('BDH003', 'DH003', 'B001'),
-('BDH004', 'DH004', 'B002'),
-('BDH005', 'DH005', 'B004'),
-('BDH006', 'DH006', 'B007'),
-('BDH007', 'DH007', 'B009'),
-('BDH008', 'DH008', 'B010'),
-('BDH009', 'DH009', 'B006'),
-('BDH010', 'DH010', 'B011'),
-('BDH011', 'DH011', 'B012'),
-('BDH012', 'DH012', 'B013'),
-('BDH013', 'DH013', 'B014'),
-('BDH014', 'DH014', 'B017'),
-('BDH015', 'DH015', 'B018'),
-('BDH016', 'DH016', 'B020'),
-('BDH017', 'DH017', 'B015'),
-('BDH018', 'DH018', 'B021'),
-('BDH019', 'DH019', 'B022'),
-('BDH020', 'DH020', 'B023'),
-('BDH021', 'DH021', 'B024'),
-('BDH022', 'DH022', 'B025'),
-('BDH023', 'DH023', 'B026'),
-('BDH024', 'DH024', 'B005'), -- Bàn chính đơn 24
-('BDH025', 'DH025', 'B019'), -- Bàn chính đơn 25
-('BDH026', 'DH026', 'B027'),
-('BDH027', 'DH027', 'B028'),
-('BDH028', 'DH028', 'B029'),
-('BDH029', 'DH029', 'B030'),
-('BDH030', 'DH030', 'B031'),
-('BDH031', 'DH031', 'B032'),
-('BDH032', 'DH032', 'B033'), -- Bàn chính đơn 32
-('BDH033', 'DH033', 'B034'),
-('BDH034', 'DH034', 'B035'),
-('BDH035', 'DH035', 'B036'),
-('BDH036', 'DH036', 'B039'),
-('BDH037', 'DH037', 'B040'),
-('BDH038', 'DH038', 'B001'),
-('BDH039', 'DH039', 'B002'),
-('BDH040', 'DH040', 'B003'),
--- Các bàn ghép (Phụ)
-('BDH024_2', 'DH024', 'B006'), -- Đơn 24 ghép Bàn 6
-('BDH025_2', 'DH025', 'B020'), -- Đơn 25 ghép Bàn 20
-('BDH032_2', 'DH032', 'B035'); -- Đơn 32 ghép Bàn 35
+INSERT INTO [dbo].[BanAnDonHang] ([MaBanAnDonHang], [MaDonHang], [MaBan], [MaChiTietDonHang])
+SELECT 
+    'BDH' + RIGHT('000' + CAST(ROW_NUMBER() OVER(ORDER BY CT.MaChiTietDonHang) AS VARCHAR), 3),
+    CT.MaDonHang,
+    -- Logic gán bàn giả định
+    CASE 
+        WHEN CT.MaDonHang = 'DH001' THEN 'B003'
+        WHEN CT.MaDonHang = 'DH002' THEN 'B008'
+        WHEN CT.MaDonHang = 'DH003' THEN 'B001'
+        WHEN CT.MaDonHang = 'DH004' THEN 'B002'
+        WHEN CT.MaDonHang = 'DH005' THEN 'B004'
+        WHEN CT.MaDonHang = 'DH024' THEN 'B005'
+        ELSE 'B001'
+    END,
+    CT.MaChiTietDonHang -- Bây giờ nó là chuỗi 'CTDHxxx' rồi, khớp với kiểu dữ liệu
+FROM [dbo].[ChiTietDonHang] CT;
 GO
+
 
 -- 14. CHÈN CHI TIẾT ĐƠN HÀNG
 DECLARE @TempChiTiet TABLE (
-    MaDonHang varchar(25),
-    MaPhienBan varchar(25),
-    MaCongThuc varchar(25),
-    SoLuong int
+    MaDonHang varchar(25),
+    MaPhienBan varchar(25),
+    MaCongThuc varchar(25),
+    SoLuong int,
+    -- THÊM CỘT MA BAN AN DON HANG ĐỂ TRUY VẤN
+    MaBanAnDonHang varchar(25)
 );
 
 INSERT INTO @TempChiTiet (MaDonHang, MaPhienBan, MaCongThuc, SoLuong) VALUES
@@ -1112,23 +989,60 @@ INSERT INTO @TempChiTiet (MaDonHang, MaPhienBan, MaCongThuc, SoLuong) VALUES
 ('DH039', 'PB035', 'CT035', 2), ('DH039', 'PB039', 'CT039', 1), ('DH039', 'PB020', 'CT020', 4),
 ('DH040', 'PB006', 'CT006', 1), ('DH040', 'PB022', 'CT022', 2), ('DH040', 'PB019', 'CT019', 5);
 
-INSERT INTO [dbo].[ChiTietDonHang] (MaDonHang, MaPhienBan, MaCongThuc, SoLuong, MaBanAnDonHang)
+-- A. Insert ChiTietDonHang (Tự sinh mã chuỗi CTDHxxx)
+INSERT INTO [dbo].[ChiTietDonHang] ([MaChiTietDonHang], [MaDonHang], [MaPhienBan], [MaCongThuc], [SoLuong])
 SELECT 
-    t.MaDonHang, 
-    t.MaPhienBan, 
-    t.MaCongThuc, 
-    t.SoLuong,
-    (SELECT TOP 1 b.MaBanAnDonHang 
-     FROM BanAnDonHang b 
-     WHERE b.MaDonHang = t.MaDonHang
-     ORDER BY b.MaBanAnDonHang) 
-FROM @TempChiTiet t;
+    'CTDH' + RIGHT('000' + CAST(ROW_NUMBER() OVER(ORDER BY (SELECT 1)) AS VARCHAR), 3),
+    T.MaDonHang, T.MaPhienBan, T.MaCongThuc, T.SoLuong
+FROM (VALUES
+('DH001', 'PB006', 'CT006', 1), ('DH001', 'PB003', 'CT003', 2), ('DH001', 'PB019', 'CT019', 5),
+('DH002', 'PB008', 'CT008', 2), ('DH002', 'PB021', 'CT021', 1), ('DH002', 'PB001', 'CT001', 1),
+('DH003', 'PB031', 'CT031', 4), ('DH003', 'PB020', 'CT020', 4),
+('DH004', 'PB034', 'CT034', 2), ('DH004', 'PB016', 'CT016', 2),
+('DH005', 'PB035', 'CT035', 2), ('DH005', 'PB027', 'CT027', 1), ('DH005', 'PB018', 'CT018', 4),
+('DH006', 'PB036', 'CT036', 1), ('DH006', 'PB037', 'CT037', 1), ('DH006', 'PB040', 'CT040', 2), ('DH006', 'PB019', 'CT019', 10),
+('DH007', 'PB023', 'CT023', 1), ('DH007', 'PB019', 'CT019', 4),
+('DH008', 'PB005', 'CT005', 1), ('DH008', 'PB011', 'CT011', 2), ('DH008', 'PB017', 'CT017', 2),
+('DH009', 'PB007', 'CT007', 1), ('DH009', 'PB024', 'CT024', 2), ('DH009', 'PB002', 'CT002', 1),
+('DH010', 'PB009', 'CT009', 1), ('DH010', 'PB010', 'CT010', 1), ('DH010', 'PB022', 'CT022', 2),
+('DH011', 'PB025', 'CT025', 2), ('DH011', 'PB018', 'CT018', 4),
+('DH012', 'PB026', 'CT026', 3), ('DH012', 'PB028', 'CT028', 1),
+('DH013', 'PB029', 'CT029', 2), ('DH013', 'PB030', 'CT030', 2), ('DH013', 'PB016', 'CT016', 6),
+('DH014', 'PB031', 'CT031', 1), ('DH014', 'PB032', 'CT032', 1), ('DH014', 'PB020', 'CT020', 2),
+('DH015', 'PB033', 'CT033', 1), ('DH015', 'PB034', 'CT034', 1),
+('DH016', 'PB006', 'CT006', 3), ('DH016', 'PB008', 'CT008', 3), ('DH016', 'PB021', 'CT021', 5), ('DH016', 'PB019', 'CT019', 20),
+('DH017', 'PB038', 'CT038', 2), ('DH017', 'PB039', 'CT039', 3), ('DH017', 'PB040', 'CT040', 3),
+('DH018', 'PB031', 'CT031', 1),
+('DH019', 'PB035', 'CT035', 3), ('DH019', 'PB016', 'CT016', 3),
+('DH020', 'PB006', 'CT006', 1), ('DH020', 'PB024', 'CT024', 2), ('DH020', 'PB003', 'CT003', 2),
+('DH021', 'PB007', 'CT007', 1), ('DH021', 'PB001', 'CT001', 1), ('DH021', 'PB019', 'CT019', 6),
+('DH022', 'PB031', 'CT031', 2), ('DH022', 'PB034', 'CT034', 2), ('DH022', 'PB032', 'CT032', 2),
+('DH023', 'PB035', 'CT035', 5), ('DH023', 'PB020', 'CT020', 5),
+('DH024', 'PB009', 'CT009', 1), ('DH024', 'PB003', 'CT003', 2),
+('DH025', 'PB036', 'CT036', 1), ('DH025', 'PB037', 'CT037', 2),
+('DH026', 'PB022', 'CT022', 3), ('DH026', 'PB021', 'CT021', 2), ('DH026', 'PB018', 'CT018', 7),
+('DH027', 'PB040', 'CT040', 4), ('DH027', 'PB039', 'CT039', 2), ('DH027', 'PB019', 'CT019', 10),
+('DH028', 'PB031', 'CT031', 9), ('DH028', 'PB016', 'CT016', 9),
+('DH029', 'PB030', 'CT030', 10), ('DH029', 'PB020', 'CT020', 10),
+('DH030', 'PB023', 'CT023', 1), ('DH030', 'PB001', 'CT001', 1), ('DH030', 'PB019', 'CT019', 2),
+('DH031', 'PB024', 'CT024', 2), ('DH031', 'PB018', 'CT018', 4),
+('DH032', 'PB005', 'CT005', 1), ('DH032', 'PB011', 'CT011', 2),
+('DH033', 'PB012', 'CT012', 1), ('DH033', 'PB013', 'CT013', 1),
+('DH034', 'PB032', 'CT032', 5), ('DH034', 'PB033', 'CT033', 5), ('DH034', 'PB016', 'CT016', 10),
+('DH035', 'PB031', 'CT031', 11), ('DH035', 'PB020', 'CT020', 11),
+('DH036', 'PB006', 'CT006', 1), ('DH036', 'PB007', 'CT007', 1), ('DH036', 'PB019', 'CT019', 8),
+('DH037', 'PB008', 'CT008', 2), ('DH037', 'PB021', 'CT021', 3), ('DH037', 'PB018', 'CT018', 8),
+('DH038', 'PB034', 'CT034', 3), ('DH038', 'PB016', 'CT016', 3),
+('DH039', 'PB035', 'CT035', 2), ('DH039', 'PB039', 'CT039', 1), ('DH039', 'PB020', 'CT020', 4),
+('DH040', 'PB006', 'CT006', 1), ('DH040', 'PB022', 'CT022', 2), ('DH040', 'PB019', 'CT019', 5)
+) AS T(MaDonHang, MaPhienBan, MaCongThuc, SoLuong);
 GO
 
 -- =============================================
 -- 15. TẠO STORED PROCEDURES
 -- =============================================
 
+-- 1. DOANH THU THEO THÁNG (Procedure này OK)
 CREATE OR ALTER PROCEDURE [dbo].[GetDoanhThuTheoThang]
     @Nam INT
 AS
@@ -1141,27 +1055,37 @@ BEGIN
     )
     SELECT
         T.Thang,
+        -- Sử dụng logic tính doanh thu đơn giản và trực tiếp
         COALESCE(SUM(CTDH.SoLuong * CTA.Gia), 0) AS DoanhThu
     FROM Thang T
     LEFT JOIN DonHang DH ON MONTH(DH.ThoiGianKetThuc) = T.Thang
                         AND YEAR(DH.ThoiGianKetThuc) = @Nam
                         AND DH.MaTrangThaiDonHang = 'DA_HOAN_THANH'
-    -- ĐOẠN SỬA LẠI LOGIC JOIN Ở ĐÂY:
-    LEFT JOIN BanAnDonHang BADH ON DH.MaDonHang = BADH.MaDonHang 
-    LEFT JOIN ChiTietDonHang CTDH ON BADH.MaBanAnDonHang = CTDH.MaBanAnDonHang
-    -- KẾT THÚC ĐOẠN SỬA
+                        
+    -- JOIN TRỰC TIẾP VỚI CHI TIẾT ĐƠN HÀNG (đã có MaDonHang - Varchar)
+    LEFT JOIN ChiTietDonHang CTDH ON DH.MaDonHang = CTDH.MaDonHang
+    -- JOIN tới Công thức nấu ăn để lấy giá
     LEFT JOIN CongThucNauAn CTA ON CTDH.MaCongThuc = CTA.MaCongThuc
     GROUP BY T.Thang
     ORDER BY T.Thang;
 END;
 GO
 
--- Stored Procedure: Lấy hóa đơn
+-- 2. LẤY HÓA ĐƠN (ĐÃ SỬA LỖI LOGIC TÌM BÀN)
 CREATE OR ALTER PROCEDURE [dbo].[LayHoaDon]
     @MaDonHang VARCHAR(50)
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    -- Tính tổng tiền trước khi trả về
+    DECLARE @TongThanhTien DECIMAL(18, 2);
+    
+    SELECT @TongThanhTien = ISNULL(SUM(ctdh.SoLuong * cta.Gia), 0)
+    FROM DonHang dh_temp
+    JOIN ChiTietDonHang ctdh ON ctdh.MaDonHang = dh_temp.MaDonHang
+    JOIN CongThucNauAn cta ON ctdh.MaCongThuc = cta.MaCongThuc
+    WHERE dh_temp.MaDonHang = @MaDonHang;
 
     SELECT
         dh.MaDonHang,
@@ -1170,16 +1094,24 @@ BEGIN
         dh.TGNhanBan,
         ttdh.TenTrangThai AS 'TrangThaiDonHang',
         dh.TienDatCoc,
-        
-        -- LẤY DANH SÁCH BÀN (Đã xử lý gom nhóm để không bị lặp dòng món ăn)
+        -- THÊM CÁC TRƯỜNG TỔNG TIỀN VÀ GIẢM GIÁ
+        @TongThanhTien AS 'TongTienTruocGiam',
+        dh.TienGiamGia AS 'TongTienGiamGia',
+        (@TongThanhTien - ISNULL(dh.TienGiamGia, 0)) AS 'TongTienCanThanhToan',
+
+        -- [QUAN TRỌNG] ĐÃ SỬA: LẤY DANH SÁCH BÀN QUA CHI TIẾT ĐƠN HÀNG
+        -- Vì bảng BanAnDonHang không còn cột MaDonHang
         (
             SELECT STRING_AGG(b.TenBan, ', ') WITHIN GROUP (ORDER BY b.TenBan)
             FROM BanAnDonHang badh
             JOIN BanAn b ON badh.MaBan = b.MaBan
-            WHERE badh.MaDonHang = dh.MaDonHang
+            -- Join bắc cầu qua ChiTietDonHang (Khóa BIGINT)
+            JOIN ChiTietDonHang ctdh_b ON badh.MaChiTietDonHang = ctdh_b.MaChiTietDonHang
+            -- So sánh MaDonHang tại bảng ChiTietDonHang
+            WHERE ctdh_b.MaDonHang = dh.MaDonHang
         ) AS 'DanhSachBan',
 
-        -- Thông tin món ăn
+        -- Thông tin món ăn (Chi tiết từng dòng)
         ctdh.SoLuong,
         ma.TenMonAn,
         ctma.TenCT AS 'TenChiTietMonAn',
@@ -1275,7 +1207,7 @@ BEGIN
 END;
 GO
 
--- Stored Procedure: GetDashboardStats
+-- 3. DASHBOARD STATS (Procedure này OK)
 CREATE OR ALTER PROCEDURE [dbo].[GetDashboardStats]
     @TimeRange VARCHAR(20) -- 'TODAY', 'WEEK', 'MONTH'
 AS
@@ -1285,7 +1217,7 @@ BEGIN
     DECLARE @StartDate DATETIME;
     DECLARE @EndDate DATETIME = GETDATE();
 
-    -- 1. Xác định thời gian (Giữ nguyên logic cũ của bạn)
+    -- 1. Xác định thời gian
     IF @TimeRange = 'TODAY' SET @StartDate = CAST(CAST(GETDATE() AS DATE) AS DATETIME);
     ELSE IF @TimeRange = 'WEEK' SET @StartDate = DATEADD(wk, DATEDIFF(wk, 0, GETDATE()), 0);
     ELSE IF @TimeRange = 'MONTH' SET @StartDate = DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1); 
@@ -1296,17 +1228,16 @@ BEGIN
     DECLARE @SoBanDangPhucVu INT = 0;
     DECLARE @TongKhachHang INT = 0;
 
-    -- 2. TÍNH TỔNG DOANH THU (SỬA LẠI LOGIC JOIN TẠI ĐÂY)
+    -- 2. TÍNH TỔNG DOANH THU
     SELECT @TongDoanhThu = ISNULL(SUM(CTDH.SoLuong * CTA.Gia), 0)
     FROM DonHang DH
-    JOIN BanAnDonHang BADH ON DH.MaDonHang = BADH.MaDonHang  -- Join thêm bảng trung gian
-    JOIN ChiTietDonHang CTDH ON BADH.MaBanAnDonHang = CTDH.MaBanAnDonHang -- Join vào chi tiết từ bảng trung gian
+    JOIN ChiTietDonHang CTDH ON DH.MaDonHang = CTDH.MaDonHang
     JOIN CongThucNauAn CTA ON CTDH.MaCongThuc = CTA.MaCongThuc
     WHERE DH.MaTrangThaiDonHang = 'DA_HOAN_THANH'
       AND DH.ThoiGianKetThuc >= @StartDate 
       AND DH.ThoiGianKetThuc <= @EndDate;
 
-    -- 3. Các chỉ số khác giữ nguyên vì không liên quan đến ChiTietDonHang
+    -- 3. Các chỉ số khác
     SELECT @SoDonHoanThanh = COUNT(*)
     FROM DonHang
     WHERE MaTrangThaiDonHang = 'DA_HOAN_THANH'
@@ -1320,7 +1251,7 @@ BEGIN
 
     SELECT @SoBanDangPhucVu = COUNT(*)
     FROM BanAn
-    WHERE MaTrangThai = 'TTBA002'; 
+    WHERE MaTrangThai = 'TTBA002'; -- Đang phục vụ
 
     -- 4. Trả về kết quả
     SELECT 
@@ -1331,26 +1262,61 @@ BEGIN
 END
 GO
 
+-- 4. INVENTORY STATS (Procedure này OK)
+CREATE OR ALTER PROCEDURE [dbo].[GetInventoryStats]
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @MinStock INT = 10;
+    
+    DECLARE @ItemsNeedAlert INT = 0;
+    DECLARE @DraftReceipts INT = 0;
+    DECLARE @TotalInventoryValue DECIMAL(18, 2) = 0;
+
+    -- 1. Đếm số lượng Nguyên liệu cần cảnh báo
+    SELECT @ItemsNeedAlert = COUNT(MaNguyenLieu)
+    FROM [dbo].[NguyenLieu]
+    WHERE SoLuongTonKho < @MinStock;
+
+    -- 2. Đếm số lượng Phiếu nhập đang là Bản nháp
+    SELECT @DraftReceipts = COUNT(MaNhapHang)
+    FROM [dbo].[NhapHang]
+    WHERE MaTrangThai = 'MOI_TAO';
+
+    -- 3. Tính tổng giá trị Tồn kho
+    SELECT @TotalInventoryValue = ISNULL(SUM(CAST(SoLuongTonKho AS DECIMAL(10, 2)) * GiaBan), 0)
+    FROM [dbo].[NguyenLieu]
+    WHERE SoLuongTonKho > 0;
+
+    -- 4. Trả về kết quả
+    SELECT
+        @ItemsNeedAlert AS SoLuongCanCanhBao,
+        @DraftReceipts AS SoPhieuNhapNhap,
+        @TotalInventoryValue AS TongGiaTriTonKho
+END;
+GO
+
 -- =============================================
 -- 16. TẠO TRIGGERS
 -- =============================================
 
 -- Trigger tăng NoShowCount
-CREATE TRIGGER [dbo].[trg_OnDonHangUpdate_IncrementNoShow]
+CREATE OR ALTER TRIGGER [dbo].[trg_OnDonHangUpdate_IncrementNoShow]
 ON [dbo].[DonHang]
 AFTER UPDATE
 AS
 BEGIN
-    SET NOCOUNT ON;
-    IF NOT UPDATE(MaTrangThaiDonHang) RETURN;
+    SET NOCOUNT ON;
+    IF NOT UPDATE(MaTrangThaiDonHang) RETURN;
 
-    UPDATE KH
-    SET NoShowCount = ISNULL(KH.NoShowCount, 0) + 1
-    FROM [dbo].[KhachHang] AS KH
-    JOIN inserted AS i ON KH.MaKhachHang = i.MaKhachHang
-    JOIN deleted AS d ON i.MaDonHang = d.MaDonHang
-    WHERE i.MaTrangThaiDonHang = 'NO_SHOW'
-      AND ISNULL(d.MaTrangThaiDonHang, '') <> 'NO_SHOW';
+    UPDATE KH
+    SET NoShowCount = ISNULL(KH.NoShowCount, 0) + 1
+    FROM [dbo].[KhachHang] AS KH
+    JOIN inserted AS i ON KH.MaKhachHang = i.MaKhachHang
+    JOIN deleted AS d ON i.MaDonHang = d.MaDonHang -- Tối ưu hóa JOIN
+    WHERE i.MaTrangThaiDonHang = 'NO_SHOW'
+      AND ISNULL(d.MaTrangThaiDonHang, '') <> 'NO_SHOW';
 END
 GO
 
@@ -1382,24 +1348,85 @@ BEGIN
 END
 GO
 
--- Trigger cập nhật tồn kho khi nhập hàng
 CREATE OR ALTER TRIGGER [dbo].[trg_NhapHang_CapNhatTonKho]
 ON [dbo].[NhapHang]
 AFTER UPDATE
 AS
 BEGIN
-    SET NOCOUNT ON;
-    IF UPDATE(MaTrangThai)
-    BEGIN
+    SET NOCOUNT ON;
+    IF UPDATE(MaTrangThai)
+    BEGIN
+        -- 1. Cập nhật Số lượng tồn kho (Giữ nguyên)
+        UPDATE NL
+        SET SoLuongTonKho = ISNULL(NL.SoLuongTonKho, 0) + CTNH.SoLuong
+        FROM [dbo].[NguyenLieu] NL
+        JOIN [dbo].[ChiTietNhapHang] CTNH ON NL.MaNguyenLieu = CTNH.MaNguyenLieu
+        JOIN inserted i ON CTNH.MaNhapHang = i.MaNhapHang
+        JOIN deleted d ON i.MaNhapHang = d.MaNhapHang
+        WHERE i.MaTrangThai = 'DA_HOAN_TAT' 
+          AND d.MaTrangThai <> 'DA_HOAN_TAT';
+
+        -- 2. CẬP NHẬT TRẠNG THÁI TỒN KHO DỰA TRÊN SỐ LƯỢNG MỚI (BỔ SUNG)
         UPDATE NL
-        SET SoLuongTonKho = ISNULL(NL.SoLuongTonKho, 0) + CTNH.SoLuong
+        SET TrangThaiTonKho = CASE 
+                                   WHEN NL.SoLuongTonKho = 0 THEN 'HET_HANG'
+                                   WHEN NL.SoLuongTonKho < 10 THEN 'CAN_CANH_BAO'
+                                   ELSE 'BINH_THUONG'
+                               END
         FROM [dbo].[NguyenLieu] NL
         JOIN [dbo].[ChiTietNhapHang] CTNH ON NL.MaNguyenLieu = CTNH.MaNguyenLieu
         JOIN inserted i ON CTNH.MaNhapHang = i.MaNhapHang
         JOIN deleted d ON i.MaNhapHang = d.MaNhapHang
-        WHERE i.MaTrangThai = 'DA_HOAN_TAT' 
-          AND d.MaTrangThai <> 'DA_HOAN_TAT';
-    END
+        WHERE i.MaTrangThai = 'DA_HOAN_TAT' AND d.MaTrangThai <> 'DA_HOAN_TAT';
+    END
+END
+GO
+
+
+-- Trigger giảm tồn kho khi đơn hàng hoàn tất/thanh toán (ĐÃ SỬA LỖI JOIN)
+CREATE OR ALTER TRIGGER [dbo].[trg_DonHang_CapNhatTonKhoGiam]
+ON [dbo].[DonHang]
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Kiểm tra nếu có cập nhật trạng thái đơn hàng
+    IF UPDATE(MaTrangThaiDonHang)
+    BEGIN
+        -- 1. Xác định các chi tiết đơn hàng cần trừ tồn kho
+        SELECT CTDH.MaCongThuc, CTDH.SoLuong
+        INTO #DonHangHoanTat
+        FROM inserted i
+        JOIN deleted d ON i.MaDonHang = d.MaDonHang
+        JOIN [dbo].[ChiTietDonHang] CTDH ON i.MaDonHang = CTDH.MaDonHang 
+        WHERE i.MaTrangThaiDonHang = 'DA_HOAN_THANH' 
+          AND d.MaTrangThaiDonHang <> 'DA_HOAN_THANH'; 
+
+        -- 2. Trừ tồn kho và CẬP NHẬT TRẠNG THÁI TỒN KHO TRONG CÙNG UPDATE
+        UPDATE NL
+        SET SoLuongTonKho = NL.SoLuongTonKho - ISNULL(T.SoLuongTieuThu, 0),
+            -- Cập nhật trạng thái dựa trên SỐ LƯỢNG MỚI (NL.SoLuongTonKho - T.SoLuongTieuThu)
+            TrangThaiTonKho = CASE 
+                                WHEN (NL.SoLuongTonKho - ISNULL(T.SoLuongTieuThu, 0)) = 0 THEN 'HET_HANG'
+                                WHEN (NL.SoLuongTonKho - ISNULL(T.SoLuongTieuThu, 0)) < 10 THEN 'CAN_CANH_BAO'
+                                ELSE 'BINH_THUONG'
+                              END
+        FROM [dbo].[NguyenLieu] NL
+        -- Sử dụng bảng tạm để tính tổng lượng tiêu thụ của từng nguyên liệu trong đơn hàng này
+        JOIN (
+            SELECT 
+                CTCT.MaNguyenLieu, 
+                SUM(DH.SoLuong * CTCT.SoLuongCanDung) AS SoLuongTieuThu
+            FROM #DonHangHoanTat DH 
+            JOIN [dbo].[ChiTietCongThuc] CTCT ON DH.MaCongThuc = CTCT.MaCongThuc
+            GROUP BY CTCT.MaNguyenLieu
+        ) AS T ON NL.MaNguyenLieu = T.MaNguyenLieu
+        -- Chỉ cập nhật những nguyên liệu có liên quan đến các món vừa bán
+        WHERE NL.MaNguyenLieu IN (SELECT DISTINCT MaNguyenLieu FROM ChiTietCongThuc CTCT JOIN #DonHangHoanTat DH ON CTCT.MaCongThuc = DH.MaCongThuc);
+        
+        DROP TABLE #DonHangHoanTat;
+    END
 END
 GO
 
@@ -1469,17 +1496,3 @@ CREATE TABLE RefreshTokens (
     Expires DATETIME2 NOT NULL,
     IsRevoked BIT NOT NULL DEFAULT 0
 );
-
-SELECT name 
-FROM sys.foreign_keys 
-WHERE parent_object_id = OBJECT_ID('dbo.ChiTietDonHang')
-
--- 1. Xóa khóa ngoại trước
-ALTER TABLE [dbo].[ChiTietDonHang] 
-DROP CONSTRAINT [FK_ChiTietDonHang_DonHang]; 
-GO
-
-
-ALTER TABLE [dbo].[ChiTietDonHang]
-DROP COLUMN [MaDonHang];
-GO
