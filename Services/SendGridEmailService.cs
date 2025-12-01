@@ -3,7 +3,6 @@ using MailKit.Security;
 using MimeKit;
 using QuanLyNhaHang.Services; // Namespace của bạn
 
-// Giữ nguyên tên class cũ để đỡ phải sửa code ở Controller và Program.cs
 public class SendGridEmailService : IEmailService
 {
     private readonly IConfiguration _config;
@@ -16,7 +15,7 @@ public class SendGridEmailService : IEmailService
     }
 
     // ========================================================================
-    // HÀM GỬI MAIL CHÍNH (DÙNG MAILKIT - SMTP GMAIL)
+    // HÀM GỬI MAIL CHÍNH (DÙNG MAILKIT - SMTP GMAIL) - GIỮ NGUYÊN
     // ========================================================================
     private async Task SendEmailViaGmailAsync(string toEmail, string subject, string htmlMessage)
     {
@@ -24,7 +23,7 @@ public class SendGridEmailService : IEmailService
 
         // Người gửi
         email.Sender = MailboxAddress.Parse(_config["MailSettings:Mail"]);
-        email.From.Add(new MailboxAddress("Nhà Hàng DoAn", _config["MailSettings:Mail"]));
+        email.From.Add(new MailboxAddress("Nhà Hàng Viet Restaurant", _config["MailSettings:Mail"]));
 
         // Người nhận
         email.To.Add(MailboxAddress.Parse(toEmail));
@@ -51,7 +50,6 @@ public class SendGridEmailService : IEmailService
         }
         catch (Exception ex)
         {
-            // In lỗi đỏ lòm ra console để bạn biết nếu sai mật khẩu
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"❌ LỖI GỬI MAIL: {ex.Message}");
             Console.ResetColor();
@@ -64,73 +62,143 @@ public class SendGridEmailService : IEmailService
     }
 
     // ========================================================================
-    // CÁC HÀM NGHIỆP VỤ (GỌI LẠI HÀM Ở TRÊN)
+    // CÁC HÀM NGHIỆP VỤ (GỌI LẠI HÀM Ở TRÊN) - ĐÃ CẬP NHẬT HTML
     // ========================================================================
 
-    // 1. Gửi xác nhận đặt bàn
+    // 1. Gửi xác nhận đặt bàn (Đã cập nhật HTML)
     public async Task SendBookingConfirmationEmailAsync(string toEmail, string hoTen, string maDonHang, string tenBan, DateTime thoiGianDat, int soNguoi, string? ghiChu)
     {
         string content = $@"
-            <h3>Xác nhận đặt bàn thành công</h3>
-            <p>Xin chào <b>{hoTen}</b>,</p>
-            <p>Cảm ơn bạn đã đặt bàn. Mã đơn: <b>{maDonHang}</b></p>
-            <p>Bàn: {tenBan} - {soNguoi} người.</p>
-            <p>Thời gian: {thoiGianDat:HH:mm dd/MM/yyyy}</p>
-            <p>Ghi chú: {ghiChu ?? "Không"}</p>
-            <p>Hẹn gặp lại quý khách!</p>";
+        <html>
+        <body style='font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;'>
+            <div style='max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); overflow: hidden;'>
+                <div style='background-color: #A30000; color: white; padding: 20px; text-align: center;'>
+                    <h2 style='margin: 0;'>✅ XÁC NHẬN ĐẶT BÀN THÀNH CÔNG</h2>
+                </div>
+                <div style='padding: 30px; color: #333;'>
+                    <p>Xin chào <b>{hoTen}</b>,</p>
+                    <p>Đơn đặt bàn của bạn tại Nhà Hàng Viet Restaurant đã được xác nhận. Vui lòng có mặt đúng giờ để trải nghiệm dịch vụ tốt nhất!</p>
+                    
+                    <div style='border: 1px dashed #A30000; padding: 15px; margin: 25px 0; border-radius: 4px; background-color: #fff9f9;'>
+                        <p style='margin: 5px 0;'><strong>Mã đơn hàng:</strong> <span style='color: #A30000; font-weight: bold;'>#{maDonHang}</span></p>
+                        <p style='margin: 5px 0;'><strong>Thời gian:</strong> <span style='color: #007000; font-weight: bold;'>{thoiGianDat:HH:mm}</span>, Ngày <span style='color: #007000; font-weight: bold;'>{thoiGianDat:dd/MM/yyyy}</span></p>
+                        <p style='margin: 5px 0;'><strong>Số lượng:</strong> {soNguoi} người</p>
+                        <p style='margin: 5px 0;'><strong>Thông tin bàn:</strong> {tenBan}</p>
+                        <p style='margin: 5px 0;'><strong>Ghi chú:</strong> {ghiChu ?? "Không"}</p>
+                    </div>
+
+                    <p>Rất mong được phục vụ quý khách!</p>
+                    <p style='font-size: 12px; color: #666; margin-top: 30px;'>Đây là email tự động. Vui lòng không trả lời.</p>
+                </div>
+            </div>
+        </body>
+        </html>";
 
         await SendEmailViaGmailAsync(toEmail, $"[Xác nhận] Đơn đặt bàn #{maDonHang}", content);
     }
 
-    // 2. Gửi thông báo Hủy
+    // 2. Gửi thông báo Hủy (Đã cập nhật HTML)
     public async Task SendCancellationEmailAsync(string toEmail, string hoTen, string maDonHang, string tenBan, DateTime thoiGianAn, decimal tienCoc, bool duocHoanTien)
     {
         string noteTien = "";
         if (tienCoc > 0)
         {
             noteTien = duocHoanTien
-                ? $"<p style='color:green'>Bạn được hoàn lại cọc: {tienCoc:N0}đ</p>"
-                : $"<p style='color:red'>Bạn KHÔNG được hoàn cọc: {tienCoc:N0}đ (Do hủy sát giờ)</p>";
+                ? $"<p style='color:#007000; font-weight:bold;'>Bạn được hoàn lại cọc: {tienCoc:N0}đ (Chúng tôi sẽ xử lý hoàn tiền trong vòng 3-5 ngày làm việc).</p>"
+                : $"<p style='color:#A30000; font-weight:bold;'>Bạn KHÔNG được hoàn cọc: {tienCoc:N0}đ (Do hủy quá sát giờ hẹn).</p>";
         }
 
         string content = $@"
-            <h3>Thông báo Hủy Đặt Bàn</h3>
-            <p>Đơn hàng <b>{maDonHang}</b> đã được hủy thành công.</p>
-            {noteTien}
-            <p>Cảm ơn bạn.</p>";
+        <html>
+        <body style='font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;'>
+            <div style='max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); overflow: hidden;'>
+                <div style='background-color: #FFB74D; color: #333; padding: 20px; text-align: center;'>
+                    <h2 style='margin: 0;'>🚫 THÔNG BÁO HỦY ĐẶT BÀN</h2>
+                </div>
+                <div style='padding: 30px; color: #333;'>
+                    <p>Xin chào <b>{hoTen}</b>,</p>
+                    <p>Chúng tôi xác nhận đơn đặt bàn mã **#{maDonHang}** của bạn vào lúc **{thoiGianAn:HH:mm dd/MM/yyyy}** đã được **Hủy thành công**.</p>
+                    
+                    <div style='background-color: #ffeee8; padding: 15px; margin: 25px 0; border-radius: 4px; border-left: 5px solid #A30000;'>
+                        <p style='margin: 5px 0; font-size: 14px;'>Đơn bàn: {tenBan}</p>
+                        {noteTien}
+                    </div>
+
+                    <p>Cảm ơn bạn đã thông báo sớm cho Nhà hàng để chúng tôi có thể phục vụ khách hàng khác.</p>
+                    <p style='font-size: 12px; color: #666; margin-top: 30px;'>Đây là email tự động. Vui lòng không trả lời.</p>
+                </div>
+            </div>
+        </body>
+        </html>";
 
         await SendEmailViaGmailAsync(toEmail, $"[Đã Hủy] Đơn bàn #{maDonHang}", content);
     }
 
-    // 3. Gửi nhắc nhở
+    // 3. Gửi nhắc nhở (Đã cập nhật HTML)
     public async Task SendReminderEmailAsync(string toEmail, string hoTen, DateTime thoiGianAn, string linkXacNhan, string linkHuy)
     {
         string content = $@"
-            <h3>Nhắc nhở lịch hẹn</h3>
-            <p>Bạn có lịch ăn lúc <b>{thoiGianAn:HH:mm}</b> hôm nay.</p>
-            <p>Vui lòng đến đúng giờ.</p>
-            <br/>
-            <a href='{linkHuy}' style='color:red; font-weight:bold;'>BẤM VÀO ĐÂY ĐỂ HỦY NẾU BẬN</a>";
+        <html>
+        <body style='font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;'>
+            <div style='max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); overflow: hidden;'>
+                <div style='background-color: #007000; color: white; padding: 20px; text-align: center;'>
+                    <h2 style='margin: 0;'>⏰ NHẮC NHỞ LỊCH HẸN</h2>
+                </div>
+                <div style='padding: 30px; color: #333;'>
+                    <p>Xin chào <b>{hoTen}</b>,</p>
+                    <p>Bạn có lịch đặt bàn tại Nhà hàng của chúng tôi vào **Hôm nay** lúc:</p>
+                    
+                    <div style='text-align: center; background-color: #e6ffe6; padding: 20px; margin: 25px 0; border: 1px solid #007000; border-radius: 4px;'>
+                        <p style='font-size: 24px; color: #007000; font-weight: bold; margin: 0;'>{thoiGianAn:HH:mm}</p>
+                        <p style='margin: 5px 0;'>Ngày: {thoiGianAn:dd/MM/yyyy}</p>
+                    </div>
+
+                    <p>Vui lòng đến **đúng giờ** để bàn của bạn không bị chuyển cho khách vãng lai.</p>
+                    <br/>
+                    <div style='text-align: center;'>
+                        <a href='{linkHuy}' style='color: white; background-color: #A30000; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;'>
+                            BẤM VÀO ĐÂY ĐỂ HỦY NẾU KHÔNG THỂ ĐẾN
+                        </a>
+                    </div>
+                    <p style='font-size: 12px; color: #666; margin-top: 30px;'>Nếu bạn đã đến, vui lòng bỏ qua email này.</p>
+                </div>
+            </div>
+        </body>
+        </html>";
 
         await SendEmailViaGmailAsync(toEmail, $"⏰ Nhắc lịch hẹn lúc {thoiGianAn:HH:mm}", content);
     }
 
-    // 4. GỬI MÃ OTP (QUAN TRỌNG)
+    // 4. GỬI MÃ OTP (Đã cập nhật HTML)
     public async Task SendOtpEmailAsync(string toEmail, string hoTen, string otpCode)
     {
         string content = $@"
-            <div style='font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; max-width: 500px;'>
-                <h2 style='color: #007bff;'>Mã xác thực OTP</h2>
-                <p>Xin chào <b>{hoTen}</b>,</p>
-                <p>Mã OTP của bạn là:</p>
-                <h1 style='background-color: #f8f9fa; padding: 10px; text-align: center; letter-spacing: 5px; border-radius: 5px;'>{otpCode}</h1>
-                <p style='color: red; font-size: 12px;'>Mã này có hiệu lực trong 5 phút. Tuyệt đối không chia sẻ cho ai.</p>
-                <p>Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này.</p>
-            </div>";
+        <html>
+        <body style='font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;'>
+            <div style='max-width: 500px; margin: 30px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); overflow: hidden;'>
+                <div style='background-color: #1a73e8; color: white; padding: 15px; text-align: center;'>
+                    <h2 style='margin: 0;'>MÃ XÁC THỰC TÀI KHOẢN (OTP)</h2>
+                </div>
+                <div style='padding: 30px; text-align: center; color: #333;'>
+                    <p>Xin chào <b>{hoTen}</b>,</p>
+                    <p>Vui lòng sử dụng mã dưới đây để xác thực đăng nhập/đăng ký:</p>
+                    
+                    <div style='background-color: #e8f0fe; padding: 20px; margin: 20px auto; border-radius: 6px; border: 1px solid #c5daff; max-width: 250px;'>
+                        <h1 style='color: #1a73e8; font-size: 32px; letter-spacing: 5px; margin: 0;'>{otpCode}</h1>
+                    </div>
+                    
+                    <p style='color: #A30000; font-size: 14px; font-weight: bold;'>Mã này chỉ có hiệu lực trong 5 phút. Vui lòng nhập ngay lập tức.</p>
+                    <p style='font-size: 12px; color: #666; margin-top: 20px;'>Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email.</p>
+                </div>
+            </div>
+        </body>
+        </html>";
 
         await SendEmailViaGmailAsync(toEmail, "Mã OTP Xác Thực", content);
     }
 
+
+    // 5. Các hàm HTML thông báo (Giữ nguyên phong cách cũ nhưng đã cải tiến một chút)
 
     public string GetHtml_XacNhanHuy(string maDonHang, string linkXacNhan)
     {
@@ -142,9 +210,9 @@ public class SendGridEmailService : IEmailService
                     <style>
                         body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding-top: 50px; background-color: #f9f9f9; }}
                         .container {{ background: white; max-width: 500px; margin: 0 auto; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }}
-                        h2 {{ color: #d32f2f; margin-bottom: 20px; }}
-                        .btn {{ background-color: #d32f2f; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; display: inline-block; margin-top: 20px; }}
-                        .btn:hover {{ background-color: #b71c1c; }}
+                        h2 {{ color: #A30000; margin-bottom: 20px; }} /* Đổi màu đỏ */
+                        .btn {{ background-color: #A30000; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; display: inline-block; margin-top: 20px; }}
+                        .btn:hover {{ background-color: #800000; }}
                         .link-secondary {{ display: block; margin-top: 20px; color: #666; text-decoration: none; }}
                     </style>
                 </head>
@@ -172,7 +240,7 @@ public class SendGridEmailService : IEmailService
                     <style>
                         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding-top: 50px; background-color: #f9f9f9; }
                         .container { background: white; max-width: 500px; margin: 0 auto; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-                        h1 { color: #2e7d32; margin-bottom: 10px; }
+                        h1 { color: #007000; margin-bottom: 10px; } /* Đổi màu xanh lá */
                         p { font-size: 18px; color: #333; }
                     </style>
                 </head>
@@ -196,7 +264,7 @@ public class SendGridEmailService : IEmailService
                     <style>
                         body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding-top: 50px; background-color: #f9f9f9; }}
                         .container {{ background: white; max-width: 500px; margin: 0 auto; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }}
-                        h1 {{ color: #c62828; margin-bottom: 10px; }}
+                        h1 {{ color: #A30000; margin-bottom: 10px; }} /* Đổi màu đỏ đậm */
                         p {{ font-size: 16px; color: #555; }}
                     </style>
                 </head>
@@ -210,7 +278,6 @@ public class SendGridEmailService : IEmailService
                 </html>";
     }
 }
-
 
 
 
