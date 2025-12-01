@@ -8,6 +8,7 @@ using QuanLyNhaHang.Models.DTO;
 using QuanLyNhaHang.Services;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -31,7 +32,6 @@ namespace QuanLyNhaHang.Controllers
             public string Password { get; set; }
         }
 
-
         [HttpGet("TimKiemKhachHang/{soDienThoai}")]
         public async Task<IActionResult> TimKiemKhachHang(string soDienThoai)
         {
@@ -48,31 +48,43 @@ namespace QuanLyNhaHang.Controllers
 
                 if (khachHang != null)
                 {
-                    // 2. Logic kiểm tra khuyến mãi (Ví dụ: Ăn trên 10 lần được giảm giá)
-                    bool duocGiamGia = (khachHang.SoLanAnTichLuy) >= 10;
-                    string msg = duocGiamGia
-                        ? $"Khách VIP ({khachHang.SoLanAnTichLuy} lần ăn) - Được giảm 10%"
-                        : $"Khách thân thiết ({khachHang.SoLanAnTichLuy} lần ăn)";
+                    // 2. LOGIC TÍNH SỐ LẦN ĂN TÍCH LŨY MỚI
+                    // Đếm số đơn hàng hoàn thành KỂ TỪ SAU lần tích lũy cuối cùng
 
-                    // 3. Trả về thông tin tìm thấy
+                    var ngayMoc = khachHang.NgayCuoiCungTichLuy ?? DateTime.MinValue; // Nếu null thì lấy từ đầu
+
+                    int soLanAnTichLuyHienTai = await _context.DonHangs
+                        .Where(dh => dh.MaKhachHang == khachHang.MaKhachHang &&
+                                     dh.MaTrangThaiDonHang == "DA_HOAN_THANH" &&
+                                     dh.ThoiGianKetThuc > ngayMoc) // Chỉ đếm những đơn sau mốc reset
+                        .CountAsync();
+
+                    // 3. Kiểm tra khuyến mãi (Ví dụ: Ăn đủ 10 lần được giảm giá)
+                    bool duocGiamGia = soLanAnTichLuyHienTai >= 10;
+
+                    string msg = duocGiamGia
+                        ? $"Khách VIP (Đã tích {soLanAnTichLuyHienTai} lần) - Được giảm 10% đơn này!"
+                        : $"Khách thân thiết (Tích lũy: {soLanAnTichLuyHienTai}/10 lần)";
+
+                    // 4. Trả về thông tin
                     return Ok(new
                     {
                         found = true,
                         maKhachHang = khachHang.MaKhachHang,
                         tenKhach = khachHang.HoTen,
                         email = khachHang.Email,
-                        soLanAn = khachHang.SoLanAnTichLuy,
+                        soLanAn = soLanAnTichLuyHienTai, // Trả về số lần tính toán được
                         duocGiamGia = duocGiamGia,
                         message = msg
                     });
                 }
                 else
                 {
-                    // 4. Không tìm thấy
+                    // 5. Không tìm thấy khách
                     return Ok(new
                     {
                         found = false,
-                        message = "Khách hàng mới (Chưa có lịch sử tích lũy)"
+                        message = "Khách hàng mới (Chưa có trong hệ thống)"
                     });
                 }
             }
@@ -90,16 +102,9 @@ namespace QuanLyNhaHang.Controllers
             {
                 try
                 {
-                    // BƯỚC 2: GIẢ LẬP NHÂN VIÊN ĐANG THAO TÁC
-                    // Khi chưa có Token, biến User sẽ rỗng. Ta phải gán cứng mã nhân viên để test.
-                    // SAU NÀY CÓ LOGIN: Comment dòng dưới, mở comment dòng User.FindFirst...
-
-                   // string maNhanVienHienTai = "NV001"; // <--- Gán cứng mã của bạn để test (Đảm bảo NV001 có trong DB)
-                    // string maNhanVienHienTai = User.FindFirst("MaNhanVien")?.Value; // <--- Code chuẩn sau này
-
+                    // BƯỚC 1: LẤY THÔNG TIN NHÂN VIÊN TỪ TOKEN
+                    // -----------------------------------------------------------
                     string maNhanVienHienTai = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                    // Phòng hờ: Nếu cấu hình Identity không tự map, thì tìm trực tiếp chữ "sub"
                     if (string.IsNullOrEmpty(maNhanVienHienTai))
                     {
                         maNhanVienHienTai = User.FindFirst("sub")?.Value;
@@ -107,12 +112,13 @@ namespace QuanLyNhaHang.Controllers
 
                     if (string.IsNullOrEmpty(maNhanVienHienTai))
                     {
+                        // Mở dòng này nếu muốn test nhanh mà không cần login (Chỉ dùng khi Dev)
+                        // maNhanVienHienTai = "NV001"; 
                         return Unauthorized("Lỗi xác thực: Không tìm thấy mã nhân viên trong Token.");
                     }
 
-
                     // -----------------------------------------------------------
-                    // LOGIC 1: XỬ LÝ THÔNG TIN KHÁCH HÀNG (Nhập tay từ Web)
+                    // BƯỚC 2: XỬ LÝ THÔNG TIN KHÁCH HÀNG
                     // -----------------------------------------------------------
                     KhachHang khachHang = null;
 
@@ -121,12 +127,10 @@ namespace QuanLyNhaHang.Controllers
 
                     if (khachCu != null)
                     {
-                        // Case A: Khách cũ -> Dùng lại
                         khachHang = khachCu;
                     }
                     else
                     {
-                        // Case B: Khách mới hoặc Vãng lai
                         if (string.IsNullOrEmpty(donHangDto.SoDienThoaiKhach))
                         {
                             // Không nhập SĐT -> Gán khách vãng lai
@@ -134,56 +138,67 @@ namespace QuanLyNhaHang.Controllers
                         }
                         else
                         {
-                            // Có SĐT nhưng chưa có trong DB -> Tạo khách mới ngay lập tức
+                            // Có SĐT nhưng chưa có trong DB -> Tạo khách mới
                             khachHang = new KhachHang
                             {
-                                // Sinh mã KH tự động (Ví dụ: KH + Ticks)
                                 MaKhachHang = "KH" + DateTime.Now.Ticks.ToString().Substring(12),
                                 HoTen = donHangDto.HoTenKhach,
                                 SoDienThoai = donHangDto.SoDienThoaiKhach,
                                 Email = donHangDto.Email,
-                                SoLanAnTichLuy = 0,
+                                // SỬA: Thay SoLanAnTichLuy bằng NgayCuoiCungTichLuy (null cho khách mới)
+                                NgayCuoiCungTichLuy = null,
                                 NgayTao = DateTime.Now,
                                 NoShowCount = 0
                             };
                             _context.KhachHangs.Add(khachHang);
-                            await _context.SaveChangesAsync(); // Lưu ngay để lấy ID dùng bên dưới
+                            await _context.SaveChangesAsync();
                         }
                     }
 
                     // -----------------------------------------------------------
-                    // LOGIC 2: TẠO ĐƠN HÀNG
+                    // BƯỚC 3: TẠO ĐƠN HÀNG
                     // -----------------------------------------------------------
                     var donHang = new DonHang
                     {
                         MaDonHang = "DH" + DateTime.Now.ToString("yyyyMMddHHmmss"),
-                        MaNhanVien = maNhanVienHienTai, // Lưu vết nhân viên nào tạo đơn
+                        MaNhanVien = maNhanVienHienTai,
                         MaKhachHang = khachHang.MaKhachHang,
-
-                        // Xử lý ngày giờ (Parse từ chuỗi React gửi lên)
                         ThoiGianDatHang = DateTime.Now,
-                        //TGNhanBan = DateTime.Parse(donHangDto.ThoiGianDatHang),
                         TGNhanBan = donHangDto.ThoiGianDatHang,
-                        MaTrangThaiDonHang = "CHO_XAC_NHAN", // Hoặc DA_XAC_NHAN tùy quy trình
+                        MaTrangThaiDonHang = "CHO_XAC_NHAN",
                         SoLuongNguoiDK = donHangDto.SoLuongNguoi,
                         GhiChu = "Đặt tại quầy/Web Admin",
                         ThanhToan = false
                     };
 
                     // -----------------------------------------------------------
-                    // LOGIC 3: TỰ ĐỘNG TÍNH KHUYẾN MÃI TÍCH LŨY (Ăn 10 lần giảm 10%)
+                    // BƯỚC 4: TÍNH KHUYẾN MÃI TÍCH LŨY (LOGIC MỚI)
                     // -----------------------------------------------------------
                     bool duocGiamGia = false;
 
-                    // Chỉ áp dụng nếu không phải khách vãng lai
-                    if (khachHang.MaKhachHang != "KH_VANG_LAI" && khachHang.SoLanAnTichLuy >= 10)
+                    if (khachHang.MaKhachHang != "KH_VANG_LAI")
                     {
-                        donHang.MaKhuyenMai = "KM_TICHLUY_VIP"; // Gán mã giảm giá
-                        duocGiamGia = true;
+                        // 1. Xác định mốc thời gian bắt đầu tính điểm (nếu null thì tính từ đầu)
+                        DateTime ngayMoc = khachHang.NgayCuoiCungTichLuy ?? DateTime.MinValue;
+
+                        // 2. Đếm số đơn hàng đã hoàn thành SAU ngày mốc đó
+                        int soLanAnHienTai = await _context.DonHangs
+                            .Where(dh => dh.MaKhachHang == khachHang.MaKhachHang &&
+                                         dh.MaTrangThaiDonHang == "DA_HOAN_THANH" &&
+                                         dh.ThoiGianKetThuc > ngayMoc)
+                            .CountAsync();
+
+                        // 3. Kiểm tra điều kiện (>= 10 lần)
+                        if (soLanAnHienTai >= 10)
+                        {
+                            donHang.MaKhuyenMai = "KM_TICHLUY_VIP"; // Gán mã giảm giá
+                            duocGiamGia = true;
+                            // Lưu ý: Cột NgayCuoiCungTichLuy chỉ được cập nhật khi Đơn này HOÀN TẤT thanh toán
+                        }
                     }
 
                     // -----------------------------------------------------------
-                    // LOGIC 4: LƯU BÀN ĂN (Quan hệ nhiều nhiều)
+                    // BƯỚC 5: LƯU BÀN ĂN (Quan hệ BanAnDonHang)
                     // -----------------------------------------------------------
                     if (donHangDto.DanhSachMaBan != null && donHangDto.DanhSachMaBan.Count > 0)
                     {
@@ -192,8 +207,10 @@ namespace QuanLyNhaHang.Controllers
                             var banAnDonHang = new BanAnDonHang
                             {
                                 MaBanAnDonHang = Guid.NewGuid().ToString().Substring(0, 8),
+                                // SỬA: Cột MaDonHang ĐÃ CÓ lại trong DB mới (bạn vừa Insert ok), nên code này đúng
                                 MaDonHang = donHang.MaDonHang,
-                                MaBan = maBan
+                                MaBan = maBan,
+                                MaChiTietDonHang = null // Chưa có món ăn nào gán cho bàn này
                             };
                             _context.BanAnDonHangs.Add(banAnDonHang);
 
@@ -219,11 +236,10 @@ namespace QuanLyNhaHang.Controllers
                 catch (Exception ex)
                 {
                     transaction.Rollback();
-                    return StatusCode(500, new { Message = "Lỗi Server: " + ex.Message });
+                    return StatusCode(500, new { Message = "Lỗi Server: " + ex.Message, Details = ex.InnerException?.Message });
                 }
             }
         }
-
 
 
         [HttpPost("TaoDatBan")]
@@ -233,7 +249,7 @@ namespace QuanLyNhaHang.Controllers
 
             try
             {
-                // =================================================================
+                // ===============================================================git ==
                 // BƯỚC 1: KIỂM TRA DANH SÁCH BÀN & SỨC CHỨA
                 // =================================================================
 

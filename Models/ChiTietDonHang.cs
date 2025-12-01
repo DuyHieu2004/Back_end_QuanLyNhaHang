@@ -5,7 +5,9 @@ namespace QuanLyNhaHang.Models;
 
 public partial class ChiTietDonHang
 {
-    public long MaChiTietDonHang { get; set; }
+    public string MaChiTietDonHang { get; set; } = null!;
+
+    public string MaDonHang { get; set; } = null!;
 
     public string MaPhienBan { get; set; } = null!;
 
@@ -13,11 +15,11 @@ public partial class ChiTietDonHang
 
     public int SoLuong { get; set; }
 
-    public string? MaBanAnDonHang { get; set; }
-
-    public virtual BanAnDonHang? MaBanAnDonHangNavigation { get; set; }
+    public virtual ICollection<BanAnDonHang> BanAnDonHangs { get; set; } = new List<BanAnDonHang>();
 
     public virtual CongThucNauAn MaCongThucNavigation { get; set; } = null!;
+
+    public virtual DonHang MaDonHangNavigation { get; set; } = null!;
 
     public virtual PhienBanMonAn MaPhienBanNavigation { get; set; } = null!;
 }

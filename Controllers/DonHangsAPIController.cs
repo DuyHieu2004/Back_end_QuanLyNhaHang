@@ -23,73 +23,93 @@ namespace QuanLyNhaHang.Controllers
             _context = context;
         }
 
-
         public class ThemMonVaoBanRequest
         {
             public string MaDonHang { get; set; }
-            public string MaBan { get; set; }
+            public string MaBan { get; set; } // Món này được gọi cho bàn nào
             public List<MonAnOrderDTO> Items { get; set; }
         }
 
         public class MonAnOrderDTO
         {
-            public string MaMonAn { get; set; } // Để tham khảo
-            public string MaPhienBan { get; set; } // Kích thước (Nhỏ/Lớn...)
+            public string MaMonAn { get; set; }
+            public string MaPhienBan { get; set; }
             public int SoLuong { get; set; }
             public string GhiChu { get; set; }
         }
 
+        // =============================================================
+        // API: THÊM MÓN (SỬA LẠI LOGIC: TẠO CHI TIẾT -> GÁN BÀN)
+        // =============================================================
         [HttpPost("ThemMonVaoBan")]
         public async Task<IActionResult> ThemMonVaoBan([FromBody] ThemMonVaoBanRequest request)
         {
-            // 1. Tìm liên kết giữa Bàn và Đơn Hàng
-            var lienKetBanDon = await _context.BanAnDonHangs
-                .FirstOrDefaultAsync(x => x.MaDonHang == request.MaDonHang && x.MaBan == request.MaBan);
+            // Kiểm tra đơn hàng có tồn tại không
+            var donHang = await _context.DonHangs.FindAsync(request.MaDonHang);
+            if (donHang == null) return NotFound(new { message = "Không tìm thấy đơn hàng" });
 
-            if (lienKetBanDon == null)
+            // Kiểm tra bàn có tồn tại không
+            var banAn = await _context.BanAns.FindAsync(request.MaBan);
+            if (banAn == null) return NotFound(new { message = "Không tìm thấy bàn ăn" });
+
+            try
             {
-                return BadRequest(new { message = "Bàn này không thuộc đơn hàng này (hoặc chưa được ghép vào đơn)." });
-            }
-
-            foreach (var item in request.Items)
-            {
-                var congThuc = await _context.CongThucNauAns
-                    .Include(ct => ct.MaCtNavigation) // Phải Join bảng cha để check món
-                    .FirstOrDefaultAsync(ct =>
-                        ct.MaPhienBan == item.MaPhienBan &&
-                        ct.MaCtNavigation.MaMonAn == item.MaMonAn // <-- QUAN TRỌNG NHẤT LÀ DÒNG NÀY
-                    );
-
-                if (congThuc == null)
+                foreach (var item in request.Items)
                 {
-                    return BadRequest(new
+                    // 1. Tìm công thức
+                    var congThuc = await _context.CongThucNauAns
+                        .Include(ct => ct.MaCtNavigation)
+                        .FirstOrDefaultAsync(ct =>
+                            ct.MaPhienBan == item.MaPhienBan &&
+                            ct.MaCtNavigation.MaMonAn == item.MaMonAn
+                        );
+
+                    if (congThuc == null)
                     {
-                        message = $"Không tìm thấy công thức nấu ăn cho phiên bản món ăn: {item.MaPhienBan}. Kiểm tra lại bảng CongThucNauAn."
-                    });
+                        return BadRequest(new { message = $"Không tìm thấy món: {item.MaMonAn} - {item.MaPhienBan}" });
+                    }
+
+                    // 2. Tạo Chi Tiết Đơn Hàng (Liên kết với DonHang)
+                    var maChiTietMoi = "CTDH" + DateTime.Now.Ticks.ToString().Substring(10) + new Random().Next(100, 999); // Sinh ID tạm
+
+                    var chiTietMoi = new ChiTietDonHang
+                    {
+                        MaChiTietDonHang = maChiTietMoi,
+                        MaDonHang = request.MaDonHang,
+                        MaPhienBan = item.MaPhienBan,
+                        MaCongThuc = congThuc.MaCongThuc,
+                        SoLuong = item.SoLuong
+                    };
+                    _context.ChiTietDonHangs.Add(chiTietMoi);
+
+                    // Lưu ChiTietDonHang trước để có ID (nếu DB tự tăng thì cần SaveChanges ở đây, nhưng bạn dùng varchar nên add luôn được)
+
+                    // 3. Tạo BanAnDonHang (Liên kết ChiTietDonHang với BanAn)
+                    // Vì theo Diagram: BanAnDonHang nối với ChiTietDonHang
+                    var banAnDonHang = new BanAnDonHang
+                    {
+                        MaBanAnDonHang = "BADH" + DateTime.Now.Ticks.ToString().Substring(10) + new Random().Next(100, 999),
+                        MaBan = request.MaBan,
+                        MaChiTietDonHang = maChiTietMoi,
+                        // Lưu ý: Trong Diagram bạn gửi, BanAnDonHang KHÔNG có MaDonHang
+                        // Nó chỉ nối ChiTietDonHang <-> BanAn
+                    };
+                    _context.BanAnDonHangs.Add(banAnDonHang);
                 }
 
-                var chiTietMoi = new ChiTietDonHang
-                {
-                   
-                    MaPhienBan = item.MaPhienBan,
-                    MaCongThuc = congThuc.MaCongThuc,
-                    SoLuong = item.SoLuong,
-                    // GhiChu =  item.GhiChu, // Nên gán ghi chú nếu có
-
-                    MaBanAnDonHang = lienKetBanDon.MaBanAnDonHang,
-
-                    // ✅ [QUAN TRỌNG] ĐÃ THÊM DÒNG NÀY ĐỂ SỬA LỖI 500
-                    //MaDonHang = request.MaDonHang
-                };
-
-                _context.ChiTietDonHangs.Add(chiTietMoi);
                 await _context.SaveChangesAsync();
+                return Ok(new { message = "Thêm món thành công" });
             }
-
-            await _context.SaveChangesAsync();
-            return Ok(new { message = "Thêm món thành công" });
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi server: " + ex.Message });
+            }
         }
 
+        // =============================================================
+        // HÀM HELPER: CHUYỂN ĐỔI DỮ LIỆU (ĐI THEO ĐƯỜNG DẪN MỚI)
+        // Đường dẫn: DonHang -> ChiTietDonHangs -> BanAnDonHangs -> MaBanNavigation
+        // =============================================================
         private IQueryable<object> ProjectOrderToDTO(IQueryable<DonHang> query)
         {
             return query.Select(dh => new
@@ -114,17 +134,21 @@ namespace QuanLyNhaHang.Controllers
                 soDienThoaiKhach = dh.MaKhachHangNavigation.SoDienThoai,
                 emailKhachHang = dh.MaKhachHangNavigation.Email,
                 tenNhanVien = dh.MaNhanVienNavigation.HoTen,
-                danhSachBan = dh.BanAnDonHangs.Any()
-                    ? string.Join(", ", dh.BanAnDonHangs.Select(badh => badh.MaBanNavigation.TenBan))
-                    : null,
-                tongTien = dh.BanAnDonHangs
-                     .SelectMany(b => b.ChiTietDonHangs)
-                     .Sum(ct => ct.SoLuong * ct.MaCongThucNavigation.Gia)
+
+                // LẤY DANH SÁCH BÀN: Phải đi từ ChiTietDonHangs -> BanAnDonHangs
+                danhSachBan = dh.ChiTietDonHangs
+                    .SelectMany(ct => ct.BanAnDonHangs)
+                    .Select(badh => badh.MaBanNavigation.TenBan)
+                    .Distinct() // Loại bỏ bàn trùng lặp
+                    .ToList(),
+
+                // TÍNH TỔNG TIỀN: Chỉ cần dựa vào ChiTietDonHang
+                tongTien = dh.ChiTietDonHangs
+                    .Sum(ct => ct.SoLuong * ct.MaCongThucNavigation.Gia)
             });
         }
 
-        // 1. API: Lấy tất cả đơn hàng (cho tab 'all')
-        // Route: GET /api/DonHangsAPI
+        // 1. API: Lấy tất cả đơn hàng
         [HttpGet]
         public async Task<IActionResult> GetOrders()
         {
@@ -132,108 +156,103 @@ namespace QuanLyNhaHang.Controllers
             {
                 var sixMonthsAgo = DateTime.Now.AddMonths(-6);
 
-                var orders = await _context.DonHangs
+                var ordersQuery = _context.DonHangs
                     .Include(dh => dh.MaTrangThaiDonHangNavigation)
                     .Include(dh => dh.MaKhachHangNavigation)
                     .Include(dh => dh.MaNhanVienNavigation)
-                    .Include(dh => dh.BanAnDonHangs)
-                        .ThenInclude(b => b.MaBanNavigation)
-                    .Where(dh => dh.ThoiGianKetThuc >= sixMonthsAgo ||
-                                 dh.ThoiGianKetThuc == null || // Bao gồm cả đơn chưa kết thúc
-                                 dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
-                                 dh.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
-                                 dh.MaTrangThaiDonHang == "CHO_THANH_TOAN" ||
-                                 dh.MaTrangThaiDonHang == "DA_HOAN_THANH" ||
-                                 dh.MaTrangThaiDonHang == "DA_HUY")
-                    .OrderByDescending(dh => dh.ThoiGianDatHang)
-                    .Select(dh => new
-                    {
-                        maDonHang = dh.MaDonHang,
-                        maNhanVien = dh.MaNhanVien,
-                        maKhachHang = dh.MaKhachHang,
-                        maTrangThaiDonHang = dh.MaTrangThaiDonHang,
-                        tenTrangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai,
-                        thoiGianDatHang = dh.ThoiGianDatHang,
-                        tgDatDuKien = dh.TgdatDuKien,
-                        tgNhanBan = dh.TGNhanBan,
-                        thanhToan = dh.ThanhToan,
-                        thoiGianKetThuc = dh.ThoiGianKetThuc,
-                        soLuongNguoiDK = dh.SoLuongNguoiDK,
-                        tienDatCoc = dh.TienDatCoc ?? 0,
-                        ghiChu = dh.GhiChu,
-                        tenNguoiNhan = dh.TenNguoiNhan,
-                        sdtNguoiNhan = dh.SdtnguoiNhan,
-                        emailNguoiNhan = dh.EmailNguoiNhan,
-                        hoTenKhachHang = dh.MaKhachHangNavigation.HoTen,
-                        soDienThoaiKhach = dh.MaKhachHangNavigation.SoDienThoai,
-                        emailKhachHang = dh.MaKhachHangNavigation.Email,
-                        tenNhanVien = dh.MaNhanVienNavigation.HoTen,
-                        danhSachBan = dh.BanAnDonHangs.Any()
-                            ? string.Join(", ", dh.BanAnDonHangs.Select(b => b.MaBanNavigation.TenBan))
-                            : null,
-                        tongTien = dh.BanAnDonHangs
-                 .SelectMany(b => b.ChiTietDonHangs)
-                 .Sum(ct => ct.SoLuong * ct.MaCongThucNavigation.Gia)
-                    })
-                    .ToListAsync();
+                    .Include(dh => dh.ChiTietDonHangs)
+                        .ThenInclude(ct => ct.BanAnDonHangs)
+                            .ThenInclude(badh => badh.MaBanNavigation)
+                    .Include(dh => dh.ChiTietDonHangs)
+                        .ThenInclude(ct => ct.MaCongThucNavigation)
 
-                return Ok(orders);
+                    .Where(dh => dh.ThoiGianKetThuc >= sixMonthsAgo ||
+                                 dh.ThoiGianKetThuc == null ||
+                                 dh.MaTrangThaiDonHang != "DA_HUY")
+                    .OrderByDescending(dh => dh.ThoiGianDatHang);
+
+                var result = await ordersQuery.Select(dh => new
+                {
+                    maDonHang = dh.MaDonHang,
+                    maNhanVien = dh.MaNhanVien,
+                    maKhachHang = dh.MaKhachHang,
+                    tenTrangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai,
+                    maTrangThaiDonHang = dh.MaTrangThaiDonHang,
+                    thoiGianDatHang = dh.ThoiGianDatHang,
+                    tgNhanBan = dh.TGNhanBan,
+                    thanhToan = dh.ThanhToan,
+                    soLuongNguoiDK = dh.SoLuongNguoiDK,
+
+                    // SỬA: Ưu tiên TenNguoiNhan (trong đơn), nếu ko có thì lấy HoTen (khách hàng)
+                    tenNguoiNhan = !string.IsNullOrEmpty(dh.TenNguoiNhan) ? dh.TenNguoiNhan : dh.MaKhachHangNavigation.HoTen,
+
+                    // SỬA: Ưu tiên SDT người nhận, nếu ko có lấy SDT khách hàng
+                    sdtNguoiNhan = !string.IsNullOrEmpty(dh.SdtnguoiNhan) ? dh.SdtnguoiNhan : dh.MaKhachHangNavigation.SoDienThoai,
+
+                    emailNguoiNhan = dh.EmailNguoiNhan,
+
+                    // Vẫn giữ field gốc để debug nếu cần
+                    hoTenKhachHangGoc = dh.MaKhachHangNavigation.HoTen,
+
+                    emailKhachHang = dh.MaKhachHangNavigation.Email,
+                    tenNhanVien = dh.MaNhanVienNavigation.HoTen,
+
+                    danhSachBan = string.Join(", ", dh.ChiTietDonHangs
+                                            .SelectMany(ct => ct.BanAnDonHangs)
+                                            .Select(b => b.MaBanNavigation.TenBan)
+                                            .Distinct()),
+                    tongTien = dh.ChiTietDonHangs.Sum(ct => ct.SoLuong * ct.MaCongThucNavigation.Gia)
+                }).ToListAsync();
+
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Lỗi GetOrders: {ex.Message}");
-                return StatusCode(500, new { message = "Lỗi server khi lấy danh sách đơn hàng", error = ex.Message });
+                return StatusCode(500, new { message = "Lỗi server", error = ex.Message });
             }
         }
 
-        // 2. API: Lấy đơn hàng theo trạng thái cụ thể (cho tab 'completed'/'cancelled')
-        // Route: GET /api/DonHangsAPI/status/{maTrangThai}
+        // 2. API: Lấy đơn hàng theo trạng thái
         [HttpGet("status/{maTrangThai}")]
         public async Task<IActionResult> GetOrdersByStatus([FromRoute] string maTrangThai)
         {
             try
             {
-                if (string.IsNullOrEmpty(maTrangThai))
-                {
-                    return BadRequest(new { message = "Cần cung cấp mã trạng thái đơn hàng." });
-                }
-
                 var statusUpper = maTrangThai.ToUpper();
-
-                // Kiểm tra trạng thái có tồn tại không
-                var statusExists = await _context.TrangThaiDonHangs
-                    .AnyAsync(s => s.MaTrangThai == statusUpper);
-
-                if (!statusExists)
-                {
-                    return BadRequest(new { message = $"Trạng thái '{maTrangThai}' không tồn tại" });
-                }
-
                 var ordersQuery = _context.DonHangs
                     .Include(dh => dh.MaTrangThaiDonHangNavigation)
-                    .Include(dh => dh.MaKhachHangNavigation)
-                    .Include(dh => dh.MaNhanVienNavigation)
-                    .Include(dh => dh.BanAnDonHangs).ThenInclude(badh => badh.MaBanNavigation)
-                    .Include(dh => dh.BanAnDonHangs)
-        .ThenInclude(badh => badh.ChiTietDonHangs)
-            .ThenInclude(ct => ct.MaCongThucNavigation)
+                    .Include(dh => dh.ChiTietDonHangs)
+                        .ThenInclude(ct => ct.BanAnDonHangs)
+                            .ThenInclude(badh => badh.MaBanNavigation)
                     .Where(dh => dh.MaTrangThaiDonHang == statusUpper)
                     .OrderByDescending(dh => dh.ThoiGianKetThuc ?? dh.ThoiGianDatHang);
 
-                var orders = await ProjectOrderToDTO(ordersQuery).ToListAsync();
+                var result = await ordersQuery.Select(dh => new
+                {
+                    maDonHang = dh.MaDonHang,
+                    maTrangThaiDonHang = dh.MaTrangThaiDonHang,
+                    tenTrangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai,
+                    thoiGianDatHang = dh.ThoiGianDatHang,
+                    tgNhanBan = dh.TGNhanBan,
+                    tenNguoiNhan = dh.TenNguoiNhan,
+                    sdtNguoiNhan = dh.SdtnguoiNhan,
+                    // Lấy bàn
+                    danhSachBan = string.Join(", ", dh.ChiTietDonHangs
+                                        .SelectMany(ct => ct.BanAnDonHangs)
+                                        .Select(b => b.MaBanNavigation.TenBan)
+                                        .Distinct()),
+                    tongTien = dh.ChiTietDonHangs.Sum(ct => ct.SoLuong * ct.MaCongThucNavigation.Gia)
+                }).ToListAsync();
 
-                return Ok(orders);
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Lỗi GetOrdersByStatus: {ex.Message}");
-                return StatusCode(500, new { message = "Lỗi server khi lấy đơn hàng", error = ex.Message });
+                return StatusCode(500, new { message = "Lỗi server", error = ex.Message });
             }
         }
 
-
-        // 3. API: Lấy thống kê đơn hàng (cho phần stats của OrdersManagement)
-        // Route: GET /api/DonHangsAPI/stats
+        // 3. API: Thống kê
         [HttpGet("stats")]
         public async Task<IActionResult> GetOrderStats()
         {
@@ -241,17 +260,14 @@ namespace QuanLyNhaHang.Controllers
             {
                 var today = DateTime.Today;
 
-                // Tính tổng doanh thu hôm nay - xử lý null an toàn
+                // Tính doanh thu: DonHang -> ChiTietDonHang (đơn giản hơn cấu trúc cũ)
                 var totalRevenueToday = await _context.DonHangs
-            .Where(dh => dh.MaTrangThaiDonHang == "DA_HOAN_THANH" &&
-                         dh.ThoiGianKetThuc.HasValue &&
-                         dh.ThoiGianKetThuc.Value.Date == today)
-            // Đi đường vòng: DonHang -> BanAnDonHang -> ChiTietDonHang
-            .SelectMany(dh => dh.BanAnDonHangs)
-            .SelectMany(badh => badh.ChiTietDonHangs)
-            .SumAsync(ct => ct.SoLuong * (ct.MaCongThucNavigation.Gia));
+                    .Where(dh => dh.MaTrangThaiDonHang == "DA_HOAN_THANH" &&
+                                 dh.ThoiGianKetThuc.HasValue &&
+                                 dh.ThoiGianKetThuc.Value.Date == today)
+                    .SelectMany(dh => dh.ChiTietDonHangs) // Truy cập trực tiếp Chi Tiết
+                    .SumAsync(ct => ct.SoLuong * (ct.MaCongThucNavigation.Gia));
 
-                // Đếm số đơn theo trạng thái
                 var statusCounts = await _context.DonHangs
                     .GroupBy(dh => dh.MaTrangThaiDonHang)
                     .Select(g => new { Status = g.Key, Count = g.Count() })
@@ -270,133 +286,118 @@ namespace QuanLyNhaHang.Controllers
             }
             catch (Exception ex)
             {
-                // Log lỗi để debug
-                Console.WriteLine($"Lỗi GetOrderStats: {ex.Message}");
-                return StatusCode(500, new { message = "Lỗi server khi lấy thống kê", error = ex.Message });
+                return StatusCode(500, new { message = "Lỗi server", error = ex.Message });
             }
         }
+
+        // 4. API: Lấy Booking đang active
         [HttpGet("GetActiveBookings")]
         public async Task<IActionResult> GetActiveBookings([FromQuery] DateTime? ngay)
         {
             DateTime filterDate = ngay?.Date ?? DateTime.Today;
-
-            // Danh sách các trạng thái muốn hiển thị
-            var activeStatuses = new[] { "CHO_XAC_NHAN", "DA_XAC_NHAN", "CHO_THANH_TOAN" };
+            var activeStatuses = new[] { "CHO_XAC_NHAN", "DA_XAC_NHAN", "CHO_THANH_TOAN", "DANG_PHUC_VU" };
 
             var bookings = await _context.DonHangs
-                .Include(dh => dh.BanAnDonHangs)
-                    .ThenInclude(badh => badh.MaBanNavigation)
                 .Include(dh => dh.MaTrangThaiDonHangNavigation)
-                .Where(dh =>
-                    // 1. Chỉ lấy các trạng thái Đang hoạt động (bao gồm cả Chờ xác nhận)
-                    activeStatuses.Contains(dh.MaTrangThaiDonHang)
+                .Include(dh => dh.MaKhachHangNavigation)
+                // Include để lấy Bàn
+                .Include(dh => dh.ChiTietDonHangs)
+                    .ThenInclude(ct => ct.BanAnDonHangs)
+                        .ThenInclude(badh => badh.MaBanNavigation)
+                .Where(dh => activeStatuses.Contains(dh.MaTrangThaiDonHang) &&
+                             dh.TGNhanBan.HasValue &&
+                             dh.TGNhanBan.Value.Date == filterDate)
+                .OrderBy(dh => dh.TGNhanBan)
+                .ToListAsync(); // Lấy về trước để xử lý Select phức tạp bên dưới
 
-                    // 2. VÀ Quan trọng nhất: Phải có giờ hẹn TRÙNG với ngày đang lọc
-                    && dh.TGNhanBan.HasValue
-                    && dh.TGNhanBan.Value.Date == filterDate
-                )
-                .OrderBy(dh => dh.TGNhanBan) // Sắp xếp từ sáng đến tối
-                .Select(dh => new
-                {
-                    maDonHang = dh.MaDonHang,
-                    tenNguoiNhan = dh.TenNguoiNhan ?? dh.MaKhachHangNavigation.HoTen,
-                    soNguoi = dh.SoLuongNguoiDK,
-                    thoiGianNhanBan = dh.TGNhanBan,
-                    trangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai,
-                    maTrangThai = dh.MaTrangThaiDonHang,
-                    listMaBan = dh.BanAnDonHangs.Select(b => b.MaBan).ToList(),
-                    banAn = dh.BanAnDonHangs.Select(b => b.MaBanNavigation.TenBan).ToList()
-                })
-                .ToListAsync();
+            var result = bookings.Select(dh => new
+            {
+                maDonHang = dh.MaDonHang,
+                tenNguoiNhan = dh.TenNguoiNhan ?? dh.MaKhachHangNavigation.HoTen,
+                soNguoi = dh.SoLuongNguoiDK,
+                thoiGianNhanBan = dh.TGNhanBan,
+                trangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai,
+                maTrangThai = dh.MaTrangThaiDonHang,
+                // Logic lấy Bàn: Gom từ tất cả chi tiết món ăn
+                listMaBan = dh.ChiTietDonHangs
+                              .SelectMany(ct => ct.BanAnDonHangs)
+                              .Select(b => b.MaBan)
+                              .Distinct().ToList(),
+                banAn = dh.ChiTietDonHangs
+                          .SelectMany(ct => ct.BanAnDonHangs)
+                          .Select(b => b.MaBanNavigation.TenBan)
+                          .Distinct().ToList()
+            });
 
-            return Ok(bookings);
+            return Ok(result);
         }
 
+        // 5. API: Chi tiết Booking (CỦA NHÂN VIÊN)
         [HttpGet("GetMyBookingDetail")]
         public async Task<IActionResult> GetMyBookingDetail(
-    [FromQuery] string? maDonHang,
-    [FromQuery] string? maBan,
-    [FromQuery] DateTime? dateTime)
+            [FromQuery] string? maDonHang,
+            [FromQuery] string? maBan,
+            [FromQuery] DateTime? dateTime)
         {
-            // 1. Xây dựng câu truy vấn
+            // Xây dựng query cơ sở
             var query = _context.DonHangs
-                // Lấy thông tin Khách và Trạng thái
                 .Include(dh => dh.MaKhachHangNavigation)
                 .Include(dh => dh.MaTrangThaiDonHangNavigation)
-
-                // Lấy danh sách Bàn và Món ăn nằm trong bàn đó
-                .Include(dh => dh.BanAnDonHangs)
-                    .ThenInclude(badh => badh.MaBanNavigation) // Lấy tên bàn
-
-                // Lấy Món ăn -> Phiên bản
-                .Include(dh => dh.BanAnDonHangs)
-                    .ThenInclude(badh => badh.ChiTietDonHangs)
-                        .ThenInclude(ct => ct.MaPhienBanNavigation)
-
-                // Lấy Món ăn -> Công thức -> Tên món -> Hình ảnh
-                .Include(dh => dh.BanAnDonHangs)
-                    .ThenInclude(badh => badh.ChiTietDonHangs)
-                        .ThenInclude(ct => ct.MaCongThucNavigation)
-                            .ThenInclude(ctnau => ctnau.MaCtNavigation)
-                                .ThenInclude(ctma => ctma.MaMonAnNavigation)
-                                    .ThenInclude(m => m.HinhAnhMonAns)
-
-                // Tối ưu hiệu suất
-                .AsSplitQuery()
-                .AsQueryable();
+                // Include sâu để lấy Bàn và Món
+                .Include(dh => dh.ChiTietDonHangs)
+                    .ThenInclude(ct => ct.BanAnDonHangs)
+                        .ThenInclude(badh => badh.MaBanNavigation)
+                .Include(dh => dh.ChiTietDonHangs)
+                    .ThenInclude(ct => ct.MaPhienBanNavigation)
+                .Include(dh => dh.ChiTietDonHangs)
+                    .ThenInclude(ct => ct.MaCongThucNavigation)
+                        .ThenInclude(ctnau => ctnau.MaCtNavigation)
+                            .ThenInclude(ctma => ctma.MaMonAnNavigation)
+                                .ThenInclude(m => m.HinhAnhMonAns)
+                .AsSplitQuery();
 
             DonHang? donHang = null;
 
-            // 2. Thực thi truy vấn
+            // Tìm theo Mã Đơn
             if (!string.IsNullOrEmpty(maDonHang))
             {
                 donHang = await query.FirstOrDefaultAsync(dh => dh.MaDonHang == maDonHang);
             }
+            // Tìm theo Mã Bàn (Phải check xem bàn đó có món nào trong đơn này không)
             else if (!string.IsNullOrEmpty(maBan) && dateTime != null)
             {
-                var gioBatDau = dateTime.Value;
-                donHang = await query.FirstOrDefaultAsync(dh =>
-                    // Logic tìm đơn hàng có chứa bàn này
-                    dh.BanAnDonHangs.Any(b => b.MaBan == maBan) &&
+                var gioCheck = dateTime.Value;
+                // Logic: Lấy các đơn hàng "active", sau đó lọc trong bộ nhớ hoặc query phức tạp
+                // Do cấu trúc Don -> ChiTiet -> BanAnDonHang, query ngược hơi khó
+                // Ta tìm các BanAnDonHang có MaBan = maBan, từ đó suy ra ChiTiet, suy ra DonHang
+                var relatedOrderIds = await _context.BanAnDonHangs
+                    .Where(b => b.MaBan == maBan)
+                    .Select(b => b.MaChiTietDonHangNavigation.MaDonHang)
+                    .Distinct()
+                    .ToListAsync();
 
+                // Lọc lại đơn hàng thỏa mãn thời gian và trạng thái
+                donHang = await query.FirstOrDefaultAsync(dh =>
+                    relatedOrderIds.Contains(dh.MaDonHang) &&
                     (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
                      dh.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
+                     dh.MaTrangThaiDonHang == "DANG_PHUC_VU" ||
                      dh.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
-
-                    (gioBatDau < dh.TGNhanBan.Value.AddMinutes(120)) &&
-                    (gioBatDau.AddMinutes(120) > dh.TGNhanBan.Value)
+                    (gioCheck < dh.TGNhanBan.Value.AddMinutes(120)) &&
+                    (gioCheck.AddMinutes(120) > dh.TGNhanBan.Value)
                 );
             }
-            else
-            {
-                return BadRequest(new { message = "Thiếu thông tin tìm kiếm." });
-            }
 
-            // 3. Kiểm tra kết quả
-            if (donHang == null)
-            {
-                return NotFound(new { message = "Không tìm thấy thông tin đặt bàn." });
-            }
+            if (donHang == null) return NotFound(new { message = "Không tìm thấy thông tin đặt bàn." });
 
-            // Lấy tên các bàn (để hiển thị chung)
-            string tenCacBan = donHang.BanAnDonHangs != null && donHang.BanAnDonHangs.Any()
-                ? string.Join(", ", donHang.BanAnDonHangs.Select(b => b.MaBanNavigation.TenBan))
-                : "Chưa xếp bàn";
+            // Lấy danh sách bàn
+            var tables = donHang.ChiTietDonHangs
+                .SelectMany(ct => ct.BanAnDonHangs)
+                .Select(b => b.MaBanNavigation.TenBan)
+                .Distinct();
 
-            // --- [LOGIC QUAN TRỌNG ĐÃ SỬA] ---
-            // Mặc định lấy tất cả món của đơn hàng
-            var danhSachMonCanHienThi = donHang.BanAnDonHangs.SelectMany(b => b.ChiTietDonHangs).ToList();
-
-            // NẾU CÓ MÃ BÀN -> CHỈ LỌC MÓN CỦA BÀN ĐÓ
-            if (!string.IsNullOrEmpty(maBan))
-            {
-                var lienKetCuaBanNay = donHang.BanAnDonHangs.FirstOrDefault(b => b.MaBan == maBan);
-                if (lienKetCuaBanNay != null)
-                {
-                    danhSachMonCanHienThi = lienKetCuaBanNay.ChiTietDonHangs.ToList();
-                }
-            }
-            // ---------------------------------
+            string tenCacBan = string.Join(", ", tables);
+            if (string.IsNullOrEmpty(tenCacBan)) tenCacBan = "Chưa xếp bàn";
 
             var result = new ChiTietDatBanDto
             {
@@ -412,40 +413,33 @@ namespace QuanLyNhaHang.Controllers
                 TenNguoiDat = donHang.TenNguoiNhan ?? donHang.MaKhachHangNavigation.HoTen,
                 SDTNguoiDat = donHang.SdtnguoiNhan ?? donHang.MaKhachHangNavigation.SoDienThoai,
 
-                // Map danh sách món ăn (đã được lọc ở trên)
-                MonAns = danhSachMonCanHienThi
-                    .Select(ct =>
+                MonAns = donHang.ChiTietDonHangs.Select(ct =>
+                {
+                    var congThuc = ct.MaCongThucNavigation;
+                    var monAn = congThuc?.MaCtNavigation?.MaMonAnNavigation;
+
+                    // Tìm bàn của món này (1 món có thể nhiều bàn, lấy bàn đầu hoặc join chuỗi)
+                    var bansOfItem = ct.BanAnDonHangs.Select(b => b.MaBanNavigation.TenBan).Distinct();
+                    string banStr = string.Join(", ", bansOfItem);
+
+                    return new MonAnDatDto
                     {
-                        var congThuc = ct.MaCongThucNavigation;
-                        var phienBan = ct.MaPhienBanNavigation;
-                        var monAn = congThuc?.MaCtNavigation?.MaMonAnNavigation;
-                        string hinhAnhUrl = monAn?.HinhAnhMonAns.FirstOrDefault()?.UrlhinhAnh ?? "";
-
-                        // Lấy lại thông tin bàn của món này để hiển thị cho đúng
-                        var banChuaMonNay = donHang.BanAnDonHangs.FirstOrDefault(b => b.MaBanAnDonHang == ct.MaBanAnDonHang);
-
-                        return new MonAnDatDto
-                        {
-                            TenMon = monAn?.TenMonAn ?? "Món không xác định",
-                            TenPhienBan = phienBan?.TenPhienBan ?? "",
-                            SoLuong = ct.SoLuong,
-                            DonGia = congThuc?.Gia ?? 0,
-                            HinhAnh = hinhAnhUrl,
-
-                            MaBan = banChuaMonNay?.MaBan ?? "",
-                            TenBan = banChuaMonNay?.MaBanNavigation?.TenBan ?? "Chung",
-
-                            GhiChu = ""
-                        };
-                    })
-                    .OrderBy(m => m.TenBan) // Sắp xếp theo tên bàn
-                    .ToList()
+                        TenMon = monAn?.TenMonAn ?? "Món ???",
+                        TenPhienBan = ct.MaPhienBanNavigation?.TenPhienBan ?? "",
+                        SoLuong = ct.SoLuong,
+                        DonGia = congThuc?.Gia ?? 0,
+                        HinhAnh = monAn?.HinhAnhMonAns.FirstOrDefault()?.UrlhinhAnh ?? "",
+                        MaBan = "", // Không quan trọng ở view tổng
+                        TenBan = string.IsNullOrEmpty(banStr) ? "Chung" : banStr,
+                        GhiChu = ""
+                    };
+                }).OrderBy(m => m.TenBan).ToList()
             };
 
             return Ok(result);
         }
 
-        // API: Lấy danh sách cần gọi điện (Giữ nguyên logic nhưng update tên biến)
+        // 6. GetCustomersToCall (Giữ nguyên)
         [HttpGet("get-customers-to-call")]
         public async Task<IActionResult> GetCustomersToCall()
         {
@@ -456,10 +450,10 @@ namespace QuanLyNhaHang.Controllers
                 .Include(dh => dh.MaKhachHangNavigation)
                 .Where(dh =>
                     (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" || dh.MaTrangThaiDonHang == "DA_XAC_NHAN") &&
-                    dh.TGNhanBan != null && // Kiểm tra null
-                    dh.TGNhanBan > now &&   // Dùng TGNhanBan thay vì ThoiGianBatDau
+                    dh.TGNhanBan.HasValue &&
+                    dh.TGNhanBan > now &&
                     dh.TGNhanBan <= thoiGianQuetDen &&
-                    (dh.MaKhachHangNavigation.Email == null || dh.MaKhachHangNavigation.Email == "")
+                    (string.IsNullOrEmpty(dh.MaKhachHangNavigation.Email))
                 )
                 .Select(dh => new
                 {
@@ -467,7 +461,7 @@ namespace QuanLyNhaHang.Controllers
                     TenKhach = dh.TenNguoiNhan ?? dh.MaKhachHangNavigation.HoTen,
                     SDT = dh.SdtnguoiNhan ?? dh.MaKhachHangNavigation.SoDienThoai,
                     GioHen = dh.TGNhanBan,
-                    SoNguoi = dh.SoLuongNguoiDK, // Update tên biến
+                    SoNguoi = dh.SoLuongNguoiDK,
                     GhiChu = "Khách không có email, cần gọi nhắc."
                 })
                 .OrderBy(dh => dh.GioHen)

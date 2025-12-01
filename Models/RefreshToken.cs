@@ -1,24 +1,17 @@
 ﻿using System;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+using System.Collections.Generic;
 
-namespace QuanLyNhaHang.Models
+namespace QuanLyNhaHang.Models;
+
+public partial class RefreshToken
 {
-    [Table("RefreshTokens")] // Đặt tên bảng trong SQL
-    public class RefreshToken
-    {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int Id { get; set; }
+    public int Id { get; set; }
 
-        [Required]
-        public string Token { get; set; } = null!;
+    public string Token { get; set; } = null!;
 
-        [Required]
-        public string UserId { get; set; } = null!; // Lưu mã KH hoặc mã NV
+    public string UserId { get; set; } = null!;
 
-        public DateTime Expires { get; set; }
+    public DateTime Expires { get; set; }
 
-        public bool IsRevoked { get; set; } = false;
-    }
+    public bool IsRevoked { get; set; }
 }
