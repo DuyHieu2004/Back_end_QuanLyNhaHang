@@ -809,69 +809,118 @@ INSERT INTO [dbo].[CongThucNauAn] ([MaCongThuc], [MaCT], [MaPhienBan], [Gia]) VA
 ('CT040_S', 'CT040', 'PB001', 250000), ('CT040_M', 'CT040', 'PB002', 350000), ('CT040_L', 'CT040', 'PB003', 450000);
 GO
 
--- CHÈN DỮ LIỆU CÔNG THỨC MỚI (Lệnh này bị trùng lặp, giữ lại phần trên)
--- XÓA DỮ LIỆU CŨ trong CongThucNauAn để chèn lại
-DELETE FROM [dbo].[CongThucNauAn];
-GO
---CHÈN DỮ LIỆU CÔNG THỨC MỚI (Dùng các mã CTx_S/M/L)
-INSERT INTO [dbo].[CongThucNauAn] ([MaCongThuc], [MaCT], [MaPhienBan], [Gia]) VALUES
-('CT001', 'CT001', 'PB004', 30000), ('CT002', 'CT002', 'PB005', 30000),
-('CT003', 'CT003', 'PB006', 35000), ('CT004', 'CT004', 'PB007', 35000),
-('CT005', 'CT005', 'PB008', 40000), ('CT006', 'CT006', 'PB009', 250000),
-('CT007', 'CT007', 'PB010', 230000), ('CT008', 'CT008', 'PB011', 280000),
-('CT009', 'CT009', 'PB012', 300000), ('CT010', 'CT010', 'PB013', 220000),
-('CT011', 'CT011', 'PB014', 25000), ('CT012', 'CT012', 'PB015', 30000),
-('CT013', 'CT013', 'PB016', 25000), ('CT014', 'CT014', 'PB017', 40000),
-('CT015', 'CT015', 'PB018', 35000), ('CT016', 'CT016', 'PB019', 10000),
-('CT017', 'CT017', 'PB020', 30000), ('CT018', 'CT018', 'PB021', 40000),
-('CT019', 'CT019', 'PB022', 30000), ('CT020', 'CT020', 'PB023', 25000),
-('CT021', 'CT021', 'PB024', 150000), ('CT022', 'CT022', 'PB025', 220000),
-('CT023', 'CT023', 'PB026', 200000), ('CT024', 'CT024', 'PB027', 180000),
-('CT025', 'CT025', 'PB028', 200000), ('CT026', 'CT026', 'PB029', 60000),
-('CT027', 'CT027', 'PB030', 40000), ('CT028', 'CT028', 'PB031', 45000),
-('CT029', 'CT029', 'PB032', 55000), ('CT030', 'CT030', 'PB033', 50000),
-('CT031', 'CT031', 'PB034', 75000), ('CT032', 'CT032', 'PB035', 70000),
-('CT033', 'CT033', 'PB036', 85000), ('CT034', 'CT034', 'PB037', 75000),
-('CT035', 'CT035', 'PB038', 80000), ('CT036', 'CT036', 'PB039', 450000),
-('CT037', 'CT037', 'PB040', 300000), ('CT038', 'CT038', 'PB001', 280000),
-('CT039', 'CT039', 'PB002', 180000), ('CT040', 'CT040', 'PB003', 250000);
-GO
 
--- 12. CHÈN CHI TIẾT CÔNG THỨC (Giữ nguyên)
+-- 12. CHÈN CHI TIẾT CÔNG THỨC (Sửa lại để khớp với mã công thức CTxxx_S/M/L)
+-- Quy tắc số lượng: S < M < L (S = x1, M = x1.5 làm tròn, L = x2)
 INSERT INTO [dbo].[ChiTietCongThuc] ([MaCongThuc], [MaNguyenLieu], [SoLuongCanDung]) VALUES
-('CT001', 'NL021', 1), ('CT002', 'NL022', 1),
-('CT003', 'NL023', 1), ('CT003', 'NL009', 1),
-('CT004', 'NL024', 1), ('CT005', 'NL025', 1),
-('CT005', 'NL024', 1), ('CT006', 'NL026', 1),
-('CT006', 'NL002', 1), ('CT006', 'NL004', 1),
-('CT006', 'NL039', 1), ('CT006', 'NL005', 2),
-('CT006', 'NL006', 1), ('CT007', 'NL003', 1),
-('CT007', 'NL027', 1), ('CT007', 'NL006', 1),
-('CT008', 'NL001', 2), ('CT008', 'NL028', 1),
-('CT008', 'NL005', 2), ('CT008', 'NL012', 1),
-('CT009', 'NL004', 1), ('CT010', 'NL002', 1),
-('CT011', 'NL013', 2), ('CT011', 'NL014', 1),
-('CT012', 'NL029', 1), ('CT013', 'NL030', 1),
-('CT016', 'NL031', 1), ('CT017', 'NL025', 1),
-('CT018', 'NL032', 1), ('CT019', 'NL008', 1),
-('CT020', 'NL033', 1), ('CT021', 'NL009', 1),
-('CT022', 'NL034', 3), ('CT022', 'NL035', 1),
-('CT023', 'NL002', 1), ('CT024', 'NL001', 1),
-('CT025', 'NL003', 1), ('CT026', 'NL010', 1),
-('CT026', 'NL007', 1), ('CT027', 'NL010', 2),
-('CT028', 'NL005', 1), ('CT028', 'NL010', 1),
-('CT029', 'NL006', 1), ('CT029', 'NL010', 1),
-('CT030', 'NL006', 1), ('CT031', 'NL009', 1),
-('CT031', 'NL007', 1), ('CT031', 'NL013', 1),
-('CT032', 'NL007', 1), ('CT032', 'NL012', 1),
-('CT033', 'NL007', 1), ('CT033', 'NL002', 1),
-('CT033', 'NL039', 1), ('CT034', 'NL007', 1),
-('CT034', 'NL003', 1), ('CT035', 'NL007', 1),
-('CT035', 'NL001', 1), ('CT035', 'NL012', 1),
-('CT036', 'NL036', 1), ('CT037', 'NL037', 1),
-('CT038', 'NL038', 1), ('CT038', 'NL008', 1),
-('CT039', 'NL039', 1), ('CT039', 'NL020', 1),
-('CT040', 'NL040', 4), ('CT040', 'NL035', 1);
+-- CT001 (Hạt dưa) - S:1, M:2, L:2
+('CT001_S', 'NL021', 1), ('CT001_M', 'NL021', 2), ('CT001_L', 'NL021', 2),
+-- CT002 (Đậu phộng) - S:1, M:2, L:2
+('CT002_S', 'NL022', 1), ('CT002_M', 'NL022', 2), ('CT002_L', 'NL022', 2),
+-- CT003 (Chả giò) - S:1, M:2, L:2
+('CT003_S', 'NL023', 1), ('CT003_M', 'NL023', 2), ('CT003_L', 'NL023', 2),
+('CT003_S', 'NL009', 1), ('CT003_M', 'NL009', 2), ('CT003_L', 'NL009', 2),
+-- CT004 (Mứt dâu) - S:1, M:2, L:2
+('CT004_S', 'NL024', 1), ('CT004_M', 'NL024', 2), ('CT004_L', 'NL024', 2),
+-- CT005 (Salad trái cây) - S:1, M:2, L:2
+('CT005_S', 'NL025', 1), ('CT005_M', 'NL025', 2), ('CT005_L', 'NL025', 2),
+('CT005_S', 'NL024', 1), ('CT005_M', 'NL024', 2), ('CT005_L', 'NL024', 2),
+-- CT006 (Lẩu Thái hải sản) - S:1, M:2, L:2
+('CT006_S', 'NL026', 1), ('CT006_M', 'NL026', 2), ('CT006_L', 'NL026', 2),
+('CT006_S', 'NL002', 1), ('CT006_M', 'NL002', 2), ('CT006_L', 'NL002', 2),
+('CT006_S', 'NL004', 1), ('CT006_M', 'NL004', 2), ('CT006_L', 'NL004', 2),
+('CT006_S', 'NL039', 1), ('CT006_M', 'NL039', 2), ('CT006_L', 'NL039', 2),
+('CT006_S', 'NL005', 2), ('CT006_M', 'NL005', 3), ('CT006_L', 'NL005', 4),
+('CT006_S', 'NL006', 1), ('CT006_M', 'NL006', 2), ('CT006_L', 'NL006', 2),
+-- CT007 (Lẩu gà lá giang) - S:1, M:2, L:2
+('CT007_S', 'NL003', 1), ('CT007_M', 'NL003', 2), ('CT007_L', 'NL003', 2),
+('CT007_S', 'NL027', 1), ('CT007_M', 'NL027', 2), ('CT007_L', 'NL027', 2),
+('CT007_S', 'NL006', 1), ('CT007_M', 'NL006', 2), ('CT007_L', 'NL006', 2),
+-- CT008 (Lẩu bò nhúng giấm) - S:2, M:3, L:4
+('CT008_S', 'NL001', 2), ('CT008_M', 'NL001', 3), ('CT008_L', 'NL001', 4),
+('CT008_S', 'NL028', 1), ('CT008_M', 'NL028', 2), ('CT008_L', 'NL028', 2),
+('CT008_S', 'NL005', 2), ('CT008_M', 'NL005', 3), ('CT008_L', 'NL005', 4),
+('CT008_S', 'NL012', 1), ('CT008_M', 'NL012', 2), ('CT008_L', 'NL012', 2),
+-- CT009 (Lẩu cá hồi) - S:1, M:2, L:2
+('CT009_S', 'NL004', 1), ('CT009_M', 'NL004', 2), ('CT009_L', 'NL004', 2),
+-- CT010 (Lẩu tôm) - S:1, M:2, L:2
+('CT010_S', 'NL002', 1), ('CT010_M', 'NL002', 2), ('CT010_L', 'NL002', 2),
+-- CT011 (Bánh flan) - S:2, M:3, L:4
+('CT011_S', 'NL013', 2), ('CT011_M', 'NL013', 3), ('CT011_L', 'NL013', 4),
+('CT011_S', 'NL014', 1), ('CT011_M', 'NL014', 2), ('CT011_L', 'NL014', 2),
+-- CT012 (Chè hạt sen) - S:1, M:2, L:2
+('CT012_S', 'NL029', 1), ('CT012_M', 'NL029', 2), ('CT012_L', 'NL029', 2),
+-- CT013 (Sữa chua nếp cẩm) - S:1, M:2, L:2
+('CT013_S', 'NL030', 1), ('CT013_M', 'NL030', 2), ('CT013_L', 'NL030', 2),
+-- CT014 (Kem tươi) - S:1, M:2, L:2
+('CT014_S', 'NL030', 1), ('CT014_M', 'NL030', 2), ('CT014_L', 'NL030', 2),
+-- CT015 (Sương sáo hột é) - S:1, M:2, L:2
+('CT015_S', 'NL029', 1), ('CT015_M', 'NL029', 2), ('CT015_L', 'NL029', 2),
+-- CT016 (Nước lọc) - S:1, M:2, L:2
+('CT016_S', 'NL031', 1), ('CT016_M', 'NL031', 2), ('CT016_L', 'NL031', 2),
+-- CT017 (Nước ép trái cây) - S:1, M:2, L:2
+('CT017_S', 'NL025', 1), ('CT017_M', 'NL025', 2), ('CT017_L', 'NL025', 2),
+-- CT018 (Pepsi) - S:1, M:2, L:2
+('CT018_S', 'NL032', 1), ('CT018_M', 'NL032', 2), ('CT018_L', 'NL032', 2),
+-- CT019 (Bia Sài Gòn) - S:1, M:2, L:2
+('CT019_S', 'NL008', 1), ('CT019_M', 'NL008', 2), ('CT019_L', 'NL008', 2),
+-- CT020 (Coca) - S:1, M:2, L:2
+('CT020_S', 'NL033', 1), ('CT020_M', 'NL033', 2), ('CT020_L', 'NL033', 2),
+-- CT021 (Sườn nướng BBQ) - S:1, M:2, L:2
+('CT021_S', 'NL009', 1), ('CT021_M', 'NL009', 2), ('CT021_L', 'NL009', 2),
+-- CT022 (Hàu nướng phô mai) - S:3, M:5, L:6
+('CT022_S', 'NL034', 3), ('CT022_M', 'NL034', 5), ('CT022_L', 'NL034', 6),
+('CT022_S', 'NL035', 1), ('CT022_M', 'NL035', 2), ('CT022_L', 'NL035', 2),
+-- CT023 (Tôm nướng muối ớt) - S:1, M:2, L:2
+('CT023_S', 'NL002', 1), ('CT023_M', 'NL002', 2), ('CT023_L', 'NL002', 2),
+-- CT024 (Ba chỉ bò nướng) - S:1, M:2, L:2
+('CT024_S', 'NL001', 1), ('CT024_M', 'NL001', 2), ('CT024_L', 'NL001', 2),
+-- CT025 (Gà nướng muối tiêu) - S:1, M:2, L:2
+('CT025_S', 'NL003', 1), ('CT025_M', 'NL003', 2), ('CT025_L', 'NL003', 2),
+-- CT026 (Cơm chay đậu hũ) - S:1, M:2, L:2
+('CT026_S', 'NL010', 1), ('CT026_M', 'NL010', 2), ('CT026_L', 'NL010', 2),
+('CT026_S', 'NL007', 1), ('CT026_M', 'NL007', 2), ('CT026_L', 'NL007', 2),
+-- CT027 (Đậu hũ chiên sả) - S:2, M:3, L:4
+('CT027_S', 'NL010', 2), ('CT027_M', 'NL010', 3), ('CT027_L', 'NL010', 4),
+-- CT028 (Canh chua chay) - S:1, M:2, L:2
+('CT028_S', 'NL005', 1), ('CT028_M', 'NL005', 2), ('CT028_L', 'NL005', 2),
+('CT028_S', 'NL010', 1), ('CT028_M', 'NL010', 2), ('CT028_L', 'NL010', 2),
+-- CT029 (Mì xào chay) - S:1, M:2, L:2
+('CT029_S', 'NL006', 1), ('CT029_M', 'NL006', 2), ('CT029_L', 'NL006', 2),
+('CT029_S', 'NL010', 1), ('CT029_M', 'NL010', 2), ('CT029_L', 'NL010', 2),
+-- CT030 (Nấm hấp xả) - S:1, M:2, L:2
+('CT030_S', 'NL006', 1), ('CT030_M', 'NL006', 2), ('CT030_L', 'NL006', 2),
+-- CT031 (Cơm tấm sườn bì chả) - S:1, M:2, L:2
+('CT031_S', 'NL009', 1), ('CT031_M', 'NL009', 2), ('CT031_L', 'NL009', 2),
+('CT031_S', 'NL007', 1), ('CT031_M', 'NL007', 2), ('CT031_L', 'NL007', 2),
+('CT031_S', 'NL013', 1), ('CT031_M', 'NL013', 2), ('CT031_L', 'NL013', 2),
+-- CT032 (Cơm chiên dương châu) - S:1, M:2, L:2
+('CT032_S', 'NL007', 1), ('CT032_M', 'NL007', 2), ('CT032_L', 'NL007', 2),
+('CT032_S', 'NL012', 1), ('CT032_M', 'NL012', 2), ('CT032_L', 'NL012', 2),
+-- CT033 (Cơm rang hải sản) - S:1, M:2, L:2
+('CT033_S', 'NL007', 1), ('CT033_M', 'NL007', 2), ('CT033_L', 'NL007', 2),
+('CT033_S', 'NL002', 1), ('CT033_M', 'NL002', 2), ('CT033_L', 'NL002', 2),
+('CT033_S', 'NL039', 1), ('CT033_M', 'NL039', 2), ('CT033_L', 'NL039', 2),
+-- CT034 (Cơm gà xối mỡ) - S:1, M:2, L:2
+('CT034_S', 'NL007', 1), ('CT034_M', 'NL007', 2), ('CT034_L', 'NL007', 2),
+('CT034_S', 'NL003', 1), ('CT034_M', 'NL003', 2), ('CT034_L', 'NL003', 2),
+-- CT035 (Cơm bò lúc lắc) - S:1, M:2, L:2
+('CT035_S', 'NL007', 1), ('CT035_M', 'NL007', 2), ('CT035_L', 'NL007', 2),
+('CT035_S', 'NL001', 1), ('CT035_M', 'NL001', 2), ('CT035_L', 'NL001', 2),
+('CT035_S', 'NL012', 1), ('CT035_M', 'NL012', 2), ('CT035_L', 'NL012', 2),
+-- CT036 (Tôm hùm nướng bơ tỏi) - S:1, M:2, L:2
+('CT036_S', 'NL036', 1), ('CT036_M', 'NL036', 2), ('CT036_L', 'NL036', 2),
+-- CT037 (Cua rang me) - S:1, M:2, L:2
+('CT037_S', 'NL037', 1), ('CT037_M', 'NL037', 2), ('CT037_L', 'NL037', 2),
+-- CT038 (Ghẹ hấp bia) - S:1, M:2, L:2
+('CT038_S', 'NL038', 1), ('CT038_M', 'NL038', 2), ('CT038_L', 'NL038', 2),
+('CT038_S', 'NL008', 1), ('CT038_M', 'NL008', 2), ('CT038_L', 'NL008', 2),
+-- CT039 (Mực chiên giòn) - S:1, M:2, L:2
+('CT039_S', 'NL039', 1), ('CT039_M', 'NL039', 2), ('CT039_L', 'NL039', 2),
+('CT039_S', 'NL020', 1), ('CT039_M', 'NL020', 2), ('CT039_L', 'NL020', 2),
+-- CT040 (Sò điệp nướng phô mai) - S:4, M:6, L:8
+('CT040_S', 'NL040', 4), ('CT040_M', 'NL040', 6), ('CT040_L', 'NL040', 8),
+('CT040_S', 'NL035', 1), ('CT040_M', 'NL035', 2), ('CT040_L', 'NL035', 2);
 GO
 
 -- 13. CHÈN DỮ LIỆU ĐƠN HÀNG & BÀN ĂN ĐƠN HÀNG (Giữ nguyên)
@@ -947,94 +996,176 @@ DECLARE @TempChiTiet TABLE (
     MaBanAnDonHang varchar(25)
 );
 
+-- Sửa lại: Chuyển đổi sang sử dụng PB001 (S), PB002 (M), PB003 (L) và mã công thức tương ứng
+-- Quy tắc: Sử dụng PB002 (Size M) làm mặc định cho các phiên bản không hợp lệ
 INSERT INTO @TempChiTiet (MaDonHang, MaPhienBan, MaCongThuc, SoLuong) VALUES
-('DH001', 'PB006', 'CT006', 1), ('DH001', 'PB003', 'CT003', 2), ('DH001', 'PB019', 'CT019', 5),
-('DH002', 'PB008', 'CT008', 2), ('DH002', 'PB021', 'CT021', 1), ('DH002', 'PB001', 'CT001', 1),
-('DH003', 'PB031', 'CT031', 4), ('DH003', 'PB020', 'CT020', 4),
-('DH004', 'PB034', 'CT034', 2), ('DH004', 'PB016', 'CT016', 2),
-('DH005', 'PB035', 'CT035', 2), ('DH005', 'PB027', 'CT027', 1), ('DH005', 'PB018', 'CT018', 4),
-('DH006', 'PB036', 'CT036', 1), ('DH006', 'PB037', 'CT037', 1), ('DH006', 'PB040', 'CT040', 2), ('DH006', 'PB019', 'CT019', 10),
-('DH007', 'PB023', 'CT023', 1), ('DH007', 'PB019', 'CT019', 4),
-('DH008', 'PB005', 'CT005', 1), ('DH008', 'PB011', 'CT011', 2), ('DH008', 'PB017', 'CT017', 2),
-('DH009', 'PB007', 'CT007', 1), ('DH009', 'PB024', 'CT024', 2), ('DH009', 'PB002', 'CT002', 1),
-('DH010', 'PB009', 'CT009', 1), ('DH010', 'PB010', 'CT010', 1), ('DH010', 'PB022', 'CT022', 2),
-('DH011', 'PB025', 'CT025', 2), ('DH011', 'PB018', 'CT018', 4),
-('DH012', 'PB026', 'CT026', 3), ('DH012', 'PB028', 'CT028', 1),
-('DH013', 'PB029', 'CT029', 2), ('DH013', 'PB030', 'CT030', 2), ('DH013', 'PB016', 'CT016', 6),
-('DH014', 'PB031', 'CT031', 1), ('DH014', 'PB032', 'CT032', 1), ('DH014', 'PB020', 'CT020', 2),
-('DH015', 'PB033', 'CT033', 1), ('DH015', 'PB034', 'CT034', 1),
-('DH016', 'PB006', 'CT006', 3), ('DH016', 'PB008', 'CT008', 3), ('DH016', 'PB021', 'CT021', 5), ('DH016', 'PB019', 'CT019', 20),
-('DH017', 'PB038', 'CT038', 2), ('DH017', 'PB039', 'CT039', 3), ('DH017', 'PB040', 'CT040', 3),
-('DH018', 'PB031', 'CT031', 1),
-('DH019', 'PB035', 'CT035', 3), ('DH019', 'PB016', 'CT016', 3),
-('DH020', 'PB006', 'CT006', 1), ('DH020', 'PB024', 'CT024', 2), ('DH020', 'PB003', 'CT003', 2),
-('DH021', 'PB007', 'CT007', 1), ('DH021', 'PB001', 'CT001', 1), ('DH021', 'PB019', 'CT019', 6),
-('DH022', 'PB031', 'CT031', 2), ('DH022', 'PB034', 'CT034', 2), ('DH022', 'PB032', 'CT032', 2),
-('DH023', 'PB035', 'CT035', 5), ('DH023', 'PB020', 'CT020', 5),
-('DH024', 'PB009', 'CT009', 1), ('DH024', 'PB003', 'CT003', 2),
-('DH025', 'PB036', 'CT036', 1), ('DH025', 'PB037', 'CT037', 2),
-('DH026', 'PB022', 'CT022', 3), ('DH026', 'PB021', 'CT021', 2), ('DH026', 'PB018', 'CT018', 7),
-('DH027', 'PB040', 'CT040', 4), ('DH027', 'PB039', 'CT039', 2), ('DH027', 'PB019', 'CT019', 10),
-('DH028', 'PB031', 'CT031', 9), ('DH028', 'PB016', 'CT016', 9),
-('DH029', 'PB030', 'CT030', 10), ('DH029', 'PB020', 'CT020', 10),
-('DH030', 'PB023', 'CT023', 1), ('DH030', 'PB001', 'CT001', 1), ('DH030', 'PB019', 'CT019', 2),
-('DH031', 'PB024', 'CT024', 2), ('DH031', 'PB018', 'CT018', 4),
-('DH032', 'PB005', 'CT005', 1), ('DH032', 'PB011', 'CT011', 2),
-('DH033', 'PB012', 'CT012', 1), ('DH033', 'PB013', 'CT013', 1),
-('DH034', 'PB032', 'CT032', 5), ('DH034', 'PB033', 'CT033', 5), ('DH034', 'PB016', 'CT016', 10),
-('DH035', 'PB031', 'CT031', 11), ('DH035', 'PB020', 'CT020', 11),
-('DH036', 'PB006', 'CT006', 1), ('DH036', 'PB007', 'CT007', 1), ('DH036', 'PB019', 'CT019', 8),
-('DH037', 'PB008', 'CT008', 2), ('DH037', 'PB021', 'CT021', 3), ('DH037', 'PB018', 'CT018', 8),
-('DH038', 'PB034', 'CT034', 3), ('DH038', 'PB016', 'CT016', 3),
-('DH039', 'PB035', 'CT035', 2), ('DH039', 'PB039', 'CT039', 1), ('DH039', 'PB020', 'CT020', 4),
-('DH040', 'PB006', 'CT006', 1), ('DH040', 'PB022', 'CT022', 2), ('DH040', 'PB019', 'CT019', 5);
+-- DH001: Lẩu Thái M, Chả giò L, Bia Sài Gòn M
+('DH001', 'PB002', 'CT006_M', 1), ('DH001', 'PB003', 'CT003_L', 2), ('DH001', 'PB002', 'CT019_M', 5),
+-- DH002: Lẩu bò M, Sườn nướng M, Hạt dưa S
+('DH002', 'PB002', 'CT008_M', 2), ('DH002', 'PB002', 'CT021_M', 1), ('DH002', 'PB001', 'CT001_S', 1),
+-- DH003: Cơm tấm M, Coca M
+('DH003', 'PB002', 'CT031_M', 4), ('DH003', 'PB002', 'CT020_M', 4),
+-- DH004: Cơm gà M, Nước lọc M
+('DH004', 'PB002', 'CT034_M', 2), ('DH004', 'PB002', 'CT016_M', 2),
+-- DH005: Cơm bò lúc lắc M, Đậu hũ chiên sả M, Pepsi M
+('DH005', 'PB002', 'CT035_M', 2), ('DH005', 'PB002', 'CT027_M', 1), ('DH005', 'PB002', 'CT018_M', 4),
+-- DH006: Tôm hùm M, Cua rang me M, Sò điệp M, Bia Sài Gòn M
+('DH006', 'PB002', 'CT036_M', 1), ('DH006', 'PB002', 'CT037_M', 1), ('DH006', 'PB002', 'CT040_M', 2), ('DH006', 'PB002', 'CT019_M', 10),
+-- DH007: Tôm nướng M, Bia Sài Gòn M
+('DH007', 'PB002', 'CT023_M', 1), ('DH007', 'PB002', 'CT019_M', 4),
+-- DH008: Salad M, Bánh flan M, Nước ép M
+('DH008', 'PB002', 'CT005_M', 1), ('DH008', 'PB002', 'CT011_M', 2), ('DH008', 'PB002', 'CT017_M', 2),
+-- DH009: Lẩu gà M, Ba chỉ bò M, Đậu phộng S
+('DH009', 'PB002', 'CT007_M', 1), ('DH009', 'PB002', 'CT024_M', 2), ('DH009', 'PB001', 'CT002_S', 1),
+-- DH010: Lẩu cá hồi M, Lẩu tôm M, Hàu nướng M
+('DH010', 'PB002', 'CT009_M', 1), ('DH010', 'PB002', 'CT010_M', 1), ('DH010', 'PB002', 'CT022_M', 2),
+-- DH011: Gà nướng M, Pepsi M
+('DH011', 'PB002', 'CT025_M', 2), ('DH011', 'PB002', 'CT018_M', 4),
+-- DH012: Cơm chay M, Canh chua chay M
+('DH012', 'PB002', 'CT026_M', 3), ('DH012', 'PB002', 'CT028_M', 1),
+-- DH013: Mì xào chay M, Nấm hấp M, Nước lọc M
+('DH013', 'PB002', 'CT029_M', 2), ('DH013', 'PB002', 'CT030_M', 2), ('DH013', 'PB002', 'CT016_M', 6),
+-- DH014: Cơm tấm M, Cơm chiên M, Coca M
+('DH014', 'PB002', 'CT031_M', 1), ('DH014', 'PB002', 'CT032_M', 1), ('DH014', 'PB002', 'CT020_M', 2),
+-- DH015: Cơm rang hải sản M, Cơm gà M
+('DH015', 'PB002', 'CT033_M', 1), ('DH015', 'PB002', 'CT034_M', 1),
+-- DH016: Lẩu Thái M, Lẩu bò M, Sườn nướng M, Bia Sài Gòn M
+('DH016', 'PB002', 'CT006_M', 3), ('DH016', 'PB002', 'CT008_M', 3), ('DH016', 'PB002', 'CT021_M', 5), ('DH016', 'PB002', 'CT019_M', 20),
+-- DH017: Ghẹ hấp M, Mực chiên M, Sò điệp M
+('DH017', 'PB002', 'CT038_M', 2), ('DH017', 'PB002', 'CT039_M', 3), ('DH017', 'PB002', 'CT040_M', 3),
+-- DH018: Cơm tấm M
+('DH018', 'PB002', 'CT031_M', 1),
+-- DH019: Cơm bò lúc lắc M, Nước lọc M
+('DH019', 'PB002', 'CT035_M', 3), ('DH019', 'PB002', 'CT016_M', 3),
+-- DH020: Lẩu Thái M, Ba chỉ bò M, Chả giò L
+('DH020', 'PB002', 'CT006_M', 1), ('DH020', 'PB002', 'CT024_M', 2), ('DH020', 'PB003', 'CT003_L', 2),
+-- DH021: Lẩu gà M, Hạt dưa S, Bia Sài Gòn M
+('DH021', 'PB002', 'CT007_M', 1), ('DH021', 'PB001', 'CT001_S', 1), ('DH021', 'PB002', 'CT019_M', 6),
+-- DH022: Cơm tấm M, Cơm gà M, Cơm chiên M
+('DH022', 'PB002', 'CT031_M', 2), ('DH022', 'PB002', 'CT034_M', 2), ('DH022', 'PB002', 'CT032_M', 2),
+-- DH023: Cơm bò lúc lắc M, Coca M
+('DH023', 'PB002', 'CT035_M', 5), ('DH023', 'PB002', 'CT020_M', 5),
+-- DH024: Lẩu cá hồi M, Chả giò L
+('DH024', 'PB002', 'CT009_M', 1), ('DH024', 'PB003', 'CT003_L', 2),
+-- DH025: Tôm hùm M, Cua rang me M
+('DH025', 'PB002', 'CT036_M', 1), ('DH025', 'PB002', 'CT037_M', 2),
+-- DH026: Hàu nướng M, Sườn nướng M, Pepsi M
+('DH026', 'PB002', 'CT022_M', 3), ('DH026', 'PB002', 'CT021_M', 2), ('DH026', 'PB002', 'CT018_M', 7),
+-- DH027: Sò điệp M, Mực chiên M, Bia Sài Gòn M
+('DH027', 'PB002', 'CT040_M', 4), ('DH027', 'PB002', 'CT039_M', 2), ('DH027', 'PB002', 'CT019_M', 10),
+-- DH028: Cơm tấm M, Nước lọc M
+('DH028', 'PB002', 'CT031_M', 9), ('DH028', 'PB002', 'CT016_M', 9),
+-- DH029: Nấm hấp M, Coca M
+('DH029', 'PB002', 'CT030_M', 10), ('DH029', 'PB002', 'CT020_M', 10),
+-- DH030: Tôm nướng M, Hạt dưa S, Bia Sài Gòn M
+('DH030', 'PB002', 'CT023_M', 1), ('DH030', 'PB001', 'CT001_S', 1), ('DH030', 'PB002', 'CT019_M', 2),
+-- DH031: Ba chỉ bò M, Pepsi M
+('DH031', 'PB002', 'CT024_M', 2), ('DH031', 'PB002', 'CT018_M', 4),
+-- DH032: Salad M, Bánh flan M
+('DH032', 'PB002', 'CT005_M', 1), ('DH032', 'PB002', 'CT011_M', 2),
+-- DH033: Chè hạt sen M, Sữa chua nếp cẩm M
+('DH033', 'PB002', 'CT012_M', 1), ('DH033', 'PB002', 'CT013_M', 1),
+-- DH034: Cơm chiên M, Cơm rang hải sản M, Nước lọc M
+('DH034', 'PB002', 'CT032_M', 5), ('DH034', 'PB002', 'CT033_M', 5), ('DH034', 'PB002', 'CT016_M', 10),
+-- DH035: Cơm tấm M, Coca M
+('DH035', 'PB002', 'CT031_M', 11), ('DH035', 'PB002', 'CT020_M', 11),
+-- DH036: Lẩu Thái M, Lẩu gà M, Bia Sài Gòn M
+('DH036', 'PB002', 'CT006_M', 1), ('DH036', 'PB002', 'CT007_M', 1), ('DH036', 'PB002', 'CT019_M', 8),
+-- DH037: Lẩu bò M, Sườn nướng M, Pepsi M
+('DH037', 'PB002', 'CT008_M', 2), ('DH037', 'PB002', 'CT021_M', 3), ('DH037', 'PB002', 'CT018_M', 8),
+-- DH038: Cơm gà M, Nước lọc M
+('DH038', 'PB002', 'CT034_M', 3), ('DH038', 'PB002', 'CT016_M', 3),
+-- DH039: Cơm bò lúc lắc M, Mực chiên M, Coca M
+('DH039', 'PB002', 'CT035_M', 2), ('DH039', 'PB002', 'CT039_M', 1), ('DH039', 'PB002', 'CT020_M', 4),
+-- DH040: Lẩu Thái M, Hàu nướng M, Bia Sài Gòn M
+('DH040', 'PB002', 'CT006_M', 1), ('DH040', 'PB002', 'CT022_M', 2), ('DH040', 'PB002', 'CT019_M', 5);
 
--- A. Insert ChiTietDonHang (Tự sinh mã chuỗi CTDHxxx)
+-- A. Insert ChiTietDonHang (Tự sinh mã chuỗi CTDHxxx) - Sửa lại để khớp với dữ liệu mới
 INSERT INTO [dbo].[ChiTietDonHang] ([MaChiTietDonHang], [MaDonHang], [MaPhienBan], [MaCongThuc], [SoLuong])
 SELECT 
     'CTDH' + RIGHT('000' + CAST(ROW_NUMBER() OVER(ORDER BY (SELECT 1)) AS VARCHAR), 3),
     T.MaDonHang, T.MaPhienBan, T.MaCongThuc, T.SoLuong
 FROM (VALUES
-('DH001', 'PB006', 'CT006', 1), ('DH001', 'PB003', 'CT003', 2), ('DH001', 'PB019', 'CT019', 5),
-('DH002', 'PB008', 'CT008', 2), ('DH002', 'PB021', 'CT021', 1), ('DH002', 'PB001', 'CT001', 1),
-('DH003', 'PB031', 'CT031', 4), ('DH003', 'PB020', 'CT020', 4),
-('DH004', 'PB034', 'CT034', 2), ('DH004', 'PB016', 'CT016', 2),
-('DH005', 'PB035', 'CT035', 2), ('DH005', 'PB027', 'CT027', 1), ('DH005', 'PB018', 'CT018', 4),
-('DH006', 'PB036', 'CT036', 1), ('DH006', 'PB037', 'CT037', 1), ('DH006', 'PB040', 'CT040', 2), ('DH006', 'PB019', 'CT019', 10),
-('DH007', 'PB023', 'CT023', 1), ('DH007', 'PB019', 'CT019', 4),
-('DH008', 'PB005', 'CT005', 1), ('DH008', 'PB011', 'CT011', 2), ('DH008', 'PB017', 'CT017', 2),
-('DH009', 'PB007', 'CT007', 1), ('DH009', 'PB024', 'CT024', 2), ('DH009', 'PB002', 'CT002', 1),
-('DH010', 'PB009', 'CT009', 1), ('DH010', 'PB010', 'CT010', 1), ('DH010', 'PB022', 'CT022', 2),
-('DH011', 'PB025', 'CT025', 2), ('DH011', 'PB018', 'CT018', 4),
-('DH012', 'PB026', 'CT026', 3), ('DH012', 'PB028', 'CT028', 1),
-('DH013', 'PB029', 'CT029', 2), ('DH013', 'PB030', 'CT030', 2), ('DH013', 'PB016', 'CT016', 6),
-('DH014', 'PB031', 'CT031', 1), ('DH014', 'PB032', 'CT032', 1), ('DH014', 'PB020', 'CT020', 2),
-('DH015', 'PB033', 'CT033', 1), ('DH015', 'PB034', 'CT034', 1),
-('DH016', 'PB006', 'CT006', 3), ('DH016', 'PB008', 'CT008', 3), ('DH016', 'PB021', 'CT021', 5), ('DH016', 'PB019', 'CT019', 20),
-('DH017', 'PB038', 'CT038', 2), ('DH017', 'PB039', 'CT039', 3), ('DH017', 'PB040', 'CT040', 3),
-('DH018', 'PB031', 'CT031', 1),
-('DH019', 'PB035', 'CT035', 3), ('DH019', 'PB016', 'CT016', 3),
-('DH020', 'PB006', 'CT006', 1), ('DH020', 'PB024', 'CT024', 2), ('DH020', 'PB003', 'CT003', 2),
-('DH021', 'PB007', 'CT007', 1), ('DH021', 'PB001', 'CT001', 1), ('DH021', 'PB019', 'CT019', 6),
-('DH022', 'PB031', 'CT031', 2), ('DH022', 'PB034', 'CT034', 2), ('DH022', 'PB032', 'CT032', 2),
-('DH023', 'PB035', 'CT035', 5), ('DH023', 'PB020', 'CT020', 5),
-('DH024', 'PB009', 'CT009', 1), ('DH024', 'PB003', 'CT003', 2),
-('DH025', 'PB036', 'CT036', 1), ('DH025', 'PB037', 'CT037', 2),
-('DH026', 'PB022', 'CT022', 3), ('DH026', 'PB021', 'CT021', 2), ('DH026', 'PB018', 'CT018', 7),
-('DH027', 'PB040', 'CT040', 4), ('DH027', 'PB039', 'CT039', 2), ('DH027', 'PB019', 'CT019', 10),
-('DH028', 'PB031', 'CT031', 9), ('DH028', 'PB016', 'CT016', 9),
-('DH029', 'PB030', 'CT030', 10), ('DH029', 'PB020', 'CT020', 10),
-('DH030', 'PB023', 'CT023', 1), ('DH030', 'PB001', 'CT001', 1), ('DH030', 'PB019', 'CT019', 2),
-('DH031', 'PB024', 'CT024', 2), ('DH031', 'PB018', 'CT018', 4),
-('DH032', 'PB005', 'CT005', 1), ('DH032', 'PB011', 'CT011', 2),
-('DH033', 'PB012', 'CT012', 1), ('DH033', 'PB013', 'CT013', 1),
-('DH034', 'PB032', 'CT032', 5), ('DH034', 'PB033', 'CT033', 5), ('DH034', 'PB016', 'CT016', 10),
-('DH035', 'PB031', 'CT031', 11), ('DH035', 'PB020', 'CT020', 11),
-('DH036', 'PB006', 'CT006', 1), ('DH036', 'PB007', 'CT007', 1), ('DH036', 'PB019', 'CT019', 8),
-('DH037', 'PB008', 'CT008', 2), ('DH037', 'PB021', 'CT021', 3), ('DH037', 'PB018', 'CT018', 8),
-('DH038', 'PB034', 'CT034', 3), ('DH038', 'PB016', 'CT016', 3),
-('DH039', 'PB035', 'CT035', 2), ('DH039', 'PB039', 'CT039', 1), ('DH039', 'PB020', 'CT020', 4),
-('DH040', 'PB006', 'CT006', 1), ('DH040', 'PB022', 'CT022', 2), ('DH040', 'PB019', 'CT019', 5)
+-- DH001: Lẩu Thái M, Chả giò L, Bia Sài Gòn M
+('DH001', 'PB002', 'CT006_M', 1), ('DH001', 'PB003', 'CT003_L', 2), ('DH001', 'PB002', 'CT019_M', 5),
+-- DH002: Lẩu bò M, Sườn nướng M, Hạt dưa S
+('DH002', 'PB002', 'CT008_M', 2), ('DH002', 'PB002', 'CT021_M', 1), ('DH002', 'PB001', 'CT001_S', 1),
+-- DH003: Cơm tấm M, Coca M
+('DH003', 'PB002', 'CT031_M', 4), ('DH003', 'PB002', 'CT020_M', 4),
+-- DH004: Cơm gà M, Nước lọc M
+('DH004', 'PB002', 'CT034_M', 2), ('DH004', 'PB002', 'CT016_M', 2),
+-- DH005: Cơm bò lúc lắc M, Đậu hũ chiên sả M, Pepsi M
+('DH005', 'PB002', 'CT035_M', 2), ('DH005', 'PB002', 'CT027_M', 1), ('DH005', 'PB002', 'CT018_M', 4),
+-- DH006: Tôm hùm M, Cua rang me M, Sò điệp M, Bia Sài Gòn M
+('DH006', 'PB002', 'CT036_M', 1), ('DH006', 'PB002', 'CT037_M', 1), ('DH006', 'PB002', 'CT040_M', 2), ('DH006', 'PB002', 'CT019_M', 10),
+-- DH007: Tôm nướng M, Bia Sài Gòn M
+('DH007', 'PB002', 'CT023_M', 1), ('DH007', 'PB002', 'CT019_M', 4),
+-- DH008: Salad M, Bánh flan M, Nước ép M
+('DH008', 'PB002', 'CT005_M', 1), ('DH008', 'PB002', 'CT011_M', 2), ('DH008', 'PB002', 'CT017_M', 2),
+-- DH009: Lẩu gà M, Ba chỉ bò M, Đậu phộng S
+('DH009', 'PB002', 'CT007_M', 1), ('DH009', 'PB002', 'CT024_M', 2), ('DH009', 'PB001', 'CT002_S', 1),
+-- DH010: Lẩu cá hồi M, Lẩu tôm M, Hàu nướng M
+('DH010', 'PB002', 'CT009_M', 1), ('DH010', 'PB002', 'CT010_M', 1), ('DH010', 'PB002', 'CT022_M', 2),
+-- DH011: Gà nướng M, Pepsi M
+('DH011', 'PB002', 'CT025_M', 2), ('DH011', 'PB002', 'CT018_M', 4),
+-- DH012: Cơm chay M, Canh chua chay M
+('DH012', 'PB002', 'CT026_M', 3), ('DH012', 'PB002', 'CT028_M', 1),
+-- DH013: Mì xào chay M, Nấm hấp M, Nước lọc M
+('DH013', 'PB002', 'CT029_M', 2), ('DH013', 'PB002', 'CT030_M', 2), ('DH013', 'PB002', 'CT016_M', 6),
+-- DH014: Cơm tấm M, Cơm chiên M, Coca M
+('DH014', 'PB002', 'CT031_M', 1), ('DH014', 'PB002', 'CT032_M', 1), ('DH014', 'PB002', 'CT020_M', 2),
+-- DH015: Cơm rang hải sản M, Cơm gà M
+('DH015', 'PB002', 'CT033_M', 1), ('DH015', 'PB002', 'CT034_M', 1),
+-- DH016: Lẩu Thái M, Lẩu bò M, Sườn nướng M, Bia Sài Gòn M
+('DH016', 'PB002', 'CT006_M', 3), ('DH016', 'PB002', 'CT008_M', 3), ('DH016', 'PB002', 'CT021_M', 5), ('DH016', 'PB002', 'CT019_M', 20),
+-- DH017: Ghẹ hấp M, Mực chiên M, Sò điệp M
+('DH017', 'PB002', 'CT038_M', 2), ('DH017', 'PB002', 'CT039_M', 3), ('DH017', 'PB002', 'CT040_M', 3),
+-- DH018: Cơm tấm M
+('DH018', 'PB002', 'CT031_M', 1),
+-- DH019: Cơm bò lúc lắc M, Nước lọc M
+('DH019', 'PB002', 'CT035_M', 3), ('DH019', 'PB002', 'CT016_M', 3),
+-- DH020: Lẩu Thái M, Ba chỉ bò M, Chả giò L
+('DH020', 'PB002', 'CT006_M', 1), ('DH020', 'PB002', 'CT024_M', 2), ('DH020', 'PB003', 'CT003_L', 2),
+-- DH021: Lẩu gà M, Hạt dưa S, Bia Sài Gòn M
+('DH021', 'PB002', 'CT007_M', 1), ('DH021', 'PB001', 'CT001_S', 1), ('DH021', 'PB002', 'CT019_M', 6),
+-- DH022: Cơm tấm M, Cơm gà M, Cơm chiên M
+('DH022', 'PB002', 'CT031_M', 2), ('DH022', 'PB002', 'CT034_M', 2), ('DH022', 'PB002', 'CT032_M', 2),
+-- DH023: Cơm bò lúc lắc M, Coca M
+('DH023', 'PB002', 'CT035_M', 5), ('DH023', 'PB002', 'CT020_M', 5),
+-- DH024: Lẩu cá hồi M, Chả giò L
+('DH024', 'PB002', 'CT009_M', 1), ('DH024', 'PB003', 'CT003_L', 2),
+-- DH025: Tôm hùm M, Cua rang me M
+('DH025', 'PB002', 'CT036_M', 1), ('DH025', 'PB002', 'CT037_M', 2),
+-- DH026: Hàu nướng M, Sườn nướng M, Pepsi M
+('DH026', 'PB002', 'CT022_M', 3), ('DH026', 'PB002', 'CT021_M', 2), ('DH026', 'PB002', 'CT018_M', 7),
+-- DH027: Sò điệp M, Mực chiên M, Bia Sài Gòn M
+('DH027', 'PB002', 'CT040_M', 4), ('DH027', 'PB002', 'CT039_M', 2), ('DH027', 'PB002', 'CT019_M', 10),
+-- DH028: Cơm tấm M, Nước lọc M
+('DH028', 'PB002', 'CT031_M', 9), ('DH028', 'PB002', 'CT016_M', 9),
+-- DH029: Nấm hấp M, Coca M
+('DH029', 'PB002', 'CT030_M', 10), ('DH029', 'PB002', 'CT020_M', 10),
+-- DH030: Tôm nướng M, Hạt dưa S, Bia Sài Gòn M
+('DH030', 'PB002', 'CT023_M', 1), ('DH030', 'PB001', 'CT001_S', 1), ('DH030', 'PB002', 'CT019_M', 2),
+-- DH031: Ba chỉ bò M, Pepsi M
+('DH031', 'PB002', 'CT024_M', 2), ('DH031', 'PB002', 'CT018_M', 4),
+-- DH032: Salad M, Bánh flan M
+('DH032', 'PB002', 'CT005_M', 1), ('DH032', 'PB002', 'CT011_M', 2),
+-- DH033: Chè hạt sen M, Sữa chua nếp cẩm M
+('DH033', 'PB002', 'CT012_M', 1), ('DH033', 'PB002', 'CT013_M', 1),
+-- DH034: Cơm chiên M, Cơm rang hải sản M, Nước lọc M
+('DH034', 'PB002', 'CT032_M', 5), ('DH034', 'PB002', 'CT033_M', 5), ('DH034', 'PB002', 'CT016_M', 10),
+-- DH035: Cơm tấm M, Coca M
+('DH035', 'PB002', 'CT031_M', 11), ('DH035', 'PB002', 'CT020_M', 11),
+-- DH036: Lẩu Thái M, Lẩu gà M, Bia Sài Gòn M
+('DH036', 'PB002', 'CT006_M', 1), ('DH036', 'PB002', 'CT007_M', 1), ('DH036', 'PB002', 'CT019_M', 8),
+-- DH037: Lẩu bò M, Sườn nướng M, Pepsi M
+('DH037', 'PB002', 'CT008_M', 2), ('DH037', 'PB002', 'CT021_M', 3), ('DH037', 'PB002', 'CT018_M', 8),
+-- DH038: Cơm gà M, Nước lọc M
+('DH038', 'PB002', 'CT034_M', 3), ('DH038', 'PB002', 'CT016_M', 3),
+-- DH039: Cơm bò lúc lắc M, Mực chiên M, Coca M
+('DH039', 'PB002', 'CT035_M', 2), ('DH039', 'PB002', 'CT039_M', 1), ('DH039', 'PB002', 'CT020_M', 4),
+-- DH040: Lẩu Thái M, Hàu nướng M, Bia Sài Gòn M
+('DH040', 'PB002', 'CT006_M', 1), ('DH040', 'PB002', 'CT022_M', 2), ('DH040', 'PB002', 'CT019_M', 5)
 ) AS T(MaDonHang, MaPhienBan, MaCongThuc, SoLuong);
 GO
 
@@ -1441,34 +1572,34 @@ INSERT INTO [dbo].[Menu] ([MaMenu], [TenMenu], [MaLoaiMenu], [MaTrangThai], [Gia
 ('MENU006', N'Menu Tết Nguyên Đán 2025', 'LM004', 'CHUA_AP_DUNG', 1200000, 1400000, N'Menu đặc biệt dịp Tết, áp dụng từ 28/12 - 5/1', NULL, '2025-12-28', '2026-01-05', 1, 6);
 GO
 
--- Chèn dữ liệu chi tiết cho Menu Set A
+-- Chèn dữ liệu chi tiết cho Menu Set A (Sử dụng Size M làm mặc định)
 INSERT INTO [dbo].[ChiTietMenu] ([MaMenu], [MaCongThuc], [SoLuong], [GhiChu], [ThuTu]) VALUES
-('MENU001', 'CT031', 1, N'Cơm tấm sườn bì chả', 1),
-('MENU001', 'CT028', 1, N'Canh chua chay', 2),
-('MENU001', 'CT016', 1, N'Nước lọc', 3);
+('MENU001', 'CT031_M', 1, N'Cơm tấm sườn bì chả', 1),
+('MENU001', 'CT028_M', 1, N'Canh chua chay', 2),
+('MENU001', 'CT016_M', 1, N'Nước lọc', 3);
 GO
 
--- Chèn dữ liệu chi tiết cho Menu Set B
+-- Chèn dữ liệu chi tiết cho Menu Set B (Sử dụng Size M làm mặc định)
 INSERT INTO [dbo].[ChiTietMenu] ([MaMenu], [MaCongThuc], [SoLuong], [GhiChu], [ThuTu]) VALUES
-('MENU002', 'CT006', 1, N'Lẩu Thái hải sản', 1),
-('MENU002', 'CT031', 2, N'Cơm tấm (2 phần)', 2),
-('MENU002', 'CT016', 2, N'Nước lọc (2 chai)', 3);
+('MENU002', 'CT006_M', 1, N'Lẩu Thái hải sản', 1),
+('MENU002', 'CT031_M', 2, N'Cơm tấm (2 phần)', 2),
+('MENU002', 'CT016_M', 2, N'Nước lọc (2 chai)', 3);
 GO
 
--- Chèn dữ liệu chi tiết cho Menu Set C
+-- Chèn dữ liệu chi tiết cho Menu Set C (Sử dụng Size M làm mặc định)
 INSERT INTO [dbo].[ChiTietMenu] ([MaMenu], [MaCongThuc], [SoLuong], [GhiChu], [ThuTu]) VALUES
-('MENU003', 'CT036', 1, N'Tôm hùm nướng bơ tỏi', 1),
-('MENU003', 'CT037', 1, N'Cua rang me', 2),
-('MENU003', 'CT016', 2, N'Nước lọc (2 chai)', 3);
+('MENU003', 'CT036_M', 1, N'Tôm hùm nướng bơ tỏi', 1),
+('MENU003', 'CT037_M', 1, N'Cua rang me', 2),
+('MENU003', 'CT016_M', 2, N'Nước lọc (2 chai)', 3);
 GO
 
--- Chèn dữ liệu chi tiết cho Menu gia đình 4 người
+-- Chèn dữ liệu chi tiết cho Menu gia đình 4 người (Sử dụng Size M làm mặc định)
 INSERT INTO [dbo].[ChiTietMenu] ([MaMenu], [MaCongThuc], [SoLuong], [GhiChu], [ThuTu]) VALUES
-('MENU005', 'CT031', 4, N'Cơm tấm (4 phần)', 1),
-('MENU005', 'CT021', 1, N'Sườn nướng BBQ', 2),
-('MENU005', 'CT024', 1, N'Ba chỉ bò nướng', 3),
-('MENU005', 'CT028', 1, N'Canh chua chay', 4),
-('MENU005', 'CT016', 4, N'Nước lọc (4 chai)', 5);
+('MENU005', 'CT031_M', 4, N'Cơm tấm (4 phần)', 1),
+('MENU005', 'CT021_M', 1, N'Sườn nướng BBQ', 2),
+('MENU005', 'CT024_M', 1, N'Ba chỉ bò nướng', 3),
+('MENU005', 'CT028_M', 1, N'Canh chua chay', 4),
+('MENU005', 'CT016_M', 4, N'Nước lọc (4 chai)', 5);
 GO
 
 -- Gán bàn vào các tầng
