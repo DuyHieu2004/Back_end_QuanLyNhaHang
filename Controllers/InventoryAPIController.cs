@@ -130,6 +130,7 @@ namespace QuanLyNhaHang.Controllers
                 .Include(n => n.MaNhaCungCapNavigation) // Lấy tên NCC
                 .Include(n => n.MaNhanVienNavigation)   // Lấy tên Nhân viên
                 .Include(n => n.MaTrangThaiNavigation)  // Lấy tên Trạng thái (Tiếng Việt)
+                .Include(n => n.ChiTietNhapHangs)
                 .AsQueryable();
 
             // Filter theo mã trạng thái (VD: "MOI_TAO", "DA_HOAN_TAT")
@@ -150,7 +151,7 @@ namespace QuanLyNhaHang.Controllers
                     TenNhaCungCap = n.MaNhaCungCapNavigation != null ? n.MaNhaCungCapNavigation.TenNhaCungCap : "Chưa xác định",
 
                     TenNhanVien = n.MaNhanVienNavigation.HoTen,
-                    n.TongTien,
+                    TongTien = n.ChiTietNhapHangs.Sum(ct => ct.SoLuong * ct.GiaNhap),
 
                     // Trả về cả Mã và Tên hiển thị
                     MaTrangThai = n.MaTrangThai,
@@ -229,6 +230,28 @@ namespace QuanLyNhaHang.Controllers
 
             return Ok(result);
         }
+
+
+        [HttpGet("stock")]
+        public async Task<IActionResult> GetInventoryStock()
+        {
+            var stockList = await _context.NguyenLieus
+                .Select(n => new
+                {
+                    n.MaNguyenLieu,
+                    n.TenNguyenLieu,
+                    n.DonViTinh,
+                    SoLuongTon = n.SoLuongTonKho,
+                    DonGia = n.GiaBan, // Hoặc giá vốn nếu bạn có
+                                       // Logic cảnh báo: Dưới 10 là Sắp hết, <= 0 là Hết hàng
+                    TrangThai = n.SoLuongTonKho <= 0 ? "HET_HANG" : (n.SoLuongTonKho < 10 ? "SAP_HET" : "CON_HANG")
+                })
+                .OrderBy(n => n.SoLuongTon) // Ưu tiên hiện cái sắp hết lên đầu
+                .ToListAsync();
+
+            return Ok(stockList);
+        }
+
 
         // ==================================================================================
         // 2. API: Tạo phiếu nhập mới (Create)
