@@ -300,7 +300,10 @@ namespace QuanLyNhaHang.Controllers
             var bookings = await _context.DonHangs
                 .Include(dh => dh.MaTrangThaiDonHangNavigation)
                 .Include(dh => dh.MaKhachHangNavigation)
-                // Include để lấy Bàn
+                // Include để lấy Bàn - SỬA: Lấy trực tiếp từ DonHang.BanAnDonHangs
+                .Include(dh => dh.BanAnDonHangs)
+                    .ThenInclude(badh => badh.MaBanNavigation)
+                // Cũng include ChiTietDonHangs để lấy bàn từ món ăn (nếu có)
                 .Include(dh => dh.ChiTietDonHangs)
                     .ThenInclude(ct => ct.BanAnDonHangs)
                         .ThenInclude(badh => badh.MaBanNavigation)
@@ -310,23 +313,40 @@ namespace QuanLyNhaHang.Controllers
                 .OrderBy(dh => dh.TGNhanBan)
                 .ToListAsync(); // Lấy về trước để xử lý Select phức tạp bên dưới
 
-            var result = bookings.Select(dh => new
+            var result = bookings.Select(dh =>
             {
-                maDonHang = dh.MaDonHang,
-                tenNguoiNhan = dh.TenNguoiNhan ?? dh.MaKhachHangNavigation.HoTen,
-                soNguoi = dh.SoLuongNguoiDK,
-                thoiGianNhanBan = dh.TGNhanBan,
-                trangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai,
-                maTrangThai = dh.MaTrangThaiDonHang,
-                // Logic lấy Bàn: Gom từ tất cả chi tiết món ăn
-                listMaBan = dh.ChiTietDonHangs
-                              .SelectMany(ct => ct.BanAnDonHangs)
-                              .Select(b => b.MaBan)
-                              .Distinct().ToList(),
-                banAn = dh.ChiTietDonHangs
-                          .SelectMany(ct => ct.BanAnDonHangs)
-                          .Select(b => b.MaBanNavigation.TenBan)
-                          .Distinct().ToList()
+                // SỬA LOGIC: Lấy bàn từ cả hai nguồn:
+                // 1. Từ DonHang.BanAnDonHangs (bàn đã đặt, chưa có món) - QUAN TRỌNG: Đây là nguồn chính khi đặt bàn
+                // 2. Từ ChiTietDonHangs -> BanAnDonHangs (bàn có món)
+                var banTuDatBan = dh.BanAnDonHangs
+                    .Where(b => b.MaBanNavigation != null)
+                    .Select(b => new { MaBan = b.MaBan, TenBan = b.MaBanNavigation.TenBan })
+                    .ToList();
+
+                var banTuMonAn = dh.ChiTietDonHangs
+                    .SelectMany(ct => ct.BanAnDonHangs)
+                    .Where(b => b.MaBanNavigation != null)
+                    .Select(b => new { MaBan = b.MaBan, TenBan = b.MaBanNavigation.TenBan })
+                    .ToList();
+
+                // Gộp và loại bỏ trùng lặp
+                var allBans = banTuDatBan
+                    .Union(banTuMonAn)
+                    .GroupBy(b => b.MaBan)
+                    .Select(g => g.First())
+                    .ToList();
+
+                return new
+                {
+                    maDonHang = dh.MaDonHang,
+                    tenNguoiNhan = dh.TenNguoiNhan ?? dh.MaKhachHangNavigation.HoTen,
+                    soNguoi = dh.SoLuongNguoiDK,
+                    thoiGianNhanBan = dh.TGNhanBan,
+                    trangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai,
+                    maTrangThai = dh.MaTrangThaiDonHang,
+                    listMaBan = allBans.Select(b => b.MaBan).ToList(),
+                    banAn = allBans.Select(b => b.TenBan).ToList()
+                };
             });
 
             return Ok(result);
