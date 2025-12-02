@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace QuanLyNhaHang.Controllers
@@ -638,6 +639,7 @@ namespace QuanLyNhaHang.Controllers
 
 
         [HttpPut("CapNhatTrangThai/{maDonHang}")]
+        [Authorize(Roles = "NhanVien, QuanLy")] // <-- Nên bỏ comment dòng này để bắt buộc đăng nhập mới có Token
         public async Task<IActionResult> CapNhatTrangThai(string maDonHang, [FromBody] string maTrangThai)
         {
             if (string.IsNullOrWhiteSpace(maTrangThai)) return BadRequest(new { message = "Mã trạng thái không hợp lệ." });
@@ -645,7 +647,7 @@ namespace QuanLyNhaHang.Controllers
             // Include đầy đủ để lấy tên bàn và thông tin khách gửi mail
             var donHang = await _context.DonHangs
                 .Include(dh => dh.BanAnDonHangs)
-                .ThenInclude(badh => badh.MaBanNavigation) // Để lấy tên bàn
+                .ThenInclude(badh => badh.MaBanNavigation)
                 .FirstOrDefaultAsync(dh => dh.MaDonHang == maDonHang);
 
             if (donHang == null) return NotFound(new { message = "Không tìm thấy đơn hàng." });
@@ -654,6 +656,25 @@ namespace QuanLyNhaHang.Controllers
             var exists = await _context.TrangThaiDonHangs.AnyAsync(t => t.MaTrangThai == maTrangThai);
             if (!exists) return BadRequest(new { message = "Trạng thái không tồn tại." });
 
+            // --- LOGIC MỚI: CẬP NHẬT MÃ NHÂN VIÊN DUYỆT ĐƠN ---
+            if (maTrangThai == "DA_XAC_NHAN" || maTrangThai == "CHO_THANH_TOAN")
+            {
+                // Lấy User ID từ Token (ClaimTypes.NameIdentifier hoặc JwtRegisteredClaimNames.Sub)
+                // Trong JwtService của bạn: new Claim(JwtRegisteredClaimNames.Sub, nhanVien.MaNhanVien)
+                // Nên ID nằm ở ClaimTypes.NameIdentifier
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+
+                // Kiểm tra xem User này có phải là Nhân Viên không (dựa vào Role)
+                var role = User.FindFirstValue(ClaimTypes.Role);
+
+                if (!string.IsNullOrEmpty(userId) && role == "NhanVien")
+                {
+                    // Cập nhật người phụ trách đơn hàng
+                    donHang.MaNhanVien = userId;
+                }
+            }
+            // ----------------------------------------------------
+
             // Cập nhật trạng thái đơn
             donHang.MaTrangThaiDonHang = maTrangThai;
             string maTrangThaiBanMoi = null;
@@ -661,7 +682,7 @@ namespace QuanLyNhaHang.Controllers
             // --- LOGIC XỬ LÝ TRẠNG THÁI BÀN ---
             switch (maTrangThai)
             {
-                case "CHO_THANH_TOAN": // Khách vào bàn
+                case "CHO_THANH_TOAN": // Khách vào bàn (Đang phục vụ)
                     maTrangThaiBanMoi = "TTBA002"; // Đang có khách
                     if (donHang.TGNhanBan == null) donHang.TGNhanBan = DateTime.Now;
                     break;
@@ -695,39 +716,35 @@ namespace QuanLyNhaHang.Controllers
             await _context.SaveChangesAsync();
 
             // =================================================================
-            // BƯỚC GỬI EMAIL (Logic mới thêm)
+            // BƯỚC GỬI EMAIL (Logic cũ giữ nguyên)
             // =================================================================
             if (maTrangThai == "DA_XAC_NHAN" && !string.IsNullOrEmpty(donHang.EmailNguoiNhan))
             {
                 try
                 {
-                    // Lấy danh sách tên bàn để hiển thị trong mail
                     var listTenBan = donHang.BanAnDonHangs
-                                        .Where(b => b.MaBanNavigation != null)
-                                        .Select(b => b.MaBanNavigation.TenBan)
-                                        .ToList();
+                                            .Where(b => b.MaBanNavigation != null)
+                                            .Select(b => b.MaBanNavigation.TenBan)
+                                            .ToList();
                     string tenCacBan = string.Join(", ", listTenBan);
 
-                    // Resolve Service gửi mail (lấy từ HttpContext giống TaoDatBan)
                     var emailService = HttpContext.RequestServices.GetService<Services.IEmailService>();
 
                     if (emailService != null)
                     {
-                        // Gửi mail không chờ (Fire and forget) để không làm chậm response
                         _ = emailService.SendBookingConfirmationEmailAsync(
-                            donHang.EmailNguoiNhan,          // Email khách
-                            donHang.TenNguoiNhan,            // Tên khách
-                            donHang.MaDonHang,               // Mã đơn
-                            tenCacBan,                       // Tên bàn
-                            donHang.TGNhanBan ?? DateTime.Now, // Giờ nhận bàn
-                            donHang.SoLuongNguoiDK,          // Số người
-                            donHang.GhiChu                   // Ghi chú
+                            donHang.EmailNguoiNhan,
+                            donHang.TenNguoiNhan,
+                            donHang.MaDonHang,
+                            tenCacBan,
+                            donHang.TGNhanBan ?? DateTime.Now,
+                            donHang.SoLuongNguoiDK,
+                            donHang.GhiChu
                         );
                     }
                 }
                 catch (Exception ex)
                 {
-                    // Log lỗi mail nhưng không return lỗi API
                     Console.WriteLine("Lỗi gửi mail xác nhận: " + ex.Message);
                 }
             }
