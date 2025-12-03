@@ -38,6 +38,98 @@ namespace QuanLyNhaHang.Controllers
             public string GhiChu { get; set; }
         }
 
+        // DTO nhận dữ liệu từ Client (Không cần MaBan nữa, chỉ cần MaDonHang)
+        public class ThemMonVaoDonRequest
+        {
+            public string MaDonHang { get; set; }
+            public List<MonAnOrderDTO> Items { get; set; }
+        }
+
+        // =============================================================
+        // API: THÊM MÓN VÀO ĐƠN HÀNG (Hỗ trợ đơn gộp bàn)
+        // =============================================================
+        [HttpPost("ThemMonVaoDon")]
+        public async Task<IActionResult> ThemMonVaoDon([FromBody] ThemMonVaoDonRequest request)
+        {
+            // 1. Kiểm tra đơn hàng và lấy danh sách bàn của đơn đó
+            var donHang = await _context.DonHangs
+                .Include(dh => dh.BanAnDonHangs) // Lấy các bàn đang thuộc đơn này
+                .FirstOrDefaultAsync(dh => dh.MaDonHang == request.MaDonHang);
+
+            if (donHang == null)
+                return NotFound(new { message = "Không tìm thấy đơn hàng" });
+
+            // Kiểm tra đơn hàng có bàn nào không? (Lý thuyết phải có ít nhất 1 bàn)
+            if (donHang.BanAnDonHangs == null || !donHang.BanAnDonHangs.Any())
+            {
+                return BadRequest(new { message = "Đơn hàng này chưa được xếp bàn nào." });
+            }
+
+            // Lấy ra bàn đầu tiên để gán món (Đại diện)
+            // Vì món ăn thuộc về Đơn hàng là chính, việc gán vào bàn nào trong nhóm bàn gộp chỉ là kỹ thuật lưu trữ
+            var banDaiDien = donHang.BanAnDonHangs.FirstOrDefault()?.MaBan;
+
+            try
+            {
+                foreach (var item in request.Items)
+                {
+                    // 2. Tìm công thức món ăn (Validate)
+                    var congThuc = await _context.CongThucNauAns
+                        .Include(ct => ct.MaCtNavigation)
+                        .FirstOrDefaultAsync(ct =>
+                            ct.MaPhienBan == item.MaPhienBan &&
+                            ct.MaCtNavigation.MaMonAn == item.MaMonAn
+                        );
+
+                    if (congThuc == null)
+                    {
+                        return BadRequest(new { message = $"Không tìm thấy món hoặc size: {item.MaMonAn} - {item.MaPhienBan}" });
+                    }
+
+                    // 3. Tạo Chi Tiết Đơn Hàng
+                    var maChiTietMoi = "CTDH" + DateTime.Now.Ticks.ToString().Substring(10) + new Random().Next(100, 999);
+
+                    var chiTietMoi = new ChiTietDonHang
+                    {
+                        MaChiTietDonHang = maChiTietMoi,
+                        MaDonHang = request.MaDonHang,
+                        MaPhienBan = item.MaPhienBan,
+                        MaCongThuc = congThuc.MaCongThuc,
+                        SoLuong = item.SoLuong,
+                        // GhiChu = item.GhiChu // Nếu có trường Ghi chú
+                    };
+                    _context.ChiTietDonHangs.Add(chiTietMoi);
+
+                    // 4. Tạo liên kết BanAnDonHang (Gán vào bàn đại diện)
+                    // Bắt buộc phải có bản ghi này thì món mới hiện lên khi query theo bàn
+                    var banAnDonHang = new BanAnDonHang
+                    {
+                        MaBanAnDonHang = "BADH" + DateTime.Now.Ticks.ToString().Substring(10) + new Random().Next(100, 999),
+                        MaBan = banDaiDien,
+                        MaChiTietDonHang = maChiTietMoi,
+                        MaDonHang = request.MaDonHang // (Nếu DB bạn có cột này ở bảng trung gian thì bỏ comment)
+                    };
+                    _context.BanAnDonHangs.Add(banAnDonHang);
+                }
+
+                // Cập nhật trạng thái đơn hàng nếu cần (VD: Đang từ "Chờ thanh toán" -> quay lại "Đang phục vụ"?)
+                // donHang.MaTrangThaiDonHang = "DANG_PHUC_VU"; 
+
+                await _context.SaveChangesAsync();
+
+                // Tính lại tổng tiền để trả về cho frontend cập nhật UI ngay (Option)
+                var tongTienMoi = await _context.ChiTietDonHangs
+                    .Where(ct => ct.MaDonHang == request.MaDonHang)
+                    .SumAsync(ct => ct.SoLuong * ct.MaCongThucNavigation.Gia);
+
+                return Ok(new { message = "Thêm món thành công", tongTien = tongTienMoi });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi server: " + ex.Message });
+            }
+        }
+
         // =============================================================
         // API: THÊM MÓN (SỬA LẠI LOGIC: TẠO CHI TIẾT -> GÁN BÀN)
         // =============================================================
@@ -290,11 +382,11 @@ namespace QuanLyNhaHang.Controllers
             }
         }
 
-        // 4. API: Lấy Booking đang active
         [HttpGet("GetActiveBookings")]
         public async Task<IActionResult> GetActiveBookings([FromQuery] DateTime? ngay)
         {
             DateTime filterDate = ngay?.Date ?? DateTime.Today;
+            // Add DA_XAC_NHAN and CHO_XAC_NHAN which are common for future bookings
             var activeStatuses = new[] { "CHO_XAC_NHAN", "DA_XAC_NHAN", "CHO_THANH_TOAN", "DANG_PHUC_VU" };
 
             var bookings = await _context.DonHangs
@@ -308,9 +400,15 @@ namespace QuanLyNhaHang.Controllers
                     .ThenInclude(ct => ct.BanAnDonHangs)
                         .ThenInclude(badh => badh.MaBanNavigation)
                 .Where(dh => activeStatuses.Contains(dh.MaTrangThaiDonHang) &&
-                             dh.TGNhanBan.HasValue &&
-                             dh.TGNhanBan.Value.Date == filterDate)
-                .OrderBy(dh => dh.TGNhanBan)
+                             (
+                                // Case 1: Đã check-in (TGNhanBan có giá trị) -> So sánh TGNhanBan
+                                (dh.TGNhanBan.HasValue && dh.TGNhanBan.Value.Date == filterDate) ||
+                                // Case 2: Chưa check-in (TGNhanBan null, dùng TgdatDuKien) -> So sánh TgdatDuKien
+                                (!dh.TGNhanBan.HasValue && dh.TgdatDuKien.HasValue && dh.TgdatDuKien.Value.Date == filterDate)
+                             )
+                )
+                // Order by actual arrival time or expected time
+                .OrderBy(dh => dh.TGNhanBan ?? dh.TgdatDuKien)
                 .ToListAsync(); // Lấy về trước để xử lý Select phức tạp bên dưới
 
             var result = bookings.Select(dh =>
@@ -339,10 +437,11 @@ namespace QuanLyNhaHang.Controllers
                 return new
                 {
                     maDonHang = dh.MaDonHang,
-                    tenNguoiNhan = dh.TenNguoiNhan ?? dh.MaKhachHangNavigation.HoTen,
+                    tenNguoiNhan = dh.TenNguoiNhan ?? dh.MaKhachHangNavigation?.HoTen ?? "Khách lẻ",
                     soNguoi = dh.SoLuongNguoiDK,
-                    thoiGianNhanBan = dh.TGNhanBan,
-                    trangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai,
+                    // Trả về thời gian hiển thị: Nếu chưa đến thì hiện giờ dự kiến
+                    thoiGianNhanBan = dh.TGNhanBan ?? dh.TgdatDuKien,
+                    trangThai = dh.MaTrangThaiDonHangNavigation?.TenTrangThai ?? dh.MaTrangThaiDonHang,
                     maTrangThai = dh.MaTrangThaiDonHang,
                     listMaBan = allBans.Select(b => b.MaBan).ToList(),
                     banAn = allBans.Select(b => b.TenBan).ToList()
