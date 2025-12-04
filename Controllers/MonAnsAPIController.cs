@@ -29,7 +29,8 @@ public class MonAnsAPIController : ControllerBase
         if (!string.IsNullOrEmpty(maDanhMuc) && maDanhMuc != "All" && maDanhMuc != "Tất cả")
         {
             // Tìm theo Mã hoặc Tên danh mục (để FE gửi tên cũng được)
-            query = query.Where(m => m.MaDanhMuc == maDanhMuc || m.MaDanhMucNavigation.TenDanhMuc == maDanhMuc);
+            query = query.Where(m => m.MaDanhMuc == maDanhMuc || 
+                                (m.MaDanhMucNavigation != null && m.MaDanhMucNavigation.TenDanhMuc == maDanhMuc));
         }
 
         // 3. Tìm kiếm (Search)
@@ -56,20 +57,24 @@ public class MonAnsAPIController : ControllerBase
         var dtos = monAns.Select(m => {
 
             // Gom tất cả công thức (phiên bản) từ các chi tiết món ăn
-            var allCongThucs = m.ChiTietMonAns
-                .SelectMany(ct => ct.CongThucNauAns)
+            var allCongThucs = (m.ChiTietMonAns ?? new List<ChiTietMonAn>())
+                .SelectMany(ct => ct.CongThucNauAns ?? new List<CongThucNauAn>())
                 .Where(cta => cta.MaPhienBanNavigation != null) // Bỏ qua lỗi null
                 .ToList();
 
             // Group by Phiên Bản để loại bỏ trùng lặp (nếu có)
             var phienBanDTOs = allCongThucs
                 .GroupBy(cta => cta.MaPhienBan)
-                .Select(g => new PhienBanMonAnDetailDTO
-                {
-                    MaPhienBan = g.Key,
-                    TenPhienBan = g.First().MaPhienBanNavigation.TenPhienBan, // Tên size (Nhỏ, Lớn...)
-                    Gia = g.First().Gia, // Giá tiền
-                    ThuTu = g.First().MaPhienBanNavigation.ThuTu
+                .Where(g => g.First().MaPhienBanNavigation != null) // Đảm bảo có navigation property
+                .Select(g => {
+                    var first = g.First();
+                    return new PhienBanMonAnDetailDTO
+                    {
+                        MaPhienBan = g.Key,
+                        TenPhienBan = first.MaPhienBanNavigation?.TenPhienBan ?? "", // Tên size (Nhỏ, Lớn...)
+                        Gia = first.Gia, // Giá tiền
+                        ThuTu = first.MaPhienBanNavigation?.ThuTu ?? 0
+                    };
                 })
                 .OrderBy(pb => pb.ThuTu) // Sắp xếp size (Nhỏ -> Lớn)
                 .ToList();
@@ -83,10 +88,10 @@ public class MonAnsAPIController : ControllerBase
                 IsShow = m.IsShow?? true,
 
                 // Lấy hình ảnh đầu tiên làm đại diện
-                HinhAnhMonAns = m.HinhAnhMonAns.Select(h => new HinhAnhDTO
+                HinhAnhMonAns = (m.HinhAnhMonAns ?? new List<HinhAnhMonAn>()).Select(h => new HinhAnhDTO
                 {
                     Id = h.Id,
-                    URLHinhAnh = h.UrlhinhAnh
+                    URLHinhAnh = h.UrlhinhAnh ?? ""
                 }).ToList(),
 
                 PhienBanMonAns = phienBanDTOs
@@ -122,9 +127,9 @@ public class MonAnsAPIController : ControllerBase
        // Lấy tất cả phiên bản từ các công thức
        var phienBanDict = new Dictionary<string, PhienBanMonAnDetailDTO>();
        
-       foreach (var chiTiet in monAn.ChiTietMonAns)
+       foreach (var chiTiet in monAn.ChiTietMonAns ?? new List<ChiTietMonAn>())
        {
-           foreach (var congThuc in chiTiet.CongThucNauAns)
+           foreach (var congThuc in chiTiet.CongThucNauAns ?? new List<CongThucNauAn>())
            {
                var phienBan = congThuc.MaPhienBanNavigation;
                if (phienBan == null) continue;
@@ -145,7 +150,7 @@ public class MonAnsAPIController : ControllerBase
                }
                
                // Thêm nguyên liệu từ ChiTietCongThuc
-               foreach (var chiTietCongThuc in congThuc.ChiTietCongThucs)
+               foreach (var chiTietCongThuc in congThuc.ChiTietCongThucs ?? new List<ChiTietCongThuc>())
                {
                    phienBanDict[phienBan.MaPhienBan].CongThucNauAns.Add(new CongThucNauAnDetailDTO
                    {
@@ -167,10 +172,10 @@ public class MonAnsAPIController : ControllerBase
            MaDanhMuc = monAn.MaDanhMuc,
            TenDanhMuc = monAn.MaDanhMucNavigation?.TenDanhMuc,
            IsShow = monAn.IsShow?? true,
-           HinhAnhMonAns = monAn.HinhAnhMonAns.Select(h => new HinhAnhDTO
+           HinhAnhMonAns = (monAn.HinhAnhMonAns ?? new List<HinhAnhMonAn>()).Select(h => new HinhAnhDTO
            {
                Id = h.Id,
-               URLHinhAnh = h.UrlhinhAnh
+               URLHinhAnh = h.UrlhinhAnh ?? ""
            }).ToList(),
            PhienBanMonAns = phienBanDict.Values.OrderBy(pb => pb.ThuTu ?? 0).ToList()
        };
