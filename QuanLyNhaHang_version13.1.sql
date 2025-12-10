@@ -1320,33 +1320,36 @@ BEGIN
 END
 GO
 
--- Trigger cập nhật giá bán nguyên liệu
-CREATE OR ALTER TRIGGER [dbo].[trg_NguyenLieu_GiaBanLonHonGiaNhap]
-ON [dbo].[NguyenLieu]
-AFTER UPDATE
-AS
-BEGIN
-    SET NOCOUNT ON;
-    IF UPDATE(GiaBan)
-    BEGIN
-        IF EXISTS (
-            SELECT 1 
-            FROM inserted i
-            JOIN (
-                SELECT MaNguyenLieu, MAX(GiaNhap) AS MaxGiaNhap
-                FROM [dbo].[ChiTietNhapHang]
-                GROUP BY MaNguyenLieu
-            ) MaxNhap ON i.MaNguyenLieu = MaxNhap.MaNguyenLieu
-            WHERE i.GiaBan <= MaxNhap.MaxGiaNhap
-        )
-        BEGIN
-            RAISERROR (N'Lỗi: Giá Bán phải lớn hơn Giá Nhập cao nhất đã có trong Chi Tiết Nhập Hàng.', 16, 1);
-            ROLLBACK TRANSACTION;
-            RETURN;
-        END
-    END
-END
-GO
+---- Trigger cập nhật giá bán nguyên liệu
+--CREATE OR ALTER TRIGGER [dbo].[trg_NguyenLieu_GiaBanLonHonGiaNhap]
+--ON [dbo].[NguyenLieu]
+--AFTER UPDATE
+--AS
+--BEGIN
+--    SET NOCOUNT ON;
+--    IF UPDATE(GiaBan)
+--    BEGIN
+--        IF EXISTS (
+--            SELECT 1 
+--            FROM inserted i
+--            JOIN (
+--                SELECT MaNguyenLieu, MAX(GiaNhap) AS MaxGiaNhap
+--                FROM [dbo].[ChiTietNhapHang]
+--                GROUP BY MaNguyenLieu
+--            ) MaxNhap ON i.MaNguyenLieu = MaxNhap.MaNguyenLieu
+--            WHERE i.GiaBan <= MaxNhap.MaxGiaNhap
+--        )
+--        BEGIN
+--            RAISERROR (N'Lỗi: Giá Bán phải lớn hơn Giá Nhập cao nhất đã có trong Chi Tiết Nhập Hàng.', 16, 1);
+--            ROLLBACK TRANSACTION;
+--            RETURN;
+--        END
+--    END
+--END
+--GO
+
+--DROP TRIGGER [dbo].[trg_NguyenLieu_GiaBanLonHonGiaNhap];
+--GO
 
 CREATE OR ALTER TRIGGER [dbo].[trg_NhapHang_CapNhatTonKho]
 ON [dbo].[NhapHang]
