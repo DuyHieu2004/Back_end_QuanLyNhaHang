@@ -119,6 +119,7 @@ namespace QuanLyNhaHang.Controllers
                     MaBan = ban.MaBan,
                     TenBan = ban.TenBan,
                     SucChua = ban.SucChua,
+                    MaTang = ban.MaTang,
                     TenTang = ban.MaTangNavigation?.TenTang,
                     TrangThaiHienThi = finalStatus,
                     GhiChu = note,
