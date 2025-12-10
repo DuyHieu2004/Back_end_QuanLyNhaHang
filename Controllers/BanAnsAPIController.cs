@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuanLyNhaHang.Models;
@@ -25,6 +26,7 @@ namespace QuanLyNhaHang.Controllers
         // 1. API CHO QUẢN LÝ (XEM TRẠNG THÁI BÀN CHI TIẾT)
         // ==================================================================================
         [HttpGet("GetManagerTableStatus")]
+        [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được xem
         public async Task<IActionResult> GetManagerTableStatus([FromQuery] DateTime dateTime)
         {
             if (_context.BanAns == null) return NotFound();
@@ -155,6 +157,7 @@ namespace QuanLyNhaHang.Controllers
         // 2. API CHO DASHBOARD (TỔNG QUAN)
         // ==================================================================================
         [HttpGet("GetDashboardTableStatus")]
+        [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được xem
         public async Task<IActionResult> GetDashboardTableStatus([FromQuery] DateTime dateTime)
         {
             var allTables = await _context.BanAns
@@ -167,18 +170,27 @@ namespace QuanLyNhaHang.Controllers
             var gioKetThuc = dateTime.AddMinutes(120);
 
             // SỬA LỖI: Truy vấn từ BanAnDonHangs -> ChiTiet -> DonHang
+            // Xử lý cả trường hợp đơn đã check-in (TGNhanBan) và chưa check-in (TgdatDuKien)
             var conflictingData = await _context.BanAnDonHangs
                 .Include(badh => badh.MaChiTietDonHangNavigation)
                     .ThenInclude(ct => ct.MaDonHangNavigation)
                 .Where(badh =>
                     (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
                      badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
-                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
+                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "CHO_THANH_TOAN" ||
+                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "DANG_PHUC_VU") &&
 
-                    badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang != null &&
+                    // Xác định thời gian bắt đầu: ưu tiên TGNhanBan (đã check-in), nếu không có thì dùng TgdatDuKien
+                    ((badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TGNhanBan != null) ||
+                     (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TgdatDuKien != null)) &&
 
+                    badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianKetThuc != null &&
+
+                    // Logic overlap: gioBatDau < thoiGianKetThuc && gioKetThuc > thoiGianBatDau
                     (gioBatDau < badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianKetThuc) &&
-                    (gioKetThuc > badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang)
+                    (gioKetThuc > (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TGNhanBan ?? 
+                                   badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TgdatDuKien ?? 
+                                   badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang).Value)
                 )
                 .Select(badh => new
                 {
@@ -243,6 +255,7 @@ namespace QuanLyNhaHang.Controllers
         // 4. API CẬP NHẬT TRẠNG THÁI BÀN (THỦ CÔNG - KHÔNG ĐỔI)
         // ==================================================================================
         [HttpPut("{maBan}/status")]
+        [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được cập nhật
         public async Task<IActionResult> UpdateTableStatus(string maBan, [FromBody] string maTrangThai)
         {
             if (string.IsNullOrEmpty(maTrangThai)) return BadRequest(new { message = "Mã trạng thái rỗng." });
@@ -264,29 +277,57 @@ namespace QuanLyNhaHang.Controllers
         // 5. API LẤY TRẠNG THÁI THEO GIỜ
         // ==================================================================================
         [HttpGet("GetStatusByTime")]
-        public async Task<IActionResult> GetStatusByTime([FromQuery] DateTime dateTime, [FromQuery] int soNguoi)
+        public async Task<IActionResult> GetStatusByTime([FromQuery] DateTime dateTime, [FromQuery] int soNguoi, [FromQuery] string? maKhachHang = null)
         {
             if (_context.BanAns == null || _context.DonHangs == null) return NotFound();
 
+            // Giới hạn ngày hợp lệ cho SQL Server
+            var sqlMinDate = new DateTime(1753, 1, 1);
+            var sqlMaxDate = new DateTime(9999, 12, 31);
+
             var gioBatDau = dateTime;
             var gioKetThuc = dateTime.AddMinutes(120);
+            var ngayChon = dateTime.Date;
 
             // SỬA LỖI: Đi từ BanAnDonHang -> ChiTiet -> DonHang
-            var conflictingBookingIds = await _context.BanAnDonHangs
+            // Xử lý cả trường hợp đơn đã check-in (TGNhanBan) và chưa check-in (TgdatDuKien)
+            var conflictingBookingData = await _context.BanAnDonHangs
                 .Include(badh => badh.MaChiTietDonHangNavigation)
                     .ThenInclude(ct => ct.MaDonHangNavigation)
                 .Where(badh =>
                     (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
                      badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
-                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
+                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "CHO_THANH_TOAN" ||
+                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "DANG_PHUC_VU") &&
 
-                    badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang != null &&
+                    // Có ít nhất một mốc thời gian bắt đầu
+                    (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TGNhanBan != null ||
+                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TgdatDuKien != null ||
+                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang != null) &&
 
-                    (gioBatDau < badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianKetThuc) &&
-                    (gioKetThuc > badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang)
+                    badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianKetThuc != null &&
+
+                    // Logic overlap: gioBatDau < thoiGianKetThuc && gioKetThuc > thoiGianBatDau
+                    (gioBatDau < (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianKetThuc ?? sqlMaxDate)) &&
+                    (gioKetThuc > (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TGNhanBan ??
+                                   badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TgdatDuKien ??
+                                   badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang ??
+                                   sqlMinDate)) &&
+
+                    // Chỉ xét các đơn cùng ngày người dùng chọn
+                    EF.Functions.DateDiffDay(
+                        ngayChon,
+                        (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TGNhanBan ??
+                         badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TgdatDuKien ??
+                         badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang ??
+                         sqlMinDate)
+                    ) == 0
                 )
-                .Select(badh => badh.MaBan) // Lấy Mã bàn
-                .Distinct()
+                .Select(badh => new
+                {
+                    MaBan = badh.MaBan,
+                    MaKhachHang = badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaKhachHang
+                })
                 .ToListAsync();
 
             var allTables = await _context.BanAns
@@ -306,7 +347,21 @@ namespace QuanLyNhaHang.Controllers
                 }
                 string tenTang = (!string.IsNullOrEmpty(maTang) && allTangs.ContainsKey(maTang)) ? allTangs[maTang] : ban.MaTangNavigation?.TenTang;
 
-                bool isConflicting = conflictingBookingIds.Contains(ban.MaBan);
+                var conflictRecord = conflictingBookingData.FirstOrDefault(c => c.MaBan == ban.MaBan);
+                bool isConflicting = conflictRecord != null;
+                bool isCuaTui = isConflicting && !string.IsNullOrEmpty(maKhachHang) && conflictRecord.MaKhachHang == maKhachHang;
+
+                string trangThaiHienThi;
+                if (ban.MaTrangThaiNavigation?.TenTrangThai?.ToLower() == "đang bảo trì")
+                    trangThaiHienThi = "Đang bảo trì";
+                else if (isCuaTui)
+                    trangThaiHienThi = "CuaTui";
+                else if (isConflicting)
+                    trangThaiHienThi = "Đã đặt";
+                else if (ban.SucChua < soNguoi)
+                    trangThaiHienThi = "Không đủ sức chứa";
+                else
+                    trangThaiHienThi = "Đang trống";
 
                 return new BanAnDto
                 {
@@ -315,11 +370,7 @@ namespace QuanLyNhaHang.Controllers
                     sucChua = ban.SucChua,
                     maTang = maTang ?? string.Empty,
                     tenTang = tenTang ?? string.Empty,
-                    tenTrangThai =
-                        (ban.MaTrangThaiNavigation?.TenTrangThai?.ToLower() == "đang bảo trì") ? "Đang bảo trì" :
-                        (ban.SucChua < soNguoi) ? "Không đủ sức chứa" :
-                        (isConflicting) ? "Đã đặt" :
-                        "Đang trống"
+                    tenTrangThai = trangThaiHienThi
                 };
             }).ToList();
 
@@ -338,19 +389,27 @@ namespace QuanLyNhaHang.Controllers
             var gioKetThucKhachChon = dateTime.AddMinutes(120);
 
             // SỬA LỖI: Truy vấn BanAnDonHangs -> ChiTiet -> DonHang
+            // Xử lý cả trường hợp đơn đã check-in (TGNhanBan) và chưa check-in (TgdatDuKien)
             var conflictingRecords = await _context.BanAnDonHangs
                 .Include(badh => badh.MaChiTietDonHangNavigation)
                     .ThenInclude(ct => ct.MaDonHangNavigation)
                 .Where(badh =>
                     (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
                      badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
-                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
+                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "CHO_THANH_TOAN" ||
+                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "DANG_PHUC_VU") &&
 
-                    badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang != null &&
+                    // Xác định thời gian bắt đầu: ưu tiên TGNhanBan (đã check-in), nếu không có thì dùng TgdatDuKien
+                    ((badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TGNhanBan != null) ||
+                     (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TgdatDuKien != null)) &&
+
                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianKetThuc != null &&
 
+                    // Logic overlap: gioBatDau < thoiGianKetThuc && gioKetThuc > thoiGianBatDau
                     (gioBatDauKhachChon < badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianKetThuc) &&
-                    (gioKetThucKhachChon > badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang)
+                    (gioKetThucKhachChon > (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TGNhanBan ?? 
+                                            badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TgdatDuKien ?? 
+                                            badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang).Value)
                 )
                 .Select(badh => new
                 {

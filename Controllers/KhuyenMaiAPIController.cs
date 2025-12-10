@@ -1,4 +1,5 @@
 ﻿// Controllers/KhuyenMaiController.cs
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuanLyNhaHang.Models;
@@ -74,6 +75,7 @@ namespace QuanLyNhaHang.Controllers
 
         // POST: api/KhuyenMai
         [HttpPost]
+        [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được tạo khuyến mãi
         public async Task<IActionResult> PostKhuyenMai([FromBody] CreateKhuyenMaiDto dto)
         {
             if (!ModelState.IsValid)

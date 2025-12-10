@@ -14,6 +14,7 @@ namespace QuanLyNhaHang.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize] // Yêu cầu đăng nhập cho tất cả các endpoint trong controller này
     public class DonHangsAPIController : ControllerBase
     {
         private readonly QLNhaHangContext _context;
@@ -271,6 +272,7 @@ namespace QuanLyNhaHang.Controllers
                     tenTrangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai,
                     maTrangThaiDonHang = dh.MaTrangThaiDonHang,
                     thoiGianDatHang = dh.ThoiGianDatHang,
+                    tgDatDuKien = dh.TgdatDuKien, // Thêm field ngày dự kiến
                     tgNhanBan = dh.TGNhanBan,
                     thanhToan = dh.ThanhToan,
                     soLuongNguoiDK = dh.SoLuongNguoiDK,
@@ -353,12 +355,18 @@ namespace QuanLyNhaHang.Controllers
                 var today = DateTime.Today;
 
                 // Tính doanh thu: DonHang -> ChiTietDonHang (đơn giản hơn cấu trúc cũ)
-                var totalRevenueToday = await _context.DonHangs
+                // Sửa lỗi: Xử lý trường hợp tập rỗng bằng cách dùng DefaultIfEmpty() hoặc kiểm tra trước
+                var revenueQuery = _context.DonHangs
                     .Where(dh => dh.MaTrangThaiDonHang == "DA_HOAN_THANH" &&
                                  dh.ThoiGianKetThuc.HasValue &&
                                  dh.ThoiGianKetThuc.Value.Date == today)
-                    .SelectMany(dh => dh.ChiTietDonHangs) // Truy cập trực tiếp Chi Tiết
-                    .SumAsync(ct => ct.SoLuong * (ct.MaCongThucNavigation.Gia));
+                    .SelectMany(dh => dh.ChiTietDonHangs)
+                    .Select(ct => ct.SoLuong * (ct.MaCongThucNavigation.Gia));
+
+                // Kiểm tra xem có dữ liệu không trước khi Sum
+                var totalRevenueToday = await revenueQuery.AnyAsync() 
+                    ? await revenueQuery.SumAsync() 
+                    : 0m;
 
                 var statusCounts = await _context.DonHangs
                     .GroupBy(dh => dh.MaTrangThaiDonHang)

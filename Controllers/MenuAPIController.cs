@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuanLyNhaHang.Models;
@@ -131,29 +132,10 @@ namespace QuanLyNhaHang.Controllers
                         khungGio = "TOI";
                 }
 
-                // Chuẩn hóa khung giờ để tìm kiếm linh hoạt hơn
-                var khungGioLower = khungGio.ToUpper();
-                var searchTerms = new List<string> { khungGioLower };
-                
-                // Thêm các từ khóa tương đương
-                if (khungGioLower == "SANG")
-                {
-                    searchTerms.AddRange(new[] { "SÁNG", "BUỔI SÁNG", "BREAKFAST", "ĂN SÁNG" });
-                }
-                else if (khungGioLower == "TRUA")
-                {
-                    searchTerms.AddRange(new[] { "TRƯA", "BUỔI TRƯA", "LUNCH", "ĂN TRƯA" });
-                }
-                else if (khungGioLower == "CHIEU")
-                {
-                    searchTerms.AddRange(new[] { "CHIỀU", "BUỔI CHIỀU", "AFTERNOON", "ĂN CHIỀU" });
-                }
-                else if (khungGioLower == "TOI")
-                {
-                    searchTerms.AddRange(new[] { "TỐI", "BUỔI TỐI", "DINNER", "ĂN TỐI", "ĐÊM" });
-                }
+                // Chuẩn hóa khung giờ
+                var khungGioUpper = khungGio.ToUpper();
 
-                // Lấy menu có tên chứa khung giờ hoặc menu đặc biệt
+                // Lấy menu theo khung giờ - sử dụng trường KhungGio
                 var menus = await _context.Menus
                     .Include(m => m.MaLoaiMenuNavigation)
                     .Include(m => m.ChiTietMenus)
@@ -168,9 +150,9 @@ namespace QuanLyNhaHang.Controllers
                                 m.IsShow == true &&
                                 (m.NgayBatDau == null || m.NgayBatDau <= now) &&
                                 (m.NgayKetThuc == null || m.NgayKetThuc >= now) &&
-                                (searchTerms.Any(term => m.TenMenu.ToUpper().Contains(term)) || 
-                                 (m.MoTa != null && searchTerms.Any(term => m.MoTa.ToUpper().Contains(term))) ||
-                                 m.MaLoaiMenu == "LM003")) // Menu theo ngày
+                                (m.KhungGio == khungGioUpper ||           // Menu thuộc khung giờ được yêu cầu
+                                 m.KhungGio == null ||                      // Menu dùng cả ngày (không gán khung giờ)
+                                 m.MaLoaiMenu == "LM003"))                 // Menu theo ngày (giữ nguyên logic cũ)
                     .OrderBy(m => m.ThuTu)
                     .ToListAsync();
 
@@ -196,6 +178,7 @@ namespace QuanLyNhaHang.Controllers
                             : 0,
                         MoTa = m.MoTa,
                         HinhAnh = m.HinhAnh,
+                        KhungGio = m.KhungGio,
                         ChiTietMenus = (m.ChiTietMenus ?? new List<ChiTietMenu>()).Select(ct => new
                         {
                             SoLuong = ct.SoLuong,
@@ -369,6 +352,7 @@ namespace QuanLyNhaHang.Controllers
                     NgayKetThuc = menu.NgayKetThuc,
                     IsShow = menu.IsShow,
                     ThuTu = menu.ThuTu,
+                    KhungGio = menu.KhungGio,
                     ChiTietMenus = menu.ChiTietMenus.OrderBy(ct => ct.ThuTu).Select(ct => new
                     {
                         MaCongThuc = ct.MaCongThuc,
@@ -509,13 +493,7 @@ namespace QuanLyNhaHang.Controllers
                 // Kiểm tra ngày lễ
                 bool isNgayLe = IsNgayLe(now);
 
-                // Lấy menu theo khung giờ
-                var searchTerms = new List<string> { khungGio };
-                if (khungGio == "SANG") searchTerms.AddRange(new[] { "SÁNG", "BUỔI SÁNG" });
-                else if (khungGio == "TRUA") searchTerms.AddRange(new[] { "TRƯA", "BUỔI TRƯA" });
-                else if (khungGio == "CHIEU") searchTerms.AddRange(new[] { "CHIỀU", "BUỔI CHIỀU" });
-                else if (khungGio == "TOI") searchTerms.AddRange(new[] { "TỐI", "BUỔI TỐI", "ĐÊM" });
-
+                // Lấy menu theo khung giờ - sử dụng trường KhungGio
                 var menus = await _context.Menus
                     .Include(m => m.MaLoaiMenuNavigation)
                     .Include(m => m.ChiTietMenus)
@@ -527,9 +505,9 @@ namespace QuanLyNhaHang.Controllers
                                 m.IsShow == true &&
                                 (m.NgayBatDau == null || m.NgayBatDau <= now) &&
                                 (m.NgayKetThuc == null || m.NgayKetThuc >= now) &&
-                                (searchTerms.Any(term => m.TenMenu.ToUpper().Contains(term)) ||
-                                 (m.MoTa != null && searchTerms.Any(term => m.MoTa.ToUpper().Contains(term))) ||
-                                 m.MaLoaiMenu == "LM003"))
+                                (m.KhungGio == khungGio ||           // Menu thuộc khung giờ hiện tại
+                                 m.KhungGio == null ||                // Menu dùng cả ngày (không gán khung giờ)
+                                 m.MaLoaiMenu == "LM003"))           // Menu theo ngày (giữ nguyên logic cũ)
                     .OrderBy(m => m.ThuTu)
                     .ToListAsync();
 
@@ -565,6 +543,7 @@ namespace QuanLyNhaHang.Controllers
                             : 0,
                         MoTa = m.MoTa,
                         HinhAnh = m.HinhAnh,
+                        KhungGio = m.KhungGio,
                         ChiTietMenus = (m.ChiTietMenus ?? new List<ChiTietMenu>()).Select(ct => new
                         {
                             SoLuong = ct.SoLuong,
@@ -682,6 +661,7 @@ namespace QuanLyNhaHang.Controllers
         /// Tạo menu mới
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được tạo menu
         public async Task<IActionResult> CreateMenu([FromBody] CreateMenuDto dto)
         {
             try
@@ -764,6 +744,22 @@ namespace QuanLyNhaHang.Controllers
                     return BadRequest(new { message = "Mã menu đã tồn tại." });
                 }
 
+                // Validate KhungGio nếu có
+                string? khungGio = null;
+                if (!string.IsNullOrWhiteSpace(dto.KhungGio))
+                {
+                    var khungGioUpper = dto.KhungGio.Trim().ToUpper();
+                    if (khungGioUpper == "SANG" || khungGioUpper == "TRUA" || 
+                        khungGioUpper == "CHIEU" || khungGioUpper == "TOI")
+                    {
+                        khungGio = khungGioUpper;
+                    }
+                    else
+                    {
+                        return BadRequest(new { message = "KhungGio không hợp lệ. Chỉ chấp nhận: SANG, TRUA, CHIEU, TOI hoặc để trống (dùng cả ngày)." });
+                    }
+                }
+
                 // Tạo menu mới
                 var menu = new Menu
                 {
@@ -779,6 +775,7 @@ namespace QuanLyNhaHang.Controllers
                     NgayKetThuc = dto.NgayKetThuc,
                     IsShow = dto.IsShow ?? true, // Default 1 theo schema
                     ThuTu = dto.ThuTu,
+                    KhungGio = khungGio,
                     NgayTao = DateTime.Now, // Default GETDATE() theo schema
                     NgayCapNhat = null
                 };
@@ -824,6 +821,7 @@ namespace QuanLyNhaHang.Controllers
         /// Cập nhật menu
         /// </summary>
         [HttpPut("{maMenu}")]
+        [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được cập nhật menu
         public async Task<IActionResult> UpdateMenu(string maMenu, [FromBody] UpdateMenuDto dto)
         {
             try
@@ -892,6 +890,29 @@ namespace QuanLyNhaHang.Controllers
                 
                 if (dto.ThuTu.HasValue)
                     menu.ThuTu = dto.ThuTu;
+
+                // Cập nhật KhungGio nếu có
+                if (dto.KhungGio != null)
+                {
+                    if (string.IsNullOrWhiteSpace(dto.KhungGio))
+                    {
+                        // Nếu là chuỗi rỗng, set về null (menu dùng cả ngày)
+                        menu.KhungGio = null;
+                    }
+                    else
+                    {
+                        var khungGioUpper = dto.KhungGio.Trim().ToUpper();
+                        if (khungGioUpper == "SANG" || khungGioUpper == "TRUA" || 
+                            khungGioUpper == "CHIEU" || khungGioUpper == "TOI")
+                        {
+                            menu.KhungGio = khungGioUpper;
+                        }
+                        else
+                        {
+                            return BadRequest(new { message = "KhungGio không hợp lệ. Chỉ chấp nhận: SANG, TRUA, CHIEU, TOI hoặc để trống (dùng cả ngày)." });
+                        }
+                    }
+                }
 
                 menu.NgayCapNhat = DateTime.Now; // Cập nhật thời gian sửa
 
@@ -1114,6 +1135,7 @@ namespace QuanLyNhaHang.Controllers
         public DateTime? NgayKetThuc { get; set; }
         public bool? IsShow { get; set; }
         public int? ThuTu { get; set; }
+        public string? KhungGio { get; set; }
         public List<ChiTietMenuDto>? ChiTietMenus { get; set; }
     }
 
@@ -1130,6 +1152,7 @@ namespace QuanLyNhaHang.Controllers
         public DateTime? NgayKetThuc { get; set; }
         public bool? IsShow { get; set; }
         public int? ThuTu { get; set; }
+        public string? KhungGio { get; set; }
         public List<ChiTietMenuDto>? ChiTietMenus { get; set; }
     }
 

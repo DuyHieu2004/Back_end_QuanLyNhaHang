@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuanLyNhaHang.Models;
@@ -37,6 +38,7 @@ namespace QuanLyNhaHang.Controllers
         }
 
         [HttpPost("ingredients")]
+        [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được tạo nguyên liệu
         public async Task<IActionResult> CreateIngredient([FromBody] CreateNguyenLieuDTO dto)
         {
             if (!ModelState.IsValid)
@@ -267,7 +269,8 @@ namespace QuanLyNhaHang.Controllers
         // ==================================================================================
         // 2. API: Tạo phiếu nhập mới (Create)
         // ==================================================================================
-         [HttpPost("import")]
+        [HttpPost("import")]
+        [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được tạo phiếu nhập
         public async Task<IActionResult> CreateReceipt([FromBody] NhapKhoDTO dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -354,6 +357,7 @@ namespace QuanLyNhaHang.Controllers
         // 3. API: Cập nhật phiếu cũ (Update)
         // ==================================================================================
         [HttpPut("update")]
+        [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được cập nhật phiếu
         public async Task<IActionResult> UpdateReceipt([FromQuery] string maPhieu, [FromBody] NhapKhoDTO dto)
         {
             var phieu = await _context.NhapHangs

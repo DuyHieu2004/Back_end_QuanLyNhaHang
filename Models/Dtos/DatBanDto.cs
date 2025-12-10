@@ -13,7 +13,11 @@ namespace QuanLyNhaHang.Models.DTO
         public string SoDienThoaiKhach { get; set; } = null!;
 
         [Required]
+        // Thời gian khách muốn đến (booking/expected)
         public DateTime ThoiGianDatHang { get; set; }
+
+        // Thời gian nhận bàn thực tế (nếu là walk-in hoặc check-in ngay); optional
+        public DateTime? ThoiGianNhanBan { get; set; }
         [Required]
         public int SoLuongNguoi { get; set; }
         public string? GhiChu { get; set; }
