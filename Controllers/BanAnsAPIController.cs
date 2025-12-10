@@ -104,6 +104,11 @@ namespace QuanLyNhaHang.Controllers
                         note = $"Đơn: {bookingInfo.TenKhach} (Lẽ ra đến {bookingInfo.GioDen:HH:mm}) - Chờ Check-in/Hủy";
                     }
                 }
+                else if (ban.MaTrangThai == "TTBA003")
+                {
+                    finalStatus = "Đã đặt";
+                    note = ban.MaTrangThaiNavigation?.TenTrangThai ?? "Kiểm tra thủ công";
+                }
                 else if (ban.MaTrangThai == "TTBA002" || ban.MaTrangThai == "TTBA003")
                 {
                     finalStatus = "Đang phục vụ (Walk-in/Cũ)";
