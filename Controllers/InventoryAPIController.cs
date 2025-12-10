@@ -235,18 +235,29 @@ namespace QuanLyNhaHang.Controllers
         [HttpGet("stock")]
         public async Task<IActionResult> GetInventoryStock()
         {
+            // Cần Include hoặc Join bảng CungUng để biết ai bán món này
             var stockList = await _context.NguyenLieus
+                .Include(n => n.CungUngs) // Giả sử model NguyenLieu có quan hệ 1-n với CungUng
+                    .ThenInclude(cu => cu.MaNhaCungCapNavigation)
                 .Select(n => new
                 {
                     n.MaNguyenLieu,
                     n.TenNguyenLieu,
                     n.DonViTinh,
                     SoLuongTon = n.SoLuongTonKho,
-                    DonGia = n.GiaBan, // Hoặc giá vốn nếu bạn có
-                                       // Logic cảnh báo: Dưới 10 là Sắp hết, <= 0 là Hết hàng
-                    TrangThai = n.SoLuongTonKho <= 0 ? "HET_HANG" : (n.SoLuongTonKho < 10 ? "SAP_HET" : "CON_HANG")
+                    DonGia = n.GiaBan,
+                    TrangThai = n.SoLuongTonKho <= 0 ? "HET_HANG" : (n.SoLuongTonKho < 10 ? "SAP_HET" : "CON_HANG"),
+
+                    // --- BỔ SUNG QUAN TRỌNG: Danh sách NCC bán món này ---
+                    CacNhaCungCap = n.CungUngs.Select(cu => new
+                    {
+                        cu.MaNhaCungCap,
+                        TenNhaCungCap = cu.MaNhaCungCapNavigation.TenNhaCungCap,
+                        cu.MaCungUng, // Cái này quan trọng để lát lưu vào ChiTietPhieuNhap
+                        GiaGoiY = n.GiaBan // Hoặc lấy giá nhập gần nhất nếu có
+                    }).ToList()
                 })
-                .OrderBy(n => n.SoLuongTon) // Ưu tiên hiện cái sắp hết lên đầu
+                .OrderBy(n => n.SoLuongTon)
                 .ToListAsync();
 
             return Ok(stockList);
@@ -256,62 +267,86 @@ namespace QuanLyNhaHang.Controllers
         // ==================================================================================
         // 2. API: Tạo phiếu nhập mới (Create)
         // ==================================================================================
-        [HttpPost("import")]
+         [HttpPost("import")]
         public async Task<IActionResult> CreateReceipt([FromBody] NhapKhoDTO dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
+            // Dùng Transaction để đảm bảo: Nhập kho ok thì mới lưu phiếu, lỗi thì hoàn tác hết
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 string maNhapHang = "NH" + DateTime.Now.ToString("yyMMddHHmmss");
 
-                // Tính tổng tiền server-side cho chắc ăn
-                decimal tongTien = dto.ChiTiet.Sum(c => c.SoLuong * c.GiaNhap);
-
-                var ngayLapPhieu = DateTime.Now;
+                // 1. TẠO PHIẾU NHẬP (HEADER)
                 var phieuNhap = new NhapHang
                 {
                     MaNhapHang = maNhapHang,
                     MaNhanVien = dto.MaNhanVien,
                     MaNhaCungCap = dto.MaNhaCungCap,
-                    NgayLapPhieu = ngayLapPhieu,
-                    MaTrangThai = dto.MaTrangThai, // 'MOI_TAO', 'DA_HOAN_TAT'
-                    TongTien = tongTien,
-
-                    // Ngày nhập hàng: nếu trạng thái là Hoàn Tất thì dùng ngày hiện tại, nếu không thì dùng ngày lập phiếu
-                    NgayNhapHang = (dto.MaTrangThai == "DA_HOAN_TAT") ? DateTime.Now : ngayLapPhieu
+                    NgayLapPhieu = DateTime.Now,
+                    MaTrangThai = dto.MaTrangThai, // Lưu đúng trạng thái user chọn luôn
+                    TongTien = dto.ChiTiet.Sum(c => c.SoLuong * c.GiaNhap),
+                    // Nếu hoàn tất thì lưu ngày nhập, còn không thì null hoặc ngày lập
+                    NgayNhapHang = (dto.MaTrangThai == "DA_HOAN_TAT") ? DateTime.Now : DateTime.Now
                 };
 
                 _context.NhapHangs.Add(phieuNhap);
 
+                // 2. TẠO CHI TIẾT VÀ CẬP NHẬT KHO (NẾU HOÀN TẤT)
                 foreach (var item in dto.ChiTiet)
                 {
-                    // Lấy MaNguyenLieu từ CungUng
-                    var cungUng = await _context.CungUngs
-                        .FirstOrDefaultAsync(cu => cu.MaCungUng == item.MaCungUng);
-                    
-                    if (cungUng == null || string.IsNullOrEmpty(cungUng.MaNguyenLieu))
+                    // Tìm mã nguyên liệu gốc từ bảng CungUng
+                    var cungUng = await _context.CungUngs.FirstOrDefaultAsync(cu => cu.MaCungUng == item.MaCungUng);
+
+                    if (cungUng == null)
                     {
-                        return BadRequest(new { message = $"Không tìm thấy nguyên liệu cho mã cung ứng: {item.MaCungUng}" });
+                        throw new Exception($"Không tìm thấy mã cung ứng {item.MaCungUng}");
                     }
 
+                    // Tạo dòng chi tiết phiếu nhập
                     var chiTiet = new ChiTietNhapHang
                     {
                         MaNhapHang = maNhapHang,
                         MaNguyenLieu = cungUng.MaNguyenLieu,
                         SoLuong = item.SoLuong,
-                        GiaNhap = item.GiaNhap,
-                      //  GhiChu = ""
+                        GiaNhap = item.GiaNhap
                     };
                     _context.ChiTietNhapHangs.Add(chiTiet);
+
+                    // --- LOGIC MỚI: CỘNG TỒN KHO TRỰC TIẾP TẠI ĐÂY ---
+                    if (dto.MaTrangThai == "DA_HOAN_TAT")
+                    {
+                        // Tìm nguyên liệu trong kho
+                        var nguyenLieu = await _context.NguyenLieus.FirstOrDefaultAsync(nl => nl.MaNguyenLieu == cungUng.MaNguyenLieu);
+                        if (nguyenLieu != null)
+                        {
+                            // Cộng dồn số lượng
+                            nguyenLieu.SoLuongTonKho += item.SoLuong;
+
+                            // Cập nhật trạng thái tồn kho (Logic giống hệt trigger cũ của bạn)
+                            if (nguyenLieu.SoLuongTonKho == 0) nguyenLieu.TrangThaiTonKho = "HET_HANG";
+                            else if (nguyenLieu.SoLuongTonKho < 10) nguyenLieu.TrangThaiTonKho = "CAN_CANH_BAO"; // Hoặc SAP_HET tùy enum
+                            else nguyenLieu.TrangThaiTonKho = "BINH_THUONG"; // Hoặc CON_HANG
+
+                            // Đánh dấu nguyên liệu đã bị thay đổi để EF cập nhật
+                            _context.NguyenLieus.Update(nguyenLieu);
+                        }
+                    }
                 }
 
+                // 3. LƯU TẤT CẢ VÀO DB MỘT LẦN DUY NHẤT
                 await _context.SaveChangesAsync();
-                return Ok(new { message = "Tạo phiếu thành công!", maPhieu = maNhapHang });
+
+                // Commit transaction
+                await transaction.CommitAsync();
+
+                return Ok(new { message = "Tạo phiếu và nhập kho thành công!", maPhieu = maNhapHang });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi tạo phiếu: " + ex.Message });
+                await transaction.RollbackAsync(); // Gặp lỗi thì hoàn tác sạch sẽ
+                return StatusCode(500, new { message = "Lỗi hệ thống: " + ex.Message });
             }
         }
 

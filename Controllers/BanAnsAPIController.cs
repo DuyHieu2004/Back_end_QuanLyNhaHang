@@ -120,6 +120,11 @@ namespace QuanLyNhaHang.Controllers
                         }
                     }
                 }
+                else if (ban.MaTrangThai == "TTBA003")
+                {
+                    finalStatus = "Đã đặt";
+                    note = ban.MaTrangThaiNavigation?.TenTrangThai ?? "Kiểm tra thủ công";
+                }
                 else if (ban.MaTrangThai == "TTBA002" || ban.MaTrangThai == "TTBA003")
                 {
                     finalStatus = "Đang phục vụ (Walk-in/Cũ)";
@@ -135,6 +140,7 @@ namespace QuanLyNhaHang.Controllers
                     MaBan = ban.MaBan,
                     TenBan = ban.TenBan,
                     SucChua = ban.SucChua,
+                    MaTang = ban.MaTang,
                     TenTang = ban.MaTangNavigation?.TenTang,
                     TrangThaiHienThi = finalStatus,
                     GhiChu = note,
