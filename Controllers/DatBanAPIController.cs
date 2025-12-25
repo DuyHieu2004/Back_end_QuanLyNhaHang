@@ -524,7 +524,28 @@ namespace QuanLyNhaHang.Controllers
 
                     var request = HttpContext.Request;
                     var baseUrl = $"{request.Scheme}://{request.Host}";
-                    vnpay.AddRequestData("vnp_ReturnUrl", $"{baseUrl}/api/DatBanAPI/PaymentCallback");
+                    // 1. Tạo đường dẫn gốc tới hàm Callback
+                    string returnUrl = $"{baseUrl}/api/DatBanAPI/PaymentCallback";
+
+                    // 2. Kiểm tra "User-Agent" để biết là App hay Web
+                    // Flutter (Dart) khi gọi API sẽ luôn có chữ "dart" trong Header này.
+                    var userAgent = request.Headers["User-Agent"].ToString().ToLower();
+
+                    if (userAgent.Contains("dart"))
+                    {
+                        // Nếu là App -> Gắn thêm đuôi ?ui=app
+                        returnUrl += "?ui=app";
+                    }
+                    else
+                    {
+                        // Nếu là Web -> Gắn thêm đuôi ?ui=web
+                        returnUrl += "?ui=web";
+                    }
+
+                    // 3. Đưa cái link đã gắn đuôi vào cấu hình VNPay
+                    vnpay.AddRequestData("vnp_ReturnUrl", returnUrl);
+
+                    // --- KẾT THÚC ĐOẠN SỬA ---
 
                     vnpay.AddRequestData("vnp_TxnRef", newDonHang.MaDonHang);
 
@@ -583,12 +604,20 @@ namespace QuanLyNhaHang.Controllers
         [HttpGet("PaymentCallback")]
         public async Task<IActionResult> PaymentCallback()
         {
-            // 1. Lấy kết quả trả về từ VNPay
+            // ==========================================
+            // 1. LẤY KẾT QUẢ TỪ VNPAY
+            // ==========================================
             var query = Request.Query;
             string vnp_ResponseCode = query["vnp_ResponseCode"]; // 00 là thành công
-            string vnp_TxnRef = query["vnp_TxnRef"]; // Mã đơn hàng mình gửi đi lúc đầu
+            string vnp_TxnRef = query["vnp_TxnRef"]; // Mã đơn hàng
 
-            // 2. Tìm đơn hàng trong Database
+            // Lấy cờ ui (nếu bạn đã làm bước sửa TaoDatBan). 
+            // Nếu chưa làm bước đó, dòng dưới sẽ null, code sẽ tự check bằng UserAgent.
+            string uiSource = query["ui"];
+
+            // ==========================================
+            // 2. TÌM ĐƠN HÀNG (GIỮ NGUYÊN CODE CỦA BẠN)
+            // ==========================================
             var donHang = await _context.DonHangs.FindAsync(vnp_TxnRef);
 
             if (donHang == null)
@@ -596,61 +625,119 @@ namespace QuanLyNhaHang.Controllers
                 return Content("Lỗi: Không tìm thấy đơn hàng.");
             }
 
-            // 3. Kiểm tra kết quả
+            // ==========================================
+            // 3. XÁC ĐỊNH MÔI TRƯỜNG (WEB HAY APP)
+            // ==========================================
+            // Logic: Nếu ui="app" HOẶC UserAgent có chữ "mobile/dart" -> Là App
+            var userAgent = Request.Headers["User-Agent"].ToString().ToLower();
+
+            bool isApp = (uiSource == "app") ||
+                         (userAgent.Contains("dart")) ||
+                         (userAgent.Contains("mobile") && !userAgent.Contains("windows")); // Check kỹ hơn xíu
+
+            // Khai báo biến để hứng Link và Tên Nút
+            string redirectUrl = "";
+            string buttonText = "";
+            string autoScript = "";
+
+            // ==========================================
+            // 4. KIỂM TRA KẾT QUẢ THANH TOÁN
+            // ==========================================
             if (vnp_ResponseCode == "00")
             {
-                // --- THANH TOÁN THÀNH CÔNG ---
-
-                // Cập nhật trạng thái đơn hàng
+                // --- A. THANH TOÁN THÀNH CÔNG (GIỮ NGUYÊN LOGIC DB CỦA BẠN) ---
                 if (donHang.MaTrangThaiDonHang == "CHO_THANH_TOAN")
                 {
-                    donHang.MaTrangThaiDonHang = "DA_XAC_NHAN"; // Đã cọc xong -> Xác nhận
-                    donHang.ThanhToan = true; // Đánh dấu đã thanh toán (cọc)
+                    donHang.MaTrangThaiDonHang = "DA_XAC_NHAN";
+                    donHang.ThanhToan = true;
 
                     _context.DonHangs.Update(donHang);
                     await _context.SaveChangesAsync();
                 }
 
-                // Trả về trang HTML thông báo thành công
-                string htmlSuccess = @"
-                <html>
-                    <head>
-                        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-                        <meta charset='UTF-8'> 
-                        <style>
-                            body { text-align: center; padding: 20px; font-family: Arial, sans-serif; }
-                            .success { color: green; font-size: 20px; font-weight: bold; }
-                        </style>
-                    </head>
-                    <body>
-                        <h2 class='success'>THANH TOÁN THÀNH CÔNG!</h2>
-                        <p>Cảm ơn bạn đã đặt cọc.</p>
-                        <p>Đơn hàng: " + donHang.MaDonHang + @"</p>
-                        <br>
-                        <button onclick='window.close()'>Đóng và quay lại App</button>
-                    </body>
-                </html>";
+                // --- B. CẤU HÌNH LINK THÀNH CÔNG ---
+                if (isApp)
+                {
+                    // Cấu hình cho App
+                    redirectUrl = $"quanlynhahang://payment-result?orderId={donHang.MaDonHang}&status=success";
+                    buttonText = "Quay về Ứng Dụng";
+                    autoScript = $"setTimeout(function() {{ window.location.href = '{redirectUrl}'; }}, 1000);";
+                }
+                else
+                {
+                    // Cấu hình cho Web (Link này bạn sửa lại cho đúng trang React của bạn nha)
+                    redirectUrl = "http://localhost:3000/customer/booking";
+                    buttonText = "Quay về Website";
+                    autoScript = $"setTimeout(function() {{ window.location.href = '{redirectUrl}'; }}, 2000);";
+                }
 
-                // <--- SỬA 2: THÊM charset=utf-8 VÀO ĐÂY -->
+                // --- C. TRẢ VỀ HTML THÀNH CÔNG (GOM 1 NÚT) ---
+                string htmlSuccess = $@"
+        <html>
+            <head>
+                <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                <meta charset='UTF-8'> 
+                <style>
+                    body {{ text-align: center; padding: 20px; font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }}
+                    .success {{ color: green; font-size: 24px; font-weight: bold; margin-bottom: 10px; }}
+                    .btn {{ 
+                        background-color: #4CAF50; color: white; padding: 15px 32px; 
+                        text-align: center; text-decoration: none; display: inline-block; 
+                        font-size: 16px; margin-top: 20px; cursor: pointer; border-radius: 8px; border: none;
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 80%; max-width: 300px;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div style='margin-bottom: 20px;'>
+                    <svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 24 24' fill='none' stroke='green' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M22 11.08V12a10 10 0 1 1-5.93-9.14'></path><polyline points='22 4 12 14.01 9 11.01'></polyline></svg>
+                </div>
+                <h2 class='success'>THANH TOÁN THÀNH CÔNG!</h2>
+                <p>Mã đơn: <b>{donHang.MaDonHang}</b></p>
+                
+                <a href='{redirectUrl}' class='btn'>{buttonText}</a>
+
+                <script>{autoScript}</script>
+            </body>
+        </html>";
+
                 return Content(htmlSuccess, "text/html; charset=utf-8");
             }
             else
             {
-                // --- THANH TOÁN THẤT BẠI ---
-                string htmlFail = @"
-                <html>
-                    <head>
-                        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-                        <meta charset='UTF-8'> 
-                    </head>
-                    <body style='text-align:center; padding:20px; font-family: Arial, sans-serif;'>
-                        <h2 style='color:red'>THANH TOÁN THẤT BẠI</h2>
-                        <p>Vui lòng thử lại.</p>
-                        <button onclick='window.close()'>Quay lại</button>
-                    </body>
-                </html>";
+                // --- XỬ LÝ THẤT BẠI ---
 
-                // <--- SỬA 2 (cho trang thất bại) -->
+                // Cấu hình Link Thất Bại
+                if (isApp)
+                {
+                    redirectUrl = $"quanlynhahang://payment-result?orderId={donHang.MaDonHang}&status=fail";
+                    buttonText = "Quay lại App (Thử lại)";
+                }
+                else
+                {
+                    redirectUrl = "http://localhost:3000/customer/booking"; // Hoặc trang báo lỗi
+                    buttonText = "Quay lại Website";
+                }
+
+                string htmlFail = $@"
+        <html>
+            <head>
+                <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                <meta charset='UTF-8'> 
+                <style>
+                    body {{ text-align: center; padding: 20px; font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }}
+                    .fail {{ color: red; font-size: 24px; font-weight: bold; margin-bottom: 10px; }}
+                    .btn {{ background-color: #f44336; color: white; padding: 15px 32px; text-decoration: none; display: inline-block; font-size: 16px; border-radius: 8px; width: 80%; max-width: 300px; }}
+                </style>
+            </head>
+            <body>
+                <h2 class='fail'>THANH TOÁN THẤT BẠI</h2>
+                <p>Giao dịch không thành công.</p>
+                
+                <a href='{redirectUrl}' class='btn'>{buttonText}</a>
+            </body>
+        </html>";
+
                 return Content(htmlFail, "text/html; charset=utf-8");
             }
         }
