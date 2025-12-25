@@ -735,7 +735,8 @@ namespace QuanLyNhaHang.Controllers
             {
                 case "CHO_THANH_TOAN": // Khách vào bàn (Đang phục vụ)
                     maTrangThaiBanMoi = "TTBA002"; // Đang có khách
-                    if (donHang.TGNhanBan == null) donHang.TGNhanBan = DateTime.Now;
+                   
+                    donHang.TGNhanBan = DateTime.Now;
                     break;
 
                 case "DA_HOAN_THANH": // Thanh toán xong
