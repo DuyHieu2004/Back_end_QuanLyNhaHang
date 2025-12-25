@@ -29,10 +29,9 @@ namespace QuanLyNhaHang.Controllers
         {
             if (_context.BanAns == null) return NotFound();
 
-            var checkTimeStart = dateTime;
-            var checkTimeEnd = dateTime.AddMinutes(120);
-
             // SỬA LỖI: Đi từ BanAnDonHang -> ChiTietDonHang -> DonHang
+            // Lấy TẤT CẢ booking đang active (không lọc theo khoảng thời gian ở đây)
+            // Logic lọc sẽ được xử lý ở phần Set finalStatus dựa trên minutesDiff
             var activeTableBookings = await _context.BanAnDonHangs
                 .Include(badh => badh.MaChiTietDonHangNavigation) // Vào chi tiết
                     .ThenInclude(ct => ct.MaDonHangNavigation)    // Vào đơn hàng
@@ -43,12 +42,9 @@ namespace QuanLyNhaHang.Controllers
                      badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "DANG_PHUC_VU" ||
                      badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
 
-                    badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang != null &&
-                    badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianKetThuc != null &&
-
-                    // Check trùng giờ
-                    (checkTimeStart < badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianKetThuc) &&
-                    (checkTimeEnd > badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang)
+                    // Chỉ cần có TGNhanBan hoặc ThoiGianDatHang để tính toán
+                    (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TGNhanBan != null ||
+                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang != null)
                 )
                 .Select(badh => new
                 {
@@ -57,7 +53,9 @@ namespace QuanLyNhaHang.Controllers
                     MaDonHang = badh.MaChiTietDonHangNavigation.MaDonHang,
                     TenKhach = badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TenNguoiNhan ?? "Khách vãng lai",
                     SDT = badh.MaChiTietDonHangNavigation.MaDonHangNavigation.SdtnguoiNhan,
-                    GioDen = badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang,
+                    // SỬA: GioDen lấy theo TGNhanBan (giờ nhận bàn thực tế). Nếu null thì fallback về ThoiGianDatHang.
+                    GioDen = badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TGNhanBan
+                             ?? badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang,
                     TrangThaiDon = badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang
                 })
                 .ToListAsync();
@@ -92,16 +90,34 @@ namespace QuanLyNhaHang.Controllers
                 else if (bookingInfo != null &&
                          (bookingInfo.TrangThaiDon == "DA_XAC_NHAN" || bookingInfo.TrangThaiDon == "CHO_XAC_NHAN"))
                 {
-                    if (bookingInfo.GioDen.HasValue && dateTime < bookingInfo.GioDen.Value)
+                    // Logic mới:
+                    // - Nếu còn <= 120 phút (2 tiếng) tới giờ đến  => "Đã đặt (Sắp đến)"
+                    // - Nếu đã quá giờ đến                        => "Đã đặt (Quá giờ)"
+                    // - Nếu còn > 120 phút                        => vẫn coi là "Trống" (chỉ là có booking xa)
+                    if (bookingInfo.GioDen.HasValue)
                     {
-                        finalStatus = "Đã đặt (Sắp đến)";
-                        var minutesLeft = (bookingInfo.GioDen.Value - dateTime).TotalMinutes;
-                        note = $"Đơn: {bookingInfo.TenKhach} ({bookingInfo.GioDen:HH:mm}) - Còn {Math.Ceiling(minutesLeft)} phút";
-                    }
-                    else
-                    {
-                        finalStatus = "Đã đặt (Quá giờ)";
-                        note = $"Đơn: {bookingInfo.TenKhach} (Lẽ ra đến {bookingInfo.GioDen:HH:mm}) - Chờ Check-in/Hủy";
+                        var minutesDiff = (bookingInfo.GioDen.Value - dateTime).TotalMinutes;
+
+                        if (minutesDiff <= 120 && minutesDiff >= 0)
+                        {
+                            // Còn trong cửa sổ 2 tiếng tới giờ đến
+                            finalStatus = "Đã đặt (Sắp đến)";
+                            var minutesLeft = Math.Ceiling(minutesDiff);
+                            note = $"Đơn: {bookingInfo.TenKhach} ({bookingInfo.GioDen:HH:mm}) - Còn {minutesLeft} phút";
+                        }
+                        else if (minutesDiff < 0)
+                        {
+                            // Đã quá giờ mà khách chưa check-in
+                            finalStatus = "Đã đặt (Quá giờ)";
+                            note = $"Đơn: {bookingInfo.TenKhach} (Lẽ ra đến {bookingInfo.GioDen:HH:mm}) - Chờ Check-in/Hủy";
+                        }
+                        else
+                        {
+                            // minutesDiff > 120  => giờ đến còn xa, vẫn cho hiển thị là Trống
+                            finalStatus = "Trống";
+                            // Nếu muốn có thể bật note để quản lý biết trước:
+                            // note = $"Đã có khách đặt lúc {bookingInfo.GioDen:HH:mm} (sớm hơn 2 tiếng)";
+                        }
                     }
                 }
                 else if (ban.MaTrangThai == "TTBA003")

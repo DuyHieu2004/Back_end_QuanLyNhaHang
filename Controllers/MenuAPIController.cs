@@ -59,33 +59,44 @@ namespace QuanLyNhaHang.Controllers
                     .ThenBy(m => m.TenMenu)
                     .ToListAsync();
 
-                var result = menus.Select(m => new
-                {
-                    MaMenu = m.MaMenu,
-                    TenMenu = m.TenMenu,
-                    LoaiMenu = m.MaLoaiMenuNavigation?.TenLoaiMenu,
-                    GiaMenu = m.GiaMenu,
-                    GiaGoc = m.GiaGoc,
-                    PhanTramGiamGia = m.GiaGoc > 0 
-                        ? Math.Round(((m.GiaGoc.Value - m.GiaMenu) * 100m / m.GiaGoc.Value), 2) 
-                        : 0,
-                    MoTa = m.MoTa,
-                    HinhAnh = m.HinhAnh,
-                    NgayBatDau = m.NgayBatDau,
-                    NgayKetThuc = m.NgayKetThuc,
-                    ChiTietMenus = m.ChiTietMenus.Select(ct => new
+                var result = menus.Select(m => {
+                    // Tính giá menu từ chi tiết nếu giá menu = 0 hoặc null
+                    decimal giaMenu = m.GiaMenu;
+                    if (giaMenu == 0 && m.ChiTietMenus != null && m.ChiTietMenus.Any())
                     {
-                        SoLuong = ct.SoLuong,
-                        GhiChu = ct.GhiChu,
-                        MonAn = new
+                        giaMenu = m.ChiTietMenus
+                            .Where(ct => ct.MaCongThucNavigation != null)
+                            .Sum(ct => ct.MaCongThucNavigation.Gia * ct.SoLuong);
+                    }
+                    
+                    return new
+                    {
+                        MaMenu = m.MaMenu,
+                        TenMenu = m.TenMenu,
+                        LoaiMenu = m.MaLoaiMenuNavigation?.TenLoaiMenu,
+                        GiaMenu = giaMenu,
+                        GiaGoc = m.GiaGoc,
+                        PhanTramGiamGia = m.GiaGoc > 0 && giaMenu > 0
+                            ? Math.Round(((m.GiaGoc.Value - giaMenu) * 100m / m.GiaGoc.Value), 2) 
+                            : 0,
+                        MoTa = m.MoTa,
+                        HinhAnh = m.HinhAnh,
+                        NgayBatDau = m.NgayBatDau,
+                        NgayKetThuc = m.NgayKetThuc,
+                        ChiTietMenus = (m.ChiTietMenus ?? new List<ChiTietMenu>()).Select(ct => new
                         {
-                            TenMonAn = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.TenMonAn,
-                            HinhAnh = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.HinhAnhMonAns
-                                .Select(h => h.UrlhinhAnh)
-                                .FirstOrDefault(),
-                            Gia = ct.MaCongThucNavigation?.Gia
-                        }
-                    }).ToList()
+                            SoLuong = ct.SoLuong,
+                            GhiChu = ct.GhiChu,
+                            MonAn = new
+                            {
+                                TenMonAn = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.TenMonAn,
+                                HinhAnh = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.HinhAnhMonAns
+                                    ?.Select(h => h.UrlhinhAnh)
+                                    .FirstOrDefault(),
+                                Gia = ct.MaCongThucNavigation?.Gia
+                            }
+                        }).ToList()
+                    };
                 }).ToList();
 
                 return Ok(new { success = true, data = result });
@@ -163,31 +174,42 @@ namespace QuanLyNhaHang.Controllers
                     .OrderBy(m => m.ThuTu)
                     .ToListAsync();
 
-                var result = menus.Select(m => new
-                {
-                    MaMenu = m.MaMenu,
-                    TenMenu = m.TenMenu,
-                    LoaiMenu = m.MaLoaiMenuNavigation?.TenLoaiMenu,
-                    GiaMenu = m.GiaMenu,
-                    GiaGoc = m.GiaGoc,
-                    PhanTramGiamGia = m.GiaGoc > 0 
-                        ? Math.Round(((m.GiaGoc.Value - m.GiaMenu) * 100m / m.GiaGoc.Value), 2) 
-                        : 0,
-                    MoTa = m.MoTa,
-                    HinhAnh = m.HinhAnh,
-                    ChiTietMenus = m.ChiTietMenus.Select(ct => new
+                var result = menus.Select(m => {
+                    // Tính giá menu từ chi tiết nếu giá menu = 0 hoặc null
+                    decimal giaMenu = m.GiaMenu;
+                    if (giaMenu == 0 && m.ChiTietMenus != null && m.ChiTietMenus.Any())
                     {
-                        SoLuong = ct.SoLuong,
-                        GhiChu = ct.GhiChu,
-                        MonAn = new
+                        giaMenu = m.ChiTietMenus
+                            .Where(ct => ct.MaCongThucNavigation != null)
+                            .Sum(ct => ct.MaCongThucNavigation.Gia * ct.SoLuong);
+                    }
+                    
+                    return new
+                    {
+                        MaMenu = m.MaMenu,
+                        TenMenu = m.TenMenu,
+                        LoaiMenu = m.MaLoaiMenuNavigation?.TenLoaiMenu,
+                        GiaMenu = giaMenu,
+                        GiaGoc = m.GiaGoc,
+                        PhanTramGiamGia = m.GiaGoc > 0 && giaMenu > 0
+                            ? Math.Round(((m.GiaGoc.Value - giaMenu) * 100m / m.GiaGoc.Value), 2) 
+                            : 0,
+                        MoTa = m.MoTa,
+                        HinhAnh = m.HinhAnh,
+                        ChiTietMenus = (m.ChiTietMenus ?? new List<ChiTietMenu>()).Select(ct => new
                         {
-                            TenMonAn = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.TenMonAn,
-                            HinhAnh = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.HinhAnhMonAns
-                                .Select(h => h.UrlhinhAnh)
-                                .FirstOrDefault(),
-                            Gia = ct.MaCongThucNavigation?.Gia
-                        }
-                    }).ToList()
+                            SoLuong = ct.SoLuong,
+                            GhiChu = ct.GhiChu,
+                            MonAn = new
+                            {
+                                TenMonAn = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.TenMonAn,
+                                HinhAnh = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.HinhAnhMonAns
+                                    ?.Select(h => h.UrlhinhAnh)
+                                    .FirstOrDefault(),
+                                Gia = ct.MaCongThucNavigation?.Gia
+                            }
+                        }).ToList()
+                    };
                 }).ToList();
 
                 return Ok(new { 
@@ -238,33 +260,44 @@ namespace QuanLyNhaHang.Controllers
                     .OrderBy(m => m.ThuTu)
                     .ToListAsync();
 
-                var result = menus.Select(m => new
-                {
-                    MaMenu = m.MaMenu,
-                    TenMenu = m.TenMenu,
-                    LoaiMenu = m.MaLoaiMenuNavigation?.TenLoaiMenu,
-                    GiaMenu = m.GiaMenu,
-                    GiaGoc = m.GiaGoc,
-                    PhanTramGiamGia = m.GiaGoc > 0 
-                        ? Math.Round(((m.GiaGoc.Value - m.GiaMenu) * 100m / m.GiaGoc.Value), 2) 
-                        : 0,
-                    MoTa = m.MoTa,
-                    HinhAnh = m.HinhAnh,
-                    NgayBatDau = m.NgayBatDau,
-                    NgayKetThuc = m.NgayKetThuc,
-                    ChiTietMenus = m.ChiTietMenus.Select(ct => new
+                var result = menus.Select(m => {
+                    // Tính giá menu từ chi tiết nếu giá menu = 0 hoặc null
+                    decimal giaMenu = m.GiaMenu;
+                    if (giaMenu == 0 && m.ChiTietMenus != null && m.ChiTietMenus.Any())
                     {
-                        SoLuong = ct.SoLuong,
-                        GhiChu = ct.GhiChu,
-                        MonAn = new
+                        giaMenu = m.ChiTietMenus
+                            .Where(ct => ct.MaCongThucNavigation != null)
+                            .Sum(ct => ct.MaCongThucNavigation.Gia * ct.SoLuong);
+                    }
+                    
+                    return new
+                    {
+                        MaMenu = m.MaMenu,
+                        TenMenu = m.TenMenu,
+                        LoaiMenu = m.MaLoaiMenuNavigation?.TenLoaiMenu,
+                        GiaMenu = giaMenu,
+                        GiaGoc = m.GiaGoc,
+                        PhanTramGiamGia = m.GiaGoc > 0 && giaMenu > 0
+                            ? Math.Round(((m.GiaGoc.Value - giaMenu) * 100m / m.GiaGoc.Value), 2) 
+                            : 0,
+                        MoTa = m.MoTa,
+                        HinhAnh = m.HinhAnh,
+                        NgayBatDau = m.NgayBatDau,
+                        NgayKetThuc = m.NgayKetThuc,
+                        ChiTietMenus = (m.ChiTietMenus ?? new List<ChiTietMenu>()).Select(ct => new
                         {
-                            TenMonAn = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.TenMonAn,
-                            HinhAnh = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.HinhAnhMonAns
-                                .Select(h => h.UrlhinhAnh)
-                                .FirstOrDefault(),
-                            Gia = ct.MaCongThucNavigation?.Gia
-                        }
-                    }).ToList()
+                            SoLuong = ct.SoLuong,
+                            GhiChu = ct.GhiChu,
+                            MonAn = new
+                            {
+                                TenMonAn = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.TenMonAn,
+                                HinhAnh = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.HinhAnhMonAns
+                                    ?.Select(h => h.UrlhinhAnh)
+                                    .FirstOrDefault(),
+                                Gia = ct.MaCongThucNavigation?.Gia
+                            }
+                        }).ToList()
+                    };
                 }).ToList();
 
                 return Ok(new { 
@@ -306,6 +339,15 @@ namespace QuanLyNhaHang.Controllers
                     return NotFound(new { message = "Không tìm thấy menu." });
                 }
 
+                // Tính giá menu từ chi tiết nếu giá menu = 0 hoặc null
+                decimal giaMenu = menu.GiaMenu;
+                if (giaMenu == 0 && menu.ChiTietMenus != null && menu.ChiTietMenus.Any())
+                {
+                    giaMenu = menu.ChiTietMenus
+                        .Where(ct => ct.MaCongThucNavigation != null)
+                        .Sum(ct => ct.MaCongThucNavigation.Gia * ct.SoLuong);
+                }
+
                 var result = new
                 {
                     MaMenu = menu.MaMenu,
@@ -316,10 +358,10 @@ namespace QuanLyNhaHang.Controllers
                     TenTrangThai = menu.MaTrangThaiNavigation?.TenTrangThai,
                     TrangThai = menu.MaTrangThaiNavigation?.TenTrangThai,
                     LoaiMenu = menu.MaLoaiMenuNavigation?.TenLoaiMenu,
-                    GiaMenu = menu.GiaMenu,
+                    GiaMenu = giaMenu,
                     GiaGoc = menu.GiaGoc,
-                    PhanTramGiamGia = menu.GiaGoc > 0 
-                        ? Math.Round(((menu.GiaGoc.Value - menu.GiaMenu) * 100m / menu.GiaGoc.Value), 2) 
+                    PhanTramGiamGia = menu.GiaGoc > 0 && giaMenu > 0
+                        ? Math.Round(((menu.GiaGoc.Value - giaMenu) * 100m / menu.GiaGoc.Value), 2) 
                         : 0,
                     MoTa = menu.MoTa,
                     HinhAnh = menu.HinhAnh,
@@ -501,31 +543,42 @@ namespace QuanLyNhaHang.Controllers
                     }
                 }
 
-                var result = menus.Select(m => new
-                {
-                    MaMenu = m.MaMenu,
-                    TenMenu = m.TenMenu,
-                    LoaiMenu = m.MaLoaiMenuNavigation?.TenLoaiMenu,
-                    GiaMenu = m.GiaMenu,
-                    GiaGoc = m.GiaGoc,
-                    PhanTramGiamGia = m.GiaGoc > 0
-                        ? Math.Round(((m.GiaGoc.Value - m.GiaMenu) * 100m / m.GiaGoc.Value), 2)
-                        : 0,
-                    MoTa = m.MoTa,
-                    HinhAnh = m.HinhAnh,
-                    ChiTietMenus = m.ChiTietMenus.Select(ct => new
+                var result = menus.Select(m => {
+                    // Tính giá menu từ chi tiết nếu giá menu = 0 hoặc null
+                    decimal giaMenu = m.GiaMenu;
+                    if (giaMenu == 0 && m.ChiTietMenus != null && m.ChiTietMenus.Any())
                     {
-                        SoLuong = ct.SoLuong,
-                        GhiChu = ct.GhiChu,
-                        MonAn = new
+                        giaMenu = m.ChiTietMenus
+                            .Where(ct => ct.MaCongThucNavigation != null)
+                            .Sum(ct => ct.MaCongThucNavigation.Gia * ct.SoLuong);
+                    }
+                    
+                    return new
+                    {
+                        MaMenu = m.MaMenu,
+                        TenMenu = m.TenMenu,
+                        LoaiMenu = m.MaLoaiMenuNavigation?.TenLoaiMenu,
+                        GiaMenu = giaMenu,
+                        GiaGoc = m.GiaGoc,
+                        PhanTramGiamGia = m.GiaGoc > 0 && giaMenu > 0
+                            ? Math.Round(((m.GiaGoc.Value - giaMenu) * 100m / m.GiaGoc.Value), 2) 
+                            : 0,
+                        MoTa = m.MoTa,
+                        HinhAnh = m.HinhAnh,
+                        ChiTietMenus = (m.ChiTietMenus ?? new List<ChiTietMenu>()).Select(ct => new
                         {
-                            TenMonAn = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.TenMonAn,
-                            HinhAnh = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.HinhAnhMonAns
-                                .Select(h => h.UrlhinhAnh)
-                                .FirstOrDefault(),
-                            Gia = ct.MaCongThucNavigation?.Gia
-                        }
-                    }).ToList()
+                            SoLuong = ct.SoLuong,
+                            GhiChu = ct.GhiChu,
+                            MonAn = new
+                            {
+                                TenMonAn = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.TenMonAn,
+                                HinhAnh = ct.MaCongThucNavigation?.MaCtNavigation?.MaMonAnNavigation?.HinhAnhMonAns
+                                    ?.Select(h => h.UrlhinhAnh)
+                                    .FirstOrDefault(),
+                                Gia = ct.MaCongThucNavigation?.Gia
+                            }
+                        }).ToList()
+                    };
                 }).ToList();
 
                 // Tính thời gian còn lại của khung giờ hiện tại
