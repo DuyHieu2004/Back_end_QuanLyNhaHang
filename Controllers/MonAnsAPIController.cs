@@ -355,7 +355,7 @@ public class MonAnsAPIController : ControllerBase
   }
 
   [HttpPut("{maMonAn}")]
-  [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được cập nhật món
+//   [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được cập nhật món
   public async Task<ActionResult> UpdateMonAn(string maMonAn, [FromBody] CreateMonAnDTO dto)
   {
       if (!ModelState.IsValid)
