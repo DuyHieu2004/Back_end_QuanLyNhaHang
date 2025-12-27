@@ -470,7 +470,10 @@ namespace QuanLyNhaHang.Controllers
             var query = _context.DonHangs
                 .Include(dh => dh.MaKhachHangNavigation)
                 .Include(dh => dh.MaTrangThaiDonHangNavigation)
-                // Include sâu để lấy Bàn và Món
+                // SỬA: THÊM Include cho DonHang.BanAnDonHangs (bàn đặt trực tiếp)
+                .Include(dh => dh.BanAnDonHangs)
+                    .ThenInclude(badh => badh.MaBanNavigation)
+                // Include sâu để lấy Bàn và Món từ ChiTietDonHangs
                 .Include(dh => dh.ChiTietDonHangs)
                     .ThenInclude(ct => ct.BanAnDonHangs)
                         .ThenInclude(badh => badh.MaBanNavigation)
@@ -517,14 +520,27 @@ namespace QuanLyNhaHang.Controllers
 
             if (donHang == null) return NotFound(new { message = "Không tìm thấy thông tin đặt bàn." });
 
-            // Lấy danh sách bàn
-            var tables = donHang.ChiTietDonHangs
-                .SelectMany(ct => ct.BanAnDonHangs)
+            // SỬA: Lấy danh sách bàn từ CẢ HAI nguồn
+            // 1. Từ DonHang.BanAnDonHangs (bàn đặt trực tiếp khi booking - QUAN TRỌNG!)
+            // 2. Từ ChiTietDonHangs.BanAnDonHangs (bàn từ món ăn - nếu đã gọi món)
+            
+            var banTuDatBan = donHang.BanAnDonHangs
+                .Where(b => b.MaBanNavigation != null)
                 .Select(b => b.MaBanNavigation.TenBan)
-                .Distinct();
+                .Distinct()
+                .ToList();
 
-            string tenCacBan = string.Join(", ", tables);
-            if (string.IsNullOrEmpty(tenCacBan)) tenCacBan = "Chưa xếp bàn";
+            var banTuMonAn = donHang.ChiTietDonHangs
+                .SelectMany(ct => ct.BanAnDonHangs)
+                .Where(b => b.MaBanNavigation != null)
+                .Select(b => b.MaBanNavigation.TenBan)
+                .Distinct()
+                .ToList();
+
+            // Gộp cả hai danh sách và loại bỏ trùng lặp
+            var allTables = banTuDatBan.Union(banTuMonAn).Distinct().ToList();
+            
+            string tenCacBan = allTables.Any() ? string.Join(", ", allTables) : "Chưa xếp bàn";
 
             var result = new ChiTietDatBanDto
             {

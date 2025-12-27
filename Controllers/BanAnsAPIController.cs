@@ -31,36 +31,44 @@ namespace QuanLyNhaHang.Controllers
         {
             if (_context.BanAns == null) return NotFound();
 
-            // SỬA LỖI: Đi từ BanAnDonHang -> ChiTietDonHang -> DonHang
-            // Lấy TẤT CẢ booking đang active (không lọc theo khoảng thời gian ở đây)
-            // Logic lọc sẽ được xử lý ở phần Set finalStatus dựa trên minutesDiff
-            var activeTableBookings = await _context.BanAnDonHangs
-                .Include(badh => badh.MaChiTietDonHangNavigation) // Vào chi tiết
-                    .ThenInclude(ct => ct.MaDonHangNavigation)    // Vào đơn hàng
-                .Where(badh =>
-                    // Check trạng thái đơn (thông qua Chi Tiết)
-                    (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
-                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
-                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "DANG_PHUC_VU" ||
-                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
+            // SỬA: Lấy booking trực tiếp từ DonHang.BanAnDonHangs (không qua ChiTietDonHang)
+            // Vì khi đặt bàn chưa có món, sẽ KHÔNG có ChiTietDonHang!
+            var activeTableBookings = await _context.DonHangs
+                .Include(dh => dh.BanAnDonHangs) // Direct table assignments
+                .Where(dh =>
+                    // Check trạng thái đơn
+                    (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
+                     dh.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
+                     dh.MaTrangThaiDonHang == "DANG_PHUC_VU" ||
+                     dh.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
 
-                    // Chỉ cần có TGNhanBan hoặc ThoiGianDatHang để tính toán
-                    (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TGNhanBan != null ||
-                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang != null)
+                    // Có ít nhất một mốc thời gian
+                    (dh.TGNhanBan != null ||
+                     dh.ThoiGianDatHang != null ||
+                     dh.TgdatDuKien != null)
                 )
-                .Select(badh => new
+                .SelectMany(dh => dh.BanAnDonHangs.Select(badh => new
                 {
                     MaBan = badh.MaBan,
-                    // Lấy thông tin từ cấp DonHang (phải đi qua 2 cấp)
-                    MaDonHang = badh.MaChiTietDonHangNavigation.MaDonHang,
-                    TenKhach = badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TenNguoiNhan ?? "Khách vãng lai",
-                    SDT = badh.MaChiTietDonHangNavigation.MaDonHangNavigation.SdtnguoiNhan,
-                    // SỬA: GioDen lấy theo TGNhanBan (giờ nhận bàn thực tế). Nếu null thì fallback về ThoiGianDatHang.
-                    GioDen = badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TGNhanBan
-                             ?? badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang,
-                    TrangThaiDon = badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang
-                })
+                    MaDonHang = dh.MaDonHang,
+                    TenKhach = dh.TenNguoiNhan ?? "Khách vãng lai",
+                    SDT = dh.SdtnguoiNhan,
+                    // GioDen: Ưu tiên TGNhanBan (đã check-in), nếu null thì dùng TgdatDuKien, cuối cùng là ThoiGianDatHang
+                    GioDen = dh.TGNhanBan ?? dh.TgdatDuKien ?? dh.ThoiGianDatHang,
+                    TGNhanBan = dh.TGNhanBan,
+                    TgdatDuKien = dh.TgdatDuKien,
+                    ThoiGianKetThuc = dh.ThoiGianKetThuc,
+                    TrangThaiDon = dh.MaTrangThaiDonHang
+                }))
                 .ToListAsync();
+
+            // DEBUG: Log để kiểm tra
+            Console.WriteLine($"🔍 [GetManagerTableStatus] DateTime: {dateTime:yyyy-MM-dd HH:mm}");
+            Console.WriteLine($"🔍 Found {activeTableBookings.Count} active table bookings:");
+            foreach (var booking in activeTableBookings)
+            {
+                Console.WriteLine($"   - Bàn {booking.MaBan}: Đơn {booking.MaDonHang}, GioDen={booking.GioDen:yyyy-MM-dd HH:mm}, Status={booking.TrangThaiDon}");
+            }
 
             // Lấy tất cả bàn
             var allTables = await _context.BanAns
@@ -69,30 +77,105 @@ namespace QuanLyNhaHang.Controllers
                 .Where(b => b.IsShow == true)
                 .ToListAsync();
 
-            // Map kết quả (Logic hiển thị giữ nguyên, chỉ thay nguồn dữ liệu)
+            // Map kết quả với logic kiểm tra khoảng thời gian
             var result = allTables.Select(ban =>
             {
                 string finalStatus = "Trống";
                 string note = "";
+                DateTime? thoiGianVao = null;
 
-                // Tìm xem bàn này có dính đơn nào không
-                var bookingInfo = activeTableBookings.FirstOrDefault(o => o.MaBan == ban.MaBan);
+                // SỬA: Tìm đơn MATCH với datetime (không chỉ lấy đơn đầu tiên!)
+                // OPTION A: Chỉ hiển thị đơn ĐÚNG thời điểm, không hiển thị đơn tương lai xa
+                var allBookingsForTable = activeTableBookings.Where(o => o.MaBan == ban.MaBan).ToList();
+                
+                // Ưu tiên 1: Tìm đơn ĐANG PHỤC VỤ match với datetime
+                var bookingInfo = allBookingsForTable.FirstOrDefault(b =>
+                    (b.TrangThaiDon == "CHO_THANH_TOAN" || b.TrangThaiDon == "DANG_PHUC_VU") &&
+                    b.TGNhanBan.HasValue &&
+                    dateTime >= b.TGNhanBan.Value &&
+                    dateTime <= (b.ThoiGianKetThuc ?? b.TGNhanBan.Value.AddHours(2))
+                );
 
+                // Ưu tiên 2: Nếu không có đơn đang phục vụ, tìm đơn ĐẶT TRƯỚC CÙNG NGÀY
+                if (bookingInfo == null && allBookingsForTable.Any())
+                {
+                    var selectedDate = dateTime.Date;
+                    bookingInfo = allBookingsForTable
+                        .Where(b => 
+                            (b.TrangThaiDon == "CHO_XAC_NHAN" || b.TrangThaiDon == "DA_XAC_NHAN") &&
+                            b.GioDen.HasValue &&
+                            b.GioDen.Value.Date == selectedDate  // ← FILTER: Chỉ lấy đơn CÙNG NGÀY
+                        )
+                        .OrderBy(b => Math.Abs((b.GioDen.Value - dateTime).TotalMinutes))
+                        .FirstOrDefault();
+                }
+
+                // DEBUG: Log để trace logic cho từng bàn quan trọng
+                if (ban.MaBan == "B003")
+                {
+                    Console.WriteLine($"🔍 [Bàn B003] DateTime selected: {dateTime:yyyy-MM-dd HH:mm}");
+                    Console.WriteLine($"   Found {allBookingsForTable.Count} total bookings for this table");
+                    if (bookingInfo != null)
+                    {
+                        Console.WriteLine($"   ✅ Selected booking: {bookingInfo.MaDonHang}, GioDen={bookingInfo.GioDen:yyyy-MM-dd HH:mm}, Status={bookingInfo.TrangThaiDon}");
+                        var diff = (bookingInfo.GioDen.Value - dateTime).TotalMinutes;
+                        Console.WriteLine($"   minutesDiff = {diff:F1} phút");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"   ❌ No booking matches this datetime");
+                        foreach (var b in allBookingsForTable)
+                        {
+                            Console.WriteLine($"      - Skipped: {b.MaDonHang}, GioDen={b.GioDen:yyyy-MM-dd HH:mm} (different date or not in range)");
+                        }
+                    }
+                }
+
+                // KIỂM TRA BẢO TRÌ TRƯỚC (Ưu tiên cao nhất)
                 if (ban.MaTrangThai == "TTBA004")
                 {
                     finalStatus = "Bảo trì";
                     note = ban.MaTrangThaiNavigation?.TenTrangThai ?? "Bảo trì thủ công";
                 }
+                // KIỂM TRA ĐƠN HÀNG ĐANG PHỤC VỤ/CHỜ THANH TOÁN
                 else if (bookingInfo != null &&
                          (bookingInfo.TrangThaiDon == "DANG_PHUC_VU" || bookingInfo.TrangThaiDon == "CHO_THANH_TOAN"))
                 {
-                    finalStatus = (bookingInfo.TrangThaiDon == "CHO_THANH_TOAN") ? "Chờ thanh toán" : "Đang phục vụ";
-                    note = $"Khách: {bookingInfo.TenKhach} - Đơn #{bookingInfo.MaDonHang}";
+                    // *** FIX: Kiểm tra xem dateTime có nằm trong khoảng phục vụ không ***
+                    bool isInServiceTime = false;
+                    
+                    if (bookingInfo.TGNhanBan.HasValue && bookingInfo.ThoiGianKetThuc.HasValue)
+                    {
+                        // Kiểm tra dateTime có nằm giữa TGNhanBan và ThoiGianKetThuc không
+                        isInServiceTime = dateTime >= bookingInfo.TGNhanBan.Value && 
+                                         dateTime <= bookingInfo.ThoiGianKetThuc.Value;
+                    }
+                    else if (bookingInfo.TGNhanBan.HasValue)
+                    {
+                        // Nếu chỉ có TGNhanBan (chưa có giờ kết thúc), giả sử phục vụ 2 tiếng
+                        var estimatedEnd = bookingInfo.TGNhanBan.Value.AddHours(2);
+                        isInServiceTime = dateTime >= bookingInfo.TGNhanBan.Value && 
+                                         dateTime <= estimatedEnd;
+                    }
+
+                    // Chỉ hiển thị "Đang phục vụ" nếu datetime nằm trong khoảng thời gian phục vụ
+                    if (isInServiceTime)
+                    {
+                        finalStatus = (bookingInfo.TrangThaiDon == "CHO_THANH_TOAN") ? "Chờ thanh toán" : "Đang phục vụ";
+                        note = $"Khách: {bookingInfo.TenKhach} - Đơn #{bookingInfo.MaDonHang}";
+                        thoiGianVao = bookingInfo.TGNhanBan;
+                    }
+                    else
+                    {
+                        // Nếu không trong khoảng thời gian, coi như trống
+                        finalStatus = "Trống";
+                    }
                 }
+                // KIỂM TRA ĐƠN ĐẶT TRƯỚC (CHỜ XÁC NHẬN / ĐÃ XÁC NHẬN)
                 else if (bookingInfo != null &&
                          (bookingInfo.TrangThaiDon == "DA_XAC_NHAN" || bookingInfo.TrangThaiDon == "CHO_XAC_NHAN"))
                 {
-                    // Logic mới:
+                    // Logic đặt trước:
                     // - Nếu còn <= 120 phút (2 tiếng) tới giờ đến  => "Đã đặt (Sắp đến)"
                     // - Nếu đã quá giờ đến                        => "Đã đặt (Quá giờ)"
                     // - Nếu còn > 120 phút                        => vẫn coi là "Trống" (chỉ là có booking xa)
@@ -100,41 +183,79 @@ namespace QuanLyNhaHang.Controllers
                     {
                         var minutesDiff = (bookingInfo.GioDen.Value - dateTime).TotalMinutes;
 
-                        if (minutesDiff <= 120 && minutesDiff >= 0)
+                        if (minutesDiff >= 0)
                         {
-                            // Còn trong cửa sổ 2 tiếng tới giờ đến
-                            finalStatus = "Đã đặt (Sắp đến)";
-                            var minutesLeft = Math.Ceiling(minutesDiff);
-                            note = $"Đơn: {bookingInfo.TenKhach} ({bookingInfo.GioDen:HH:mm}) - Còn {minutesLeft} phút";
+                            // Chưa đến giờ đặt
+                            if (minutesDiff <= 120)
+                            {
+                                // Còn trong cửa sổ 2 tiếng tới giờ đến
+                                finalStatus = "Đã đặt (Sắp đến)";
+                                var minutesLeft = Math.Ceiling(minutesDiff);
+                                note = $"Đơn: {bookingInfo.TenKhach} ({bookingInfo.GioDen:HH:mm}) - Còn {minutesLeft} phút";
+                            }
+                            else
+                            {
+                                // COMMENTED: Rule 2 tiếng - Giờ hiển thị tất cả đơn đặt
+                                // minutesDiff > 120  => giờ đến còn xa, vẫn cho hiển thị là Trống
+                                // finalStatus = "Trống";
+                                
+                                // NEW: Hiển thị "Đã đặt" cho tất cả đơn, kể cả còn xa
+                                finalStatus = "Đã đặt";
+                                var days = (int)(minutesDiff / 1440);
+                                var hours = (int)((minutesDiff % 1440) / 60);
+                                
+                                if (days > 0)
+                                    note = $"Đơn: {bookingInfo.TenKhach} ({bookingInfo.GioDen:dd/MM HH:mm}) - Còn {days} ngày";
+                                else if (hours > 2)
+                                    note = $"Đơn: {bookingInfo.TenKhach} ({bookingInfo.GioDen:HH:mm}) - Còn {hours} giờ";
+                                else
+                                    note = $"Đơn: {bookingInfo.TenKhach} ({bookingInfo.GioDen:HH:mm})";
+                            }
                         }
-                        else if (minutesDiff < 0)
+                        else
                         {
                             // Đã quá giờ mà khách chưa check-in
                             finalStatus = "Đã đặt (Quá giờ)";
                             note = $"Đơn: {bookingInfo.TenKhach} (Lẽ ra đến {bookingInfo.GioDen:HH:mm}) - Chờ Check-in/Hủy";
                         }
-                        else
-                        {
-                            // minutesDiff > 120  => giờ đến còn xa, vẫn cho hiển thị là Trống
-                            finalStatus = "Trống";
-                            // Nếu muốn có thể bật note để quản lý biết trước:
-                            // note = $"Đã có khách đặt lúc {bookingInfo.GioDen:HH:mm} (sớm hơn 2 tiếng)";
-                        }
                     }
                 }
-                else if (ban.MaTrangThai == "TTBA003")
+                // OPTION 3: KHÔNG CÓ ĐƠN ACTIVE - Kiểm tra DB mismatch
+                else if (bookingInfo == null)
                 {
-                    finalStatus = "Đã đặt";
-                    note = ban.MaTrangThaiNavigation?.TenTrangThai ?? "Kiểm tra thủ công";
-                }
-                else if (ban.MaTrangThai == "TTBA002" || ban.MaTrangThai == "TTBA003")
-                {
-                    finalStatus = "Đang phục vụ (Walk-in/Cũ)";
-                    note = ban.MaTrangThaiNavigation?.TenTrangThai ?? "Kiểm tra thủ công";
+                    // Nếu DB cho rằng bàn đang bận nhưng KHÔNG có đơn active
+                    // → Có thể DB chưa được reset sau khi đơn hoàn thành
+                    if (ban.MaTrangThai == "TTBA002" || ban.MaTrangThai == "TTBA003")
+                    {
+                        // OPTION 3: Log warning nhưng vẫn hiển thị Trống
+                        Console.WriteLine($"⚠️ [DB Mismatch] Bàn {ban.MaBan} có DB status {ban.MaTrangThai} nhưng không có đơn active tại {dateTime:yyyy-MM-dd HH:mm}");
+                        finalStatus = "Trống";
+                        note = ""; // Không hiển thị note nhầm lẫn
+                    }
+                    else
+                    {
+                        // Bàn thực sự trống (TTBA001)
+                        finalStatus = "Trống";
+                    }
                 }
                 else
                 {
                     finalStatus = "Trống";
+                }
+
+                // OPTION 3: Kiểm tra DB có khớp với logic không
+                bool isDbMismatch = false;
+                if (ban.MaTrangThai == "TTBA002" && finalStatus != "Đang phục vụ" && finalStatus != "Chờ thanh toán")
+                {
+                    isDbMismatch = true;
+                }
+                else if (ban.MaTrangThai == "TTBA003" && !finalStatus.Contains("Đã đặt"))
+                {
+                    isDbMismatch = true;
+                }
+                else if (ban.MaTrangThai == "TTBA001" && finalStatus != "Trống")
+                {
+                    isDbMismatch = true;
                 }
 
                 return new
@@ -146,7 +267,9 @@ namespace QuanLyNhaHang.Controllers
                     TenTang = ban.MaTangNavigation?.TenTang,
                     TrangThaiHienThi = finalStatus,
                     GhiChu = note,
-                    MaTrangThaiGoc = ban.MaTrangThai
+                    ThoiGianVao = thoiGianVao?.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    MaTrangThaiGoc = ban.MaTrangThai, // DB status gốc
+                    IsDbMismatch = isDbMismatch // OPTION 3: Flag debug
                 };
             }).OrderBy(b => b.MaBan).ToList();
 
@@ -252,7 +375,7 @@ namespace QuanLyNhaHang.Controllers
         }
 
         // ==================================================================================
-        // 4. API CẬP NHẬT TRẠNG THÁI BÀN (THỦ CÔNG - KHÔNG ĐỔI)
+        // 4. API CẬP NHẬT TRẠNG THÁI BÀN
         // ==================================================================================
         [HttpPut("{maBan}/status")]
         [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được cập nhật
