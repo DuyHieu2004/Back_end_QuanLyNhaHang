@@ -102,6 +102,30 @@ namespace QuanLyNhaHang.Controllers
             if (donHangDto.ThoiGianDatHang.Year < 1753)
                 return BadRequest(new { message = "Thời gian đặt không hợp lệ (năm phải > 1753)." });
 
+            var listBanCheck = await _context.BanAns
+                            .Where(b => donHangDto.DanhSachMaBan.Contains(b.MaBan))
+                            .Select(b => new { b.SucChua }) // Chỉ lấy trường cần thiết cho nhẹ
+                            .ToListAsync();
+
+            if (listBanCheck.Count != donHangDto.DanhSachMaBan.Count)
+                return BadRequest(new { message = "Có mã bàn không tồn tại trong hệ thống." });
+
+            int tongSucChua = listBanCheck.Sum(b => b.SucChua);
+            int soGheDuChoPhep = 3; // Cho phép ngồi dư tối đa 4 ghế
+
+            // 1. Chặn nếu khách đông hơn bàn
+            if (donHangDto.SoLuongNguoi > tongSucChua)
+                return BadRequest(new { message = $"Số khách ({donHangDto.SoLuongNguoi}) lớn hơn sức chứa của bàn ({tongSucChua})." });
+
+            // 2. Chặn nếu bàn quá to so với khách (Ví dụ: 2 khách đòi bàn 10)
+            if ((tongSucChua - donHangDto.SoLuongNguoi) > soGheDuChoPhep)
+            {
+                return BadRequest(new
+                {
+                    message = $"Không thể đặt bàn này! Bàn quá lớn so với số lượng khách (Dư {tongSucChua - donHangDto.SoLuongNguoi} ghế). Vui lòng chọn bàn nhỏ hơn hoặc ghép bàn phù hợp."
+                });
+            }
+
             using (var transaction = _context.Database.BeginTransaction())
             {
                 try
@@ -318,6 +342,16 @@ namespace QuanLyNhaHang.Controllers
                 if (datBanDto.SoLuongNguoi > tongSucChua)
                 {
                     return BadRequest(new { message = $"Số người ({datBanDto.SoLuongNguoi}) vượt quá tổng sức chứa ({tongSucChua})." });
+                }
+
+                int soGheDuChoPhep = 3;
+
+                if ((tongSucChua - datBanDto.SoLuongNguoi) > soGheDuChoPhep)
+                {
+                    return BadRequest(new
+                    {
+                        message = $"Bàn này quá lớn so với số lượng khách! (Dư {tongSucChua - datBanDto.SoLuongNguoi} ghế). Vui lòng chọn bàn phù hợp hơn."
+                    });
                 }
 
                 // =================================================================
