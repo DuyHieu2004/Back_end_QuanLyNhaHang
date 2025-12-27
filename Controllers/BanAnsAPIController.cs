@@ -175,31 +175,24 @@ namespace QuanLyNhaHang.Controllers
                 else if (bookingInfo != null &&
                          (bookingInfo.TrangThaiDon == "DA_XAC_NHAN" || bookingInfo.TrangThaiDon == "CHO_XAC_NHAN"))
                 {
-                    // Logic đặt trước:
-                    // - Nếu còn <= 120 phút (2 tiếng) tới giờ đến  => "Đã đặt (Sắp đến)"
-                    // - Nếu đã quá giờ đến                        => "Đã đặt (Quá giờ)"
-                    // - Nếu còn > 120 phút                        => vẫn coi là "Trống" (chỉ là có booking xa)
                     if (bookingInfo.GioDen.HasValue)
                     {
-                        var minutesDiff = (bookingInfo.GioDen.Value - dateTime).TotalMinutes;
+                        // SỬA: So sánh với giờ HỆ THỐNG, không phải giờ user chọn
+                        var minutesDiff = (bookingInfo.GioDen.Value - DateTime.Now).TotalMinutes;
 
                         if (minutesDiff >= 0)
                         {
                             // Chưa đến giờ đặt
                             if (minutesDiff <= 120)
                             {
-                                // Còn trong cửa sổ 2 tiếng tới giờ đến
+                                // Còn trong 2h → "Sắp đến"
                                 finalStatus = "Đã đặt (Sắp đến)";
                                 var minutesLeft = Math.Ceiling(minutesDiff);
                                 note = $"Đơn: {bookingInfo.TenKhach} ({bookingInfo.GioDen:HH:mm}) - Còn {minutesLeft} phút";
                             }
                             else
                             {
-                                // COMMENTED: Rule 2 tiếng - Giờ hiển thị tất cả đơn đặt
-                                // minutesDiff > 120  => giờ đến còn xa, vẫn cho hiển thị là Trống
-                                // finalStatus = "Trống";
-                                
-                                // NEW: Hiển thị "Đã đặt" cho tất cả đơn, kể cả còn xa
+                                // Còn > 2h → "Đã đặt"
                                 finalStatus = "Đã đặt";
                                 var days = (int)(minutesDiff / 1440);
                                 var hours = (int)((minutesDiff % 1440) / 60);
