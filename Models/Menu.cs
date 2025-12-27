@@ -29,6 +29,8 @@ public partial class Menu
 
     public int? ThuTu { get; set; }
 
+    public string? KhungGio { get; set; }
+
     public DateTime NgayTao { get; set; }
 
     public DateTime? NgayCapNhat { get; set; }

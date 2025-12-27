@@ -14,6 +14,7 @@ namespace QuanLyNhaHang.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize] // Yêu cầu đăng nhập cho tất cả các endpoint trong controller này
     public class DonHangsAPIController : ControllerBase
     {
         private readonly QLNhaHangContext _context;
@@ -271,6 +272,7 @@ namespace QuanLyNhaHang.Controllers
                     tenTrangThai = dh.MaTrangThaiDonHangNavigation.TenTrangThai,
                     maTrangThaiDonHang = dh.MaTrangThaiDonHang,
                     thoiGianDatHang = dh.ThoiGianDatHang,
+                    tgDatDuKien = dh.TgdatDuKien, // Thêm field ngày dự kiến
                     tgNhanBan = dh.TGNhanBan,
                     thanhToan = dh.ThanhToan,
                     soLuongNguoiDK = dh.SoLuongNguoiDK,
@@ -353,12 +355,18 @@ namespace QuanLyNhaHang.Controllers
                 var today = DateTime.Today;
 
                 // Tính doanh thu: DonHang -> ChiTietDonHang (đơn giản hơn cấu trúc cũ)
-                var totalRevenueToday = await _context.DonHangs
+                // Sửa lỗi: Xử lý trường hợp tập rỗng bằng cách dùng DefaultIfEmpty() hoặc kiểm tra trước
+                var revenueQuery = _context.DonHangs
                     .Where(dh => dh.MaTrangThaiDonHang == "DA_HOAN_THANH" &&
                                  dh.ThoiGianKetThuc.HasValue &&
                                  dh.ThoiGianKetThuc.Value.Date == today)
-                    .SelectMany(dh => dh.ChiTietDonHangs) // Truy cập trực tiếp Chi Tiết
-                    .SumAsync(ct => ct.SoLuong * (ct.MaCongThucNavigation.Gia));
+                    .SelectMany(dh => dh.ChiTietDonHangs)
+                    .Select(ct => ct.SoLuong * (ct.MaCongThucNavigation.Gia));
+
+                // Kiểm tra xem có dữ liệu không trước khi Sum
+                var totalRevenueToday = await revenueQuery.AnyAsync() 
+                    ? await revenueQuery.SumAsync() 
+                    : 0m;
 
                 var statusCounts = await _context.DonHangs
                     .GroupBy(dh => dh.MaTrangThaiDonHang)
@@ -462,7 +470,10 @@ namespace QuanLyNhaHang.Controllers
             var query = _context.DonHangs
                 .Include(dh => dh.MaKhachHangNavigation)
                 .Include(dh => dh.MaTrangThaiDonHangNavigation)
-                // Include sâu để lấy Bàn và Món
+                // SỬA: THÊM Include cho DonHang.BanAnDonHangs (bàn đặt trực tiếp)
+                .Include(dh => dh.BanAnDonHangs)
+                    .ThenInclude(badh => badh.MaBanNavigation)
+                // Include sâu để lấy Bàn và Món từ ChiTietDonHangs
                 .Include(dh => dh.ChiTietDonHangs)
                     .ThenInclude(ct => ct.BanAnDonHangs)
                         .ThenInclude(badh => badh.MaBanNavigation)
@@ -509,14 +520,27 @@ namespace QuanLyNhaHang.Controllers
 
             if (donHang == null) return NotFound(new { message = "Không tìm thấy thông tin đặt bàn." });
 
-            // Lấy danh sách bàn
-            var tables = donHang.ChiTietDonHangs
-                .SelectMany(ct => ct.BanAnDonHangs)
+            // SỬA: Lấy danh sách bàn từ CẢ HAI nguồn
+            // 1. Từ DonHang.BanAnDonHangs (bàn đặt trực tiếp khi booking - QUAN TRỌNG!)
+            // 2. Từ ChiTietDonHangs.BanAnDonHangs (bàn từ món ăn - nếu đã gọi món)
+            
+            var banTuDatBan = donHang.BanAnDonHangs
+                .Where(b => b.MaBanNavigation != null)
                 .Select(b => b.MaBanNavigation.TenBan)
-                .Distinct();
+                .Distinct()
+                .ToList();
 
-            string tenCacBan = string.Join(", ", tables);
-            if (string.IsNullOrEmpty(tenCacBan)) tenCacBan = "Chưa xếp bàn";
+            var banTuMonAn = donHang.ChiTietDonHangs
+                .SelectMany(ct => ct.BanAnDonHangs)
+                .Where(b => b.MaBanNavigation != null)
+                .Select(b => b.MaBanNavigation.TenBan)
+                .Distinct()
+                .ToList();
+
+            // Gộp cả hai danh sách và loại bỏ trùng lặp
+            var allTables = banTuDatBan.Union(banTuMonAn).Distinct().ToList();
+            
+            string tenCacBan = allTables.Any() ? string.Join(", ", allTables) : "Chưa xếp bàn";
 
             var result = new ChiTietDatBanDto
             {

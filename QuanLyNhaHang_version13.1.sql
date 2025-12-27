@@ -217,6 +217,7 @@ CREATE TABLE [dbo].[Menu](
     [NgayKetThuc] [datetime] NULL,
     [IsShow] [bit] NOT NULL DEFAULT(1),
     [ThuTu] [int] NULL, 
+    [KhungGio] [nvarchar](10) NULL,
     [NgayTao] [datetime] NOT NULL DEFAULT(GETDATE()),
     [NgayCapNhat] [datetime] NULL,
     CONSTRAINT [PK_Menu] PRIMARY KEY CLUSTERED ([MaMenu] ASC)
@@ -1566,13 +1567,16 @@ GO
 
 -- CHÈN DỮ LIỆU MẪU CHO MENU
 -- Chèn dữ liệu mẫu cho Menu
-INSERT INTO [dbo].[Menu] ([MaMenu], [TenMenu], [MaLoaiMenu], [MaTrangThai], [GiaMenu], [GiaGoc], [MoTa], [HinhAnh], [NgayBatDau], [NgayKetThuc], [IsShow], [ThuTu]) VALUES
-('MENU001', N'Menu Set A - Cơm tấm combo', 'LM001', 'DANG_AP_DUNG', 120000, 150000, N'Bao gồm: 1 phần cơm tấm sườn bì chả + 1 canh chua chay + 1 nước lọc', 'images\menus\menu1.jpg', '2025-01-01', NULL, 1, 1),
-('MENU002', N'Menu Set B - Lẩu combo 2 người', 'LM001', 'DANG_AP_DUNG', 450000, 500000, N'Bao gồm: 1 lẩu Thái hải sản + 2 phần cơm + 2 nước', 'images\menus\menu2.jpg', '2025-01-01', NULL, 1, 2),
-('MENU003', N'Menu Set C - Hải sản combo', 'LM001', 'DANG_AP_DUNG', 600000, 700000, N'Bao gồm: 1 tôm hùm nướng bơ tỏi + 1 cua rang me + 2 nước', 'images\menus\menu3.jpg', '2025-01-01', NULL, 1, 3),
-('MENU004', N'Menu Buffet trưa', 'LM002', 'DANG_AP_DUNG', 250000, NULL, N'Buffet trưa thứ 2-6, từ 11h-14h', 'images\menus\menu4.jpg', '2025-01-01', NULL, 1, 4),
-('MENU005', N'Menu gia đình 4 người', 'LM005', 'DANG_AP_DUNG', 800000, 950000, N'Menu đầy đủ cho gia đình 4 người: 4 phần cơm + 2 món mặn + 1 canh + 4 nước', 'images\menus\menu5.jpg', '2025-01-01', NULL, 1, 5),
-('MENU006', N'Menu Tết Nguyên Đán 2025', 'LM004', 'CHUA_AP_DUNG', 1200000, 1400000, N'Menu đặc biệt dịp Tết, áp dụng từ 28/12 - 5/1', 'images\menus\menu6.jpg', '2025-12-28', '2026-01-05', 1, 6);
+INSERT INTO [dbo].[Menu] ([MaMenu], [TenMenu], [MaLoaiMenu], [MaTrangThai], [GiaMenu], [GiaGoc], [MoTa], [HinhAnh], [NgayBatDau], [NgayKetThuc], [IsShow], [ThuTu], [KhungGio]) VALUES
+('MENU001', N'Menu Set A - Cơm tấm combo', 'LM001', 'DANG_AP_DUNG', 120000, 150000, N'Bao gồm: 1 phần cơm tấm sườn bì chả + 1 canh chua chay + 1 nước lọc', 'images\menus\menu1.jpg', '2025-01-01', NULL, 1, 1, 'TRUA'),
+('MENU002', N'Menu Set B - Lẩu combo 2 người', 'LM001', 'DANG_AP_DUNG', 450000, 500000, N'Bao gồm: 1 lẩu Thái hải sản + 2 phần cơm + 2 nước', 'images\menus\menu2.jpg', '2025-01-01', NULL, 1, 2, 'TOI'),
+('MENU003', N'Menu Set C - Hải sản combo', 'LM001', 'DANG_AP_DUNG', 600000, 700000, N'Bao gồm: 1 tôm hùm nướng bơ tỏi + 1 cua rang me + 2 nước', 'images\menus\menu3.jpg', '2025-01-01', NULL, 1, 3, 'TOI'),
+('MENU004', N'Menu Buffet trưa', 'LM002', 'DANG_AP_DUNG', 250000, NULL, N'Buffet trưa thứ 2-6, từ 11h-14h', 'images\menus\menu4.jpg', '2025-01-01', NULL, 1, 4, 'TRUA'),
+('MENU005', N'Menu gia đình 4 người', 'LM005', 'DANG_AP_DUNG', 800000, 950000, N'Menu đầy đủ cho gia đình 4 người: 4 phần cơm + 2 món mặn + 1 canh + 4 nước', 'images\menus\menu5.jpg', '2025-01-01', NULL, 1, 5, 'TOI'),
+('MENU006', N'Menu Tết Nguyên Đán 2025', 'LM004', 'CHUA_AP_DUNG', 1200000, 1400000, N'Menu đặc biệt dịp Tết, áp dụng từ 28/12 - 5/1', 'images\menus\menu6.jpg', '2025-12-28', '2026-01-05', 1, 6, NULL),
+('MENU007', N'Menu Sáng - Phở/Bún combo', 'LM001', 'DANG_AP_DUNG', 80000, 100000, N'Bao gồm: 1 tô phở/bún + 1 trứng ốp la + 1 cà phê', 'images\menus\menu1.jpg', '2025-01-01', NULL, 1, 7, 'SANG'),
+('MENU008', N'Menu Chiều - Trà chiều combo', 'LM001', 'DANG_AP_DUNG', 150000, 180000, N'Bao gồm: 1 set bánh ngọt + 2 ly trà + 1 trái cây', 'images\menus\menu2.jpg', '2025-01-01', NULL, 1, 8, 'CHIEU'),
+('MENU009', N'Menu cả ngày - Combo linh hoạt', 'LM001', 'DANG_AP_DUNG', 200000, 250000, N'Menu có thể dùng bất kỳ lúc nào trong ngày', 'images\menus\menu3.jpg', '2025-01-01', NULL, 1, 9, NULL);
 GO
 
 -- Chèn dữ liệu chi tiết cho Menu Set A (Sử dụng Size M làm mặc định)

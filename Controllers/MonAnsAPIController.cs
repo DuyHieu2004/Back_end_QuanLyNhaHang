@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuanLyNhaHang.Models;
 using QuanLyNhaHang.Models.DTO;
@@ -17,6 +18,7 @@ public class MonAnsAPIController : ControllerBase
    }
 
 
+    // GET endpoints có thể public để khách hàng xem menu
     [HttpGet]
     public async Task<ActionResult<IEnumerable<MonAnDetailDTO>>> GetMonAns(
         [FromQuery] string? maDanhMuc,
@@ -102,6 +104,7 @@ public class MonAnsAPIController : ControllerBase
     }
 
 
+    // GET endpoints có thể public để khách hàng xem menu
     [HttpGet("{id}")]
    public async Task<ActionResult<MonAnDetailDTO>> GetMonAn(string id)
    {
@@ -184,6 +187,7 @@ public class MonAnsAPIController : ControllerBase
    }
 
   [HttpPost]
+  [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được tạo món
   public async Task<ActionResult<MonAn>> CreateMonAn([FromBody] CreateMonAnDTO dto)
   {
       if (!ModelState.IsValid)
@@ -351,6 +355,7 @@ public class MonAnsAPIController : ControllerBase
   }
 
   [HttpPut("{maMonAn}")]
+//   [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được cập nhật món
   public async Task<ActionResult> UpdateMonAn(string maMonAn, [FromBody] CreateMonAnDTO dto)
   {
       if (!ModelState.IsValid)
@@ -519,6 +524,7 @@ public class MonAnsAPIController : ControllerBase
   }
 
    [HttpPost("upload-image")]
+   [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được upload ảnh
    public async Task<IActionResult> UploadImage(IFormFile file, [FromQuery] string? maMonAn = null)
    {
        if (file == null || file.Length == 0)

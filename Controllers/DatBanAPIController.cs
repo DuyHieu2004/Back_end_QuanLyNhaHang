@@ -26,6 +26,17 @@ namespace QuanLyNhaHang.Controllers
             _context = context;
         }
 
+        /// <summary>
+        /// Chuẩn hóa thời gian về Local (Asia/Ho_Chi_Minh). Nếu client gửi UTC (có Z) sẽ chuyển sang Local.
+        /// Nếu Kind = Unspecified thì coi là Local để tránh cộng bù lần 2.
+        /// </summary>
+        private DateTime NormalizeToLocal(DateTime dt)
+        {
+            if (dt.Kind == DateTimeKind.Utc) return dt.ToLocalTime();
+            if (dt.Kind == DateTimeKind.Unspecified) return DateTime.SpecifyKind(dt, DateTimeKind.Local);
+            return dt;
+        }
+
 
         public class StaffLoginRequest
         {
@@ -114,22 +125,31 @@ namespace QuanLyNhaHang.Controllers
                         return Unauthorized("Lỗi xác thực: Không tìm thấy mã nhân viên.");
 
                     // --- 3. KIỂM TRA TRÙNG LỊCH ---
-                    // Chuyển giờ hẹn từ UTC (Frontend gửi) sang giờ Việt Nam
-                    DateTime gioHenKhachDen = donHangDto.ThoiGianDatHang.ToLocalTime();
+                    // Chuẩn hóa giờ hẹn sang local (tránh lệ
+                    DateTime gioHenKhachDen = NormalizeToLocal(donHangDto.ThoiGianDatHang);
                     DateTime duKienKetThuc = gioHenKhachDen.AddMinutes(120);
+
+                    // SQL Server không hỗ trợ DateTime.MinValue/MaxValue, cần giới hạn trong range hợp lệ
+                    var sqlMinDate = new DateTime(1753, 1, 1);
+                    var sqlMaxDate = new DateTime(9999, 12, 31);
 
                     var bookingConflict = await _context.DonHangs
                         .Include(d => d.BanAnDonHangs)
                         .AnyAsync(dh =>
-                            // Chỉ check các đơn đang hoạt động
+                            // Chỉ check các đơn đang hoạt động (bao gồm đang phục vụ)
                             (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
                              dh.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
+                             dh.MaTrangThaiDonHang == "DANG_PHUC_VU" ||
                              dh.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
 
                             // Logic kiểm tra va chạm thời gian
+                            // Sử dụng TGNhanBan nếu có (đã check-in), nếu không thì dùng TgdatDuKien (chưa check-in)
+                            // Thời gian kết thúc của đơn cũ: nếu có TGNhanBan thì TGNhanBan + 120 phút, nếu không thì ThoiGianKetThuc
                             (
-                                 gioHenKhachDen < dh.ThoiGianKetThuc &&
-                                 duKienKetThuc > (dh.TGNhanBan ?? dh.TgdatDuKien)
+                                 gioHenKhachDen < (dh.TGNhanBan.HasValue 
+                                     ? dh.TGNhanBan.Value.AddMinutes(120) 
+                                     : (dh.ThoiGianKetThuc ?? dh.TgdatDuKien ?? sqlMaxDate)) &&
+                                 duKienKetThuc > (dh.TGNhanBan ?? dh.TgdatDuKien ?? sqlMinDate)
                             ) &&
 
                             // Check trùng bàn
@@ -183,6 +203,14 @@ namespace QuanLyNhaHang.Controllers
                     // --- 5. TẠO ĐƠN HÀNG (LOGIC MỚI) ---
                     string maDonHangMoi = "DH" + DateTime.Now.ToString("yyyyMMddHHmmss");
 
+                    // Phân biệt đặt trước và đặt tại quay (walk-in)
+                    // Nếu có ThoiGianNhanBan trong DTO → walk-in (khách đến ngay)
+                    // Nếu không có → đặt trước (khách hẹn giờ)
+                    bool isWalkIn = donHangDto.ThoiGianNhanBan.HasValue;
+                    DateTime? thoiGianNhanBanThucTe = isWalkIn 
+                        ? NormalizeToLocal(donHangDto.ThoiGianNhanBan.Value) 
+                        : null;
+
                     var newDonHang = new DonHang
                     {
                         MaDonHang = maDonHangMoi,
@@ -190,14 +218,20 @@ namespace QuanLyNhaHang.Controllers
                         // 1. Thời gian tạo đơn: NGAY BÂY GIỜ
                         ThoiGianDatHang = DateTime.Now,
 
-                        // 2. Thời gian khách hẹn: Giờ nhân viên chọn
+                        // 2. Thời gian khách hẹn: Giờ nhân viên chọn (từ DateTimePicker)
                         TgdatDuKien = gioHenKhachDen,
 
-                        // 3. Thời gian thực tế khách vào: CHƯA CÓ (NULL)
-                        TGNhanBan = null,
+                        // 3. Thời gian thực tế khách vào:
+                        // - Walk-in: Set ngay khi tạo đơn
+                        // - Đặt trước: NULL (sẽ set khi check-in ở CHO_THANH_TOAN)
+                        TGNhanBan = thoiGianNhanBanThucTe,
 
-                        // 4. Giữ slot bàn trong 2 tiếng kể từ giờ hẹn
-                        ThoiGianKetThuc = duKienKetThuc,
+                        // 4. Thời gian kết thúc:
+                        // - Walk-in: Tính từ giờ nhận bàn thực tế
+                        // - Đặt trước: Tính từ giờ hẹn
+                        ThoiGianKetThuc = isWalkIn && thoiGianNhanBanThucTe.HasValue
+                            ? thoiGianNhanBanThucTe.Value.AddMinutes(120)
+                            : duKienKetThuc,
 
                         // Nhân viên tạo thì auto Xác nhận
                         MaTrangThaiDonHang = "CHO_XAC_NHAN",
@@ -205,7 +239,7 @@ namespace QuanLyNhaHang.Controllers
                         SoLuongNguoiDK = donHangDto.SoLuongNguoi,
                         GhiChu = donHangDto.GhiChu ?? "Nhân viên đặt trước",
                         ThanhToan = false,
-                        MaKhachHang = khachHang?.MaKhachHang,
+                        MaKhachHang = khachHang?.MaKhachHang ?? "KH_VANG_LAI", // Đảm bảo không null
                         MaNhanVien = maNhanVienHienTai,
 
                         // Tạo danh sách bàn
@@ -234,7 +268,7 @@ namespace QuanLyNhaHang.Controllers
 
                     // --- 7. TÍNH KHUYẾN MÃI TÍCH LŨY ---
                     bool duocGiamGia = false;
-                    if (khachHang.MaKhachHang != "KH_VANG_LAI")
+                    if (khachHang != null && khachHang.MaKhachHang != "KH_VANG_LAI")
                     {
                         DateTime ngayMoc = khachHang.NgayCuoiCungTichLuy ?? new DateTime(2000, 1, 1);
                         int soLanAnHienTai = await _context.DonHangs
@@ -323,22 +357,30 @@ namespace QuanLyNhaHang.Controllers
                 // =================================================================
                 // BƯỚC 2: KIỂM TRA TRÙNG LỊCH (Đã sửa query qua BanAnDonHangs)
                 // =================================================================
-                var thoiGianBatDauDuKien = datBanDto.ThoiGianDatHang;
-                var thoiGianKetThucDuKien = thoiGianBatDauDuKien.AddMinutes(120);
+                var thoiGianDatDuKien = NormalizeToLocal(datBanDto.ThoiGianDatHang);
+                // Với booking online, thời gian nhận bàn thực tế sẽ chỉ được set khi nhân viên check-in (CHO_THANH_TOAN)
+                var thoiGianKetThucDuKien = thoiGianDatDuKien.AddMinutes(120);
+
+                // SQL Server giới hạn datetime từ 1753-01-01, tránh dùng MinValue/MaxValue
+                var sqlMinDate = new DateTime(1753, 1, 1);
+                var sqlMaxDate = new DateTime(9999, 12, 31);
 
                 var bookingConflict = await _context.DonHangs
                     .Include(d => d.BanAnDonHangs)
                     .AnyAsync(dh =>
-                        // 1. Đơn hàng đang hoạt động
+                        // 1. Đơn hàng đang hoạt động (bao gồm đang phục vụ)
                         (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
                          dh.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
+                         dh.MaTrangThaiDonHang == "DANG_PHUC_VU" ||
                          dh.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
 
-                        dh.TGNhanBan != null &&
-
-                        // 2. Check va chạm thời gian (dựa trên giờ nhận bàn)
-                        (thoiGianBatDauDuKien < dh.TGNhanBan.Value.AddMinutes(120)) &&
-                        (thoiGianKetThucDuKien > dh.TGNhanBan.Value) &&
+                        // 2. Check va chạm thời gian
+                        // Sử dụng TGNhanBan nếu có (đã check-in), nếu không thì dùng TgdatDuKien (chưa check-in)
+                        // Thời gian kết thúc của đơn cũ: nếu có TGNhanBan thì TGNhanBan + 120 phút, nếu không thì ThoiGianKetThuc
+                        (thoiGianDatDuKien < (dh.TGNhanBan.HasValue 
+                            ? dh.TGNhanBan.Value.AddMinutes(120) 
+                            : (dh.ThoiGianKetThuc ?? dh.TgdatDuKien ?? sqlMaxDate))) &&
+                        (thoiGianKetThucDuKien > (dh.TGNhanBan ?? dh.TgdatDuKien ?? sqlMinDate)) &&
 
                         // 3. Check xem có bàn nào trùng trong bảng trung gian không
                         dh.BanAnDonHangs.Any(b => datBanDto.DanhSachMaBan.Contains(b.MaBan))
@@ -453,7 +495,11 @@ namespace QuanLyNhaHang.Controllers
                 string trangThaiBanDau = "CHO_XAC_NHAN";
 
                 // =================================================================
-                // BƯỚC 5: TẠO ĐƠN HÀNG & BẢNG TRUNG GIAN (Đã sửa logic)
+                // BƯỚC 5: TẠO ĐƠN HÀNG & BẢNG TRUNG GIAN
+                // LOGIC ĐẶT TRƯỚC (ONLINE BOOKING):
+                // - ThoiGianDatHang: Thời điểm khách gửi yêu cầu đặt bàn (DateTime.Now)
+                // - TgdatDuKien: Thời gian khách dự kiến đến (từ DateTimePicker)
+                // - TGNhanBan: NULL (chưa đến, sẽ set khi nhân viên check-in ở CHO_THANH_TOAN)
                 // =================================================================
 
                 string maDonHangMoi = "DH" + DateTime.Now.ToString("yyMMddHHmmss");
@@ -478,10 +524,15 @@ namespace QuanLyNhaHang.Controllers
 
                     MaTrangThaiDonHang = trangThaiBanDau,
 
+                    // LOGIC ĐẶT TRƯỚC: Lưu ngày đặt và ngày nhận bàn dự kiến
+                    // 1. Thời gian người dùng gửi yêu cầu đặt bàn (ngày đặt)
                     ThoiGianDatHang = DateTime.Now,
-                    TGNhanBan = datBanDto.ThoiGianDatHang,
-                    TgdatDuKien = datBanDto.ThoiGianDatHang,
-                    ThoiGianKetThuc = datBanDto.ThoiGianDatHang.AddMinutes(120),
+                    // 2. Giờ dự kiến khách đến (ngày nhận bàn - lấy từ DateTimePicker)
+                    TgdatDuKien = thoiGianDatDuKien,
+                    // 3. Thời gian nhận bàn thực tế: NULL (chưa đến, sẽ set khi nhân viên chuyển sang CHO_THANH_TOAN)
+                    TGNhanBan = null,
+                    // 4. Thời gian giữ bàn dự kiến: Tính từ giờ khách hẹn + 120 phút
+                    ThoiGianKetThuc = thoiGianKetThucDuKien,
 
                     SoLuongNguoiDK = datBanDto.SoLuongNguoi,
                     GhiChu = datBanDto.GhiChu,
@@ -564,12 +615,14 @@ namespace QuanLyNhaHang.Controllers
                             var emailService = HttpContext.RequestServices.GetService<Services.IEmailService>();
                             if (emailService != null)
                             {
+                                // Đặt trước (online): TGNhanBan luôn null, dùng TgdatDuKien (giờ hẹn)
+                                DateTime thoiGianHienThi = newDonHang.TgdatDuKien ?? DateTime.Now;
                                 _ = emailService.SendBookingConfirmationEmailAsync(
                                     emailNhanVe,
                                     khachHang?.HoTen ?? datBanDto.HoTenKhach,
                                     newDonHang.MaDonHang,
                                     tenCacBan,
-                                    newDonHang.TGNhanBan ?? DateTime.Now,
+                                    thoiGianHienThi,
                                     newDonHang.SoLuongNguoiDK,
                                     newDonHang.GhiChu
                                 );
@@ -822,8 +875,9 @@ namespace QuanLyNhaHang.Controllers
             {
                 case "CHO_THANH_TOAN": // Khách vào bàn (Đang phục vụ)
                     maTrangThaiBanMoi = "TTBA002"; // Đang có khách
-                   
-                    donHang.TGNhanBan = DateTime.Now;
+                    if (donHang.TGNhanBan == null) donHang.TGNhanBan = DateTime.Now;
+                    // Cập nhật lại thời gian kết thúc theo giờ nhận bàn thực tế
+                    donHang.ThoiGianKetThuc = donHang.TGNhanBan?.AddMinutes(120);
                     break;
 
                 case "DA_HOAN_THANH": // Thanh toán xong
