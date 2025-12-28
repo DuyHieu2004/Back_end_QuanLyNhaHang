@@ -491,35 +491,31 @@ namespace QuanLyNhaHang.Controllers
 
             var gioBatDauKhachChon = dateTime;
             var gioKetThucKhachChon = dateTime.AddMinutes(120);
+            var ngayChon = dateTime.Date;
 
-            // SỬA LỖI: Truy vấn BanAnDonHangs -> ChiTiet -> DonHang
-            // Xử lý cả trường hợp đơn đã check-in (TGNhanBan) và chưa check-in (TgdatDuKien)
-            var conflictingRecords = await _context.BanAnDonHangs
-                .Include(badh => badh.MaChiTietDonHangNavigation)
-                    .ThenInclude(ct => ct.MaDonHangNavigation)
-                .Where(badh =>
-                    (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
-                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
-                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "CHO_THANH_TOAN" ||
-                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "DANG_PHUC_VU") &&
+            // SỬA: Query trực tiếp từ DonHang.BanAnDonHangs (giống GetStatusByTime)
+            // OPTION A: Chỉ lấy đơn CÙNG NGÀY
+            var conflictingRecords = await _context.DonHangs
+                .Include(dh => dh.BanAnDonHangs)
+                .Where(dh =>
+                    (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
+                     dh.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
+                     dh.MaTrangThaiDonHang == "CHO_THANH_TOAN" ||
+                     dh.MaTrangThaiDonHang == "DANG_PHUC_VU") &&
 
-                    // Xác định thời gian bắt đầu: ưu tiên TGNhanBan (đã check-in), nếu không có thì dùng TgdatDuKien
-                    ((badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TGNhanBan != null) ||
-                     (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TgdatDuKien != null)) &&
+                    (dh.TGNhanBan != null ||
+                     dh.ThoiGianDatHang != null ||
+                     dh.TgdatDuKien != null) &&
 
-                    badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianKetThuc != null &&
-
-                    // Logic overlap: gioBatDau < thoiGianKetThuc && gioKetThuc > thoiGianBatDau
-                    (gioBatDauKhachChon < badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianKetThuc) &&
-                    (gioKetThucKhachChon > (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TGNhanBan ?? 
-                                            badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TgdatDuKien ?? 
-                                            badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang).Value)
+                    // OPTION A: Chỉ lấy đơn CÙNG NGÀY
+                    ((dh.TGNhanBan.HasValue && dh.TGNhanBan.Value.Date == ngayChon) ||
+                     (!dh.TGNhanBan.HasValue && dh.TgdatDuKien.HasValue && dh.TgdatDuKien.Value.Date == ngayChon))
                 )
-                .Select(badh => new
+                .SelectMany(dh => dh.BanAnDonHangs.Select(badh => new
                 {
                     MaBan = badh.MaBan,
-                    MaKhachHang = badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaKhachHang
-                })
+                    MaKhachHang = dh.MaKhachHang
+                }))
                 .ToListAsync();
 
             var banNguoiKhacDatIds = conflictingRecords.Where(r => r.MaKhachHang != maKhachHang).Select(r => r.MaBan).Distinct().ToList();
