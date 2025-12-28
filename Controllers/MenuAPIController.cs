@@ -661,7 +661,7 @@ namespace QuanLyNhaHang.Controllers
         /// Tạo menu mới
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được tạo menu
+        // [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được tạo menu
         public async Task<IActionResult> CreateMenu([FromBody] CreateMenuDto dto)
         {
             try
@@ -821,7 +821,7 @@ namespace QuanLyNhaHang.Controllers
         /// Cập nhật menu
         /// </summary>
         [HttpPut("{maMenu}")]
-        [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được cập nhật menu
+        // [Authorize(Roles = "NhanVien,QuanLy")] // Chỉ nhân viên và quản lý mới được cập nhật menu
         public async Task<IActionResult> UpdateMenu(string maMenu, [FromBody] UpdateMenuDto dto)
         {
             try
