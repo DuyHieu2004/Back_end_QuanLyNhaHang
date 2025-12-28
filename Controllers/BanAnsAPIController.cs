@@ -405,45 +405,31 @@ namespace QuanLyNhaHang.Controllers
             var gioKetThuc = dateTime.AddMinutes(120);
             var ngayChon = dateTime.Date;
 
-            // SỬA LỖI: Đi từ BanAnDonHang -> ChiTiet -> DonHang
-            // Xử lý cả trường hợp đơn đã check-in (TGNhanBan) và chưa check-in (TgdatDuKien)
-            var conflictingBookingData = await _context.BanAnDonHangs
-                .Include(badh => badh.MaChiTietDonHangNavigation)
-                    .ThenInclude(ct => ct.MaDonHangNavigation)
-                .Where(badh =>
-                    (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
-                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
-                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "CHO_THANH_TOAN" ||
-                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaTrangThaiDonHang == "DANG_PHUC_VU") &&
+            // SỬA: Query trực tiếp từ DonHang.BanAnDonHangs (giống GetManagerTableStatus)
+            // OPTION A: Chỉ lấy đơn CÙNG NGÀY với datetime đã chọn
+            var conflictingBookingData = await _context.DonHangs
+                .Include(dh => dh.BanAnDonHangs)
+                .Where(dh =>
+                    // Check trạng thái đơn
+                    (dh.MaTrangThaiDonHang == "CHO_XAC_NHAN" ||
+                     dh.MaTrangThaiDonHang == "DA_XAC_NHAN" ||
+                     dh.MaTrangThaiDonHang == "DANG_PHUC_VU" ||
+                     dh.MaTrangThaiDonHang == "CHO_THANH_TOAN") &&
 
-                    // Có ít nhất một mốc thời gian bắt đầu
-                    (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TGNhanBan != null ||
-                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TgdatDuKien != null ||
-                     badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang != null) &&
+                    // Có ít nhất một mốc thời gian
+                    (dh.TGNhanBan != null ||
+                     dh.ThoiGianDatHang != null ||
+                     dh.TgdatDuKien != null) &&
 
-                    badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianKetThuc != null &&
-
-                    // Logic overlap: gioBatDau < thoiGianKetThuc && gioKetThuc > thoiGianBatDau
-                    (gioBatDau < (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianKetThuc ?? sqlMaxDate)) &&
-                    (gioKetThuc > (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TGNhanBan ??
-                                   badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TgdatDuKien ??
-                                   badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang ??
-                                   sqlMinDate)) &&
-
-                    // Chỉ xét các đơn cùng ngày người dùng chọn
-                    EF.Functions.DateDiffDay(
-                        ngayChon,
-                        (badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TGNhanBan ??
-                         badh.MaChiTietDonHangNavigation.MaDonHangNavigation.TgdatDuKien ??
-                         badh.MaChiTietDonHangNavigation.MaDonHangNavigation.ThoiGianDatHang ??
-                         sqlMinDate)
-                    ) == 0
+                    // OPTION A: Chỉ lấy đơn CÙNG NGÀY
+                    ((dh.TGNhanBan.HasValue && dh.TGNhanBan.Value.Date == ngayChon) ||
+                     (!dh.TGNhanBan.HasValue && dh.TgdatDuKien.HasValue && dh.TgdatDuKien.Value.Date == ngayChon))
                 )
-                .Select(badh => new
+                .SelectMany(dh => dh.BanAnDonHangs.Select(badh => new
                 {
                     MaBan = badh.MaBan,
-                    MaKhachHang = badh.MaChiTietDonHangNavigation.MaDonHangNavigation.MaKhachHang
-                })
+                    MaKhachHang = dh.MaKhachHang
+                }))
                 .ToListAsync();
 
             var allTables = await _context.BanAns
@@ -488,7 +474,9 @@ namespace QuanLyNhaHang.Controllers
                     tenTang = tenTang ?? string.Empty,
                     tenTrangThai = trangThaiHienThi
                 };
-            }).ToList();
+            })
+            .Where(b => b.tenTrangThai == "Đang trống")  // ← CHỈ trả bàn TRỐNG cho khách
+            .ToList();
 
             return Ok(result);
         }
